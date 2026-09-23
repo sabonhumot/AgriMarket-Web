@@ -1,0 +1,223 @@
+import type { ActivityEntry, ListingCase, OrganizationRecord, ReviewItem, SecurityEvent, UserRecord } from './types'
+
+export const demoDataLabel = 'Demo data — local prototype only'
+
+export const reviewItems: ReviewItem[] = [
+  {
+    id: 'review-1',
+    type: 'Listing report',
+    title: 'Duplicate bok choy listing',
+    subject: 'Cebu Fresh Cooperative',
+    status: 'needs-review',
+    priority: 'high',
+    createdLabel: '18 minutes ago',
+    details: 'A buyer flagged two listings with matching harvest details and location.',
+  },
+  {
+    id: 'review-2',
+    type: 'Organization approval',
+    title: 'New farmer group application',
+    subject: 'Buhisan Growers Circle',
+    status: 'needs-review',
+    priority: 'medium',
+    createdLabel: '42 minutes ago',
+    details: 'Review membership document and contact details before approving the organization.',
+  },
+  {
+    id: 'review-3',
+    type: 'User verification',
+    title: 'Identity check requires a clearer document',
+    subject: 'Mariel Dela Cruz',
+    status: 'investigating',
+    priority: 'medium',
+    createdLabel: 'Today, 10:30 AM',
+    details: 'The uploaded proof of identity is partially obscured and needs a follow-up.',
+  },
+  {
+    id: 'review-4',
+    type: 'Security alert',
+    title: 'Repeated sign-in attempts',
+    subject: 'Account ending in 4821',
+    status: 'investigating',
+    priority: 'high',
+    createdLabel: 'Today, 9:50 AM',
+    details: 'Several unsuccessful attempts came from an unfamiliar device fingerprint.',
+  },
+  {
+    id: 'review-5',
+    type: 'Access request',
+    title: 'Organization manager access review',
+    subject: 'Mandaue Market Link',
+    status: 'resolved',
+    priority: 'low',
+    createdLabel: 'Yesterday',
+    details: 'Access request was reviewed and recorded in this local prototype.',
+  },
+  {
+    id: 'review-6',
+    type: 'Listing report',
+    title: 'Harvest availability appears outdated',
+    subject: 'Liloan Vegetable Network',
+    status: 'resolved',
+    priority: 'low',
+    createdLabel: 'Yesterday',
+    details: 'The listing owner was notified in the demo scenario to refresh availability.',
+  },
+]
+
+export const listingCases: ListingCase[] = [
+  {
+    reportId: 'review-1',
+    status: 'needs-review',
+    outcome: null,
+    visibility: 'Visible',
+    listingTitle: 'Fresh Bok Choy Bundle',
+    farmer: 'Cebu Fresh Cooperative',
+    location: 'Cebu City',
+    price: '₱45 / bundle',
+    availability: '24 bundles listed',
+    reportedBy: 'Buyer report',
+    reportReason: 'A buyer flagged two listings with matching harvest details and location.',
+    evidence: [
+      'Matching pickup location',
+      'Reporter says another listing has matching harvest details and pickup location.',
+      'Related listing named “Bok Choy Bundle” in Cebu City.',
+    ],
+    relatedHistory: ['No earlier reports recorded for this demo listing.'],
+    events: [],
+  },
+  {
+    reportId: 'review-2',
+    status: 'needs-review',
+    outcome: null,
+    visibility: 'Visible',
+    listingTitle: 'New farmer group application',
+    farmer: 'Buhisan Growers Circle',
+    location: 'Buhisan, Cebu City',
+    price: 'Cooperative Registration',
+    availability: '14 member farmers',
+    reportedBy: 'System verification',
+    reportReason: 'Review membership document and contact details before approving the organization.',
+    evidence: [
+      'Submitted Certificate of Registration doc_brgy_2026.pdf',
+      'Registered farm land area: 3.5 hectares across 14 plots',
+      'Primary contact: Liza Mercado (verified email)',
+    ],
+    relatedHistory: ['Initial organization profile created 42 minutes ago.'],
+    events: [],
+  },
+  {
+    reportId: 'review-3',
+    status: 'investigating',
+    outcome: null,
+    visibility: 'Visible',
+    listingTitle: 'Identity check requires a clearer document',
+    farmer: 'Mariel Dela Cruz',
+    location: 'Dalaguete, Cebu',
+    price: 'Farmer Tier Verification',
+    availability: 'Cabbage & Carrot Producer',
+    reportedBy: 'Automated KYC check',
+    reportReason: 'The uploaded proof of identity is partially obscured and needs a follow-up.',
+    evidence: [
+      'Uploaded ID scan has glare over national ID card number.',
+      'Facial selfie match confidence: 84% (threshold is 90%).',
+      'Farm parcel photos provided for Dalaguete Highland plot.',
+    ],
+    relatedHistory: ['Account created yesterday.', 'Automated scan triggered manual agent queue.'],
+    events: [
+      { id: 'review-3-event-1', action: 'start-review', reason: 'Assigned to admin for manual document clarity inspection.', at: '2026-09-23T02:30:00.000Z' },
+    ],
+  },
+  {
+    reportId: 'review-4',
+    status: 'investigating',
+    outcome: null,
+    visibility: 'Visible',
+    listingTitle: 'Repeated sign-in attempts',
+    farmer: 'Account ending in 4821',
+    location: 'Unknown IP / Mandaue City',
+    price: 'Security Incident',
+    availability: '6 failed attempts',
+    reportedBy: 'Security Bot',
+    reportReason: 'Several unsuccessful attempts came from an unfamiliar device fingerprint.',
+    evidence: [
+      '6 incorrect password attempts within 3 minutes from IP 112.198.xxx.xxx',
+      'Device user-agent: Chrome Linux (User standard is Mobile Android)',
+      'Temporary rate-limit applied to sign-in endpoint.',
+    ],
+    relatedHistory: ['No previous security flags on this user account.'],
+    events: [
+      { id: 'review-4-event-1', action: 'start-review', reason: 'Investigating potential brute force attempt on account.', at: '2026-09-23T01:50:00.000Z' },
+    ],
+  },
+  {
+    reportId: 'review-5',
+    status: 'resolved',
+    outcome: 'keep',
+    visibility: 'Visible',
+    listingTitle: 'Organization manager access review',
+    farmer: 'Mandaue Market Link',
+    location: 'Mandaue City',
+    price: 'Access Privilege Role',
+    availability: 'Association Management',
+    reportedBy: 'Access Control',
+    reportReason: 'Access request was reviewed and recorded in this local prototype.',
+    evidence: [
+      'Board resolution letter signed by 3 trustees submitted.',
+      'Confirmed identity of designated manager Aileen Ramos.',
+      'Role elevated to Organization Manager.',
+    ],
+    relatedHistory: ['Access granted following trustee phone confirmation.'],
+    events: [
+      { id: 'review-5-event-1', action: 'start-review', reason: 'Reviewing credential authorization request.', at: '2026-09-22T03:00:00.000Z' },
+      { id: 'review-5-event-2', action: 'keep', reason: 'Trustee authorization documents confirmed valid.', at: '2026-09-22T05:15:00.000Z' },
+    ],
+  },
+  {
+    reportId: 'review-6',
+    status: 'resolved',
+    outcome: 'keep',
+    visibility: 'Visible',
+    listingTitle: 'Liloan Vegetable Box',
+    farmer: 'Liloan Vegetable Network',
+    location: 'Liloan',
+    price: '₱120 / box',
+    availability: 'Availability refreshed',
+    reportedBy: 'Buyer report',
+    reportReason: 'A buyer reported that the displayed harvest availability appeared outdated.',
+    evidence: [
+      'Reporter says the displayed quantity did not match the farmer’s response.',
+      'Harvest batch dated 3 days ago had zero remaining stock.',
+    ],
+    relatedHistory: ['The listing owner refreshed availability in this demo scenario.'],
+    events: [
+      { id: 'review-6-demo-resolution', action: 'keep', reason: 'Availability was refreshed in the demo scenario.', at: '2026-09-22T08:00:00.000Z' },
+    ],
+  },
+]
+
+export const users: UserRecord[] = [
+  { id: 'user-1', name: 'Mariel Dela Cruz', email: 'mariel@example.test', role: 'Farmer', status: 'Needs verification', lastActive: 'Today, 10:30 AM' },
+  { id: 'user-2', name: 'Jonas Lim', email: 'jonas@example.test', role: 'Buyer', status: 'Active', lastActive: 'Today, 9:45 AM' },
+  { id: 'user-3', name: 'Aileen Ramos', email: 'aileen@example.test', role: 'Organization manager', status: 'Active', lastActive: 'Yesterday' },
+  { id: 'user-4', name: 'Rico Santos', email: 'rico@example.test', role: 'Buyer', status: 'Restricted', lastActive: 'Sep 19' },
+]
+
+export const organizations: OrganizationRecord[] = [
+  { id: 'org-1', name: 'Buhisan Growers Circle', owner: 'Liza Mercado', type: 'Farm cooperative', status: 'Pending review', submitted: '42 minutes ago', location: 'Cebu City', contactEmail: 'liza@example.test', applicationSummary: 'A group of local vegetable growers seeking to list seasonal harvests.', documents: ['Membership document', 'Group profile'] },
+  { id: 'org-2', name: 'Cebu Fresh Cooperative', owner: 'Nestor Yap', type: 'Farm cooperative', status: 'Approved', submitted: 'Sep 18', location: 'Cebu City', contactEmail: 'nestor@example.test', applicationSummary: 'A cooperative connecting nearby farmers with local buyers.', documents: ['Cooperative profile'] },
+  { id: 'org-3', name: 'Mandaue Market Link', owner: 'Aileen Ramos', type: 'Market association', status: 'Needs details', submitted: 'Sep 17', location: 'Mandaue City', contactEmail: 'aileen@example.test', applicationSummary: 'A market association coordinating produce from member growers.', documents: ['Association profile'] },
+]
+
+export const securityEvents: SecurityEvent[] = [
+  { id: 'security-1', title: 'Repeated sign-in attempts', subject: 'Account ending in 4821', type: 'Sign-in activity', severity: 'High', createdLabel: 'Today, 9:50 AM', details: 'Unsuccessful sign-ins from an unfamiliar device fingerprint.' },
+  { id: 'security-2', title: 'Role updated for organization manager', subject: 'Aileen Ramos', type: 'Access change', severity: 'Medium', createdLabel: 'Yesterday', details: 'Role change recorded for local demo review.' },
+  { id: 'security-3', title: 'Password reset completed', subject: 'Jonas Lim', type: 'Account recovery', severity: 'Low', createdLabel: 'Sep 19', details: 'Standard recovery event recorded in the demo activity stream.' },
+]
+
+export const activityEntries: ActivityEntry[] = [
+  { id: 'activity-2', title: 'Listing report submitted', subject: 'Cebu Fresh Cooperative', type: 'Moderation', createdLabel: '18 minutes ago' },
+  { id: 'activity-1', title: 'Organization application received', subject: 'Buhisan Growers Circle', type: 'Organization', createdLabel: '42 minutes ago' },
+  { id: 'activity-3', title: 'User verification requested', subject: 'Mariel Dela Cruz', type: 'Users', createdLabel: 'Today, 10:30 AM' },
+  { id: 'activity-4', title: 'Access role updated', subject: 'Aileen Ramos', type: 'Security', createdLabel: 'Yesterday' },
+]

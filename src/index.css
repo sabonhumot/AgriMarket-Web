@@ -1,0 +1,29 @@
+:root {
+  --ink: #15372a;
+  --ink-muted: #587167;
+  --leaf: #1b6b43;
+  --leaf-dark: #10452b;
+  --cream: #f8faf9;
+  --mist: #e7f0ea;
+  --sun: #f2bc5b;
+  --coral: #e97851;
+  --line: rgba(21, 55, 42, .14);
+  --ease: cubic-bezier(.2,.8,.2,1);
+  font-family: ui-rounded, "Avenir Next", "Trebuchet MS", system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--cream);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+html { scroll-behavior: smooth; }
+body { margin: 0; min-width: 320px; background: var(--cream); }
+a:focus-visible, button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--coral); outline-offset: 4px; }
+button { font: inherit; cursor: pointer; }
+
+::selection { background: var(--leaf-dark); color: #fff; }
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-thumb { background: #7f9e8b; border: 3px solid var(--cream); border-radius: 999px; }
+::-webkit-scrollbar-track { background: var(--cream); }
+
+ 

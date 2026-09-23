@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 54" fill="none" preserveAspectRatio="xMidYMid meet">
+  <!-- Bok Choy Mascot -->
+  <g transform="translate(4, 2) scale(0.24)">
+    <!-- Back leaves -->
+    <path fill="#48BB78" d="M78 40 C60 10, 120 0, 105 40 Z" />
+    <path fill="#38A169" d="M50 55 C30 20, 80 15, 75 55 Z" />
+    <path fill="#38A169" d="M135 55 C155 20, 105 15, 110 55 Z" />
+    <path fill="#2F855A" d="M35 75 C10 45, 60 40, 60 75 Z" />
+    <path fill="#2F855A" d="M150 75 C175 45, 125 40, 125 75 Z" />
+    
+    <!-- Front leaf accents -->
+    <path fill="#68D391" d="M75 50 C65 25, 110 20, 100 50 Z" />
+    <path fill="#48BB78" d="M55 65 C40 35, 80 35, 75 65 Z" />
+    <path fill="#48BB78" d="M130 65 C145 35, 105 35, 110 65 Z" />
+    
+    <!-- Leaf veins -->
+    <path stroke="#9AE6B4" stroke-width="2.5" stroke-linecap="round" d="M92 48 L92 80 M92 60 L78 50 M92 65 L106 52" />
+    <path stroke="#68D391" stroke-width="2" stroke-linecap="round" d="M68 62 L60 85 M66 70 L52 64" />
+    <path stroke="#68D391" stroke-width="2" stroke-linecap="round" d="M116 62 L124 85 M118 70 L132 64" />
+
+    <!-- Stalk Base (White/Cream) -->
+    <path fill="#F7FAFC" stroke="#CBD5E0" stroke-width="3" d="M48 85 C45 125, 55 155, 92 155 C129 155, 139 125, 136 85 C120 92, 64 92, 48 85 Z" />
+    <path fill="#EDF2F7" d="M60 88 C58 118, 68 145, 92 148 C116 145, 126 118, 124 88 C112 94, 72 94, 60 88 Z" />
+    <path fill="#FEFCBF" opacity="0.6" d="M75 95 C72 120, 80 140, 92 142 C104 140, 112 120, 109 95 C100 97, 84 97, 75 95 Z" />
+
+    <!-- Rosy Cheeks -->
+    <ellipse cx="66" cy="122" rx="7" ry="4.5" fill="#FEB2B2" opacity="0.85" />
+    <ellipse cx="118" cy="122" rx="7" ry="4.5" fill="#FEB2B2" opacity="0.85" />
+
+    <!-- Eyes (Happy/Cute) -->
+    <ellipse cx="74" cy="114" rx="4" ry="5.5" fill="#1A202C" />
+    <circle cx="72.5" cy="112" r="1.8" fill="#FFFFFF" />
+    <ellipse cx="110" cy="114" rx="4" ry="5.5" fill="#1A202C" />
+    <circle cx="108.5" cy="112" r="1.8" fill="#FFFFFF" />
+
+    <!-- Smile -->
+    <path d="M84 122 Q92 131 100 122" fill="none" stroke="#1A202C" stroke-width="3" stroke-linecap="round" />
+    <path d="M87 124 Q92 131 97 124" fill="#E53E3E" opacity="0.7" />
+  </g>
+
+  <!-- Typography -->
+  <g transform="translate(56, 36)">
+    <!-- "Agri" in crisp white -->
+    <text font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="27" font-weight="800" fill="#FFFFFF" letter-spacing="-0.5">Agri</text>
+    <!-- "Market" in golden yellow -->
+    <text x="56" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="27" font-weight="800" fill="#F2BD54" letter-spacing="-0.5">Market</text>
+  </g>
+</svg>
