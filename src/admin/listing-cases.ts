@@ -1,4 +1,5 @@
 import type { ActivityEntry, ListingCase, ListingCaseAction, ListingCaseEvent, ReviewStatus } from './types'
+import { reviewItems } from './demo-data'
 
 type CaseStorage = Pick<Storage, 'getItem' | 'setItem'>
 const storageKey = 'agrimarket-admin-listing-cases-v1'
@@ -91,13 +92,22 @@ export function saveListingCases(storage: CaseStorage | null, cases: ListingCase
 }
 
 export function listingCaseActivityEntries(cases: ListingCase[]): ActivityEntry[] {
-  return cases.flatMap((item) => item.events.map((event) => ({
-    id: event.id,
-    title: titles[event.action],
-    subject: item.listingTitle || item.reportId,
-    type: 'Moderation',
-    createdLabel: new Date(event.at).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' }),
-    dateTime: event.at,
-    details: event.reason,
-  }))).sort((a, b) => (b.dateTime || '').localeCompare(a.dateTime || ''))
+  return cases.flatMap((item) => {
+    const review = reviewItems.find((entry) => entry.id === item.reportId)
+    const isListing = !review || review.type === 'Listing report'
+    const generalTitles: Record<ListingCaseAction, string> = {
+      'start-review': 'Review started', note: 'Case note added',
+      'request-correction': 'More information requested', keep: 'Review closed',
+      hide: 'Review closed', remove: 'Review closed', reopen: 'Review resumed',
+    }
+    return item.events.map((event) => ({
+      id: event.id,
+      title: isListing ? titles[event.action] : generalTitles[event.action],
+      subject: isListing ? item.listingTitle || item.reportId : review.subject,
+      type: 'Moderation',
+      createdLabel: new Date(event.at).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' }),
+      dateTime: event.at,
+      details: event.reason,
+    }))
+  }).sort((a, b) => (b.dateTime || '').localeCompare(a.dateTime || ''))
 }

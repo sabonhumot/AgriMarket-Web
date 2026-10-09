@@ -41,6 +41,11 @@ async function renderApp(initialPath) {
   return renderToStaticMarkup(createElement(App, { initialPath }))
 }
 
+async function renderWorkspace() {
+  const { default: AdminWorkspace } = await server.ssrLoadModule('/src/admin/AdminWorkspace.tsx')
+  return renderToStaticMarkup(createElement(AdminWorkspace))
+}
+
 test('keeps the public landing page at the root path', async () => {
   const html = await renderApp('/')
 
@@ -48,33 +53,31 @@ test('keeps the public landing page at the root path', async () => {
   assert.doesNotMatch(html, /Platform overview/)
 })
 
-test('renders the administrator workspace only at /admin', async () => {
+test('gates the administrator workspace at /admin', async () => {
   const html = await renderApp('/admin')
 
-  assert.match(html, /Platform overview/)
-  assert.match(html, /Demo data — local prototype only/)
+  assert.match(html, /Checking administrator access/)
+  assert.doesNotMatch(html, /Platform overview/)
   assert.doesNotMatch(html, /Find local harvests\./)
 })
 
-test('renders labelled admin navigation and the three review states', async () => {
-  const html = await renderApp('/admin')
+test('renders live admin navigation while data is loading', async () => {
+  const html = await renderWorkspace()
 
   assert.match(html, /aria-label="Administrator navigation"/)
   assert.match(html, /Users/)
-  assert.match(html, /Organizations/)
-  assert.match(html, /Moderation/)
+  assert.match(html, /Applications/)
+  assert.match(html, /Reports/)
   assert.match(html, /Security &amp; access/)
-  assert.match(html, /Needs review/)
-  assert.match(html, /Investigating/)
-  assert.match(html, /Resolved/)
-  assert.match(html, /Search review queue/)
+  assert.match(html, /Loading database records/)
+  assert.doesNotMatch(html, /Demo data|Buhisan Growers Circle|1,248/)
 })
 
-test('keeps recent activity and security signals visible on the platform overview', async () => {
-  const html = await renderApp('/admin')
+test('does not show cached demo activity before the database responds', async () => {
+  const html = await renderWorkspace()
 
-  assert.match(html, /Security snapshot/)
-  assert.match(html, /Recent activity/)
+  assert.doesNotMatch(html, /Repeated sign-in attempts|Cebu Fresh Cooperative/)
+  assert.match(html, /Refresh data/)
 })
 
 test('renders focused user, organization, security, and activity views without event management', async () => {
@@ -149,10 +152,34 @@ test('shows listing evidence, actions, and case history in the case detail', asy
   assert.match(html, /Reason for action/)
 })
 
-test('uses a native mobile status selector and prevents closed-drawer focus leaks', () => {
+test('shows case-specific facts and actions for non-listing reviews', async () => {
+  const { default: GeneralReviewCaseDetail } = await server.ssrLoadModule('/src/admin/components/GeneralReviewCaseDetail.tsx')
+  const { reviewItems, listingCases } = await server.ssrLoadModule('/src/admin/demo-data.ts')
+  const expectations = [
+    ['review-2', 'Application documents and checks', 'Request application details', 'Applicant organization'],
+    ['review-3', 'Identity check evidence', 'Request a clearer document', 'Verification tier'],
+    ['review-4', 'Security signals', 'Request security follow-up', 'Sign-in origin'],
+    ['review-5', 'Authorization evidence', 'Request authorization details', 'Requested role'],
+  ]
+
+  for (const [id, evidence, action, fact] of expectations) {
+    const reviewCase = listingCases.find((entry) => entry.reportId === id)
+    const html = renderToStaticMarkup(createElement(GeneralReviewCaseDetail, {
+      item: reviewItems.find((entry) => entry.id === id),
+      reviewCase: { ...reviewCase, status: 'investigating' },
+      onAction: () => {}, onClose: () => {},
+    }))
+    assert.match(html, new RegExp(evidence))
+    assert.match(html, new RegExp(action))
+    assert.match(html, new RegExp(fact))
+    assert.doesNotMatch(html, /Hide listing|Remove listing|Keep listing/)
+  }
+})
+
+test('provides responsive admin navigation and prevents closed-drawer focus leaks', () => {
   assert.match(boardSource, /Show review status/)
   assert.doesNotMatch(boardSource, /role="tab"/)
-  assert.match(adminCss, /admin-sidebar:not\(\.is-open\).*visibility:hidden/s)
-  assert.match(adminCss, /\.review-card select\{[^}]*min-height:44px/s)
-  assert.match(adminCss, /@media \(max-width:1180px\)/)
+  assert.match(adminCss, /\.admin-sidebar:not\(\.is-open\)\s*\{\s*visibility:\s*hidden;/)
+  assert.match(adminCss, /\.admin-menu-button\s*\{[^}]*display:\s*inline-flex;/s)
+  assert.match(adminCss, /@media \(max-width: 960px\)/)
 })

@@ -6,7 +6,7 @@ import farmerDashboardScreen from './assets/farmer-dashboard.jpg'
 import marketPageScreen from './assets/market-page.jpg'
 import messagesScreen from './assets/messages.jpg'
 import reservationSuccessScreen from './assets/reservation-success.jpg'
-import AdminWorkspace from './admin/AdminWorkspace'
+import AdminRoute from './admin/AdminRoute'
 import './App.css'
 
 type StoryId = 'market' | 'details' | 'reserve' | 'guidance'
@@ -384,7 +384,7 @@ function currentPathname() {
 export default function App({ initialPath }: { initialPath?: string }) {
   const path = initialPath ?? currentPathname()
 
-  if (path === '/admin') return <AdminWorkspace />
+  if (path === '/admin') return <AdminRoute />
 
   return <LandingPage />
 }

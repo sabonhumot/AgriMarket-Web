@@ -1,0 +1,38 @@
+.activity-log { border: 1px solid var(--admin-line); border-radius: 14px; background: var(--admin-panel); overflow: hidden; }
+.activity-log-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 22px 24px; border-bottom: 1px solid var(--admin-line); }
+.activity-log-heading h2 { margin: 0; font-size: var(--admin-type-section); font-weight: 600; color: var(--admin-ink); line-height: 1.35; }
+.activity-log-heading p { margin: 5px 0 0; color: var(--admin-muted); font-size: var(--admin-type-meta); }
+.activity-log-heading > span { color: var(--admin-muted); font-size: var(--admin-type-meta); white-space: nowrap; }
+.activity-log-heading > span strong { color: var(--admin-ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.activity-log-groups { padding: 4px 24px 20px; }
+.activity-day { --activity-avatar-size: 34px; --activity-row-inline: 12px; --activity-row-block: 14px; display: grid; grid-template-columns: 10.5rem minmax(0,1fr); gap: 16px; padding-top: 24px; }
+.activity-day > h3 { position: sticky; top: 8px; align-self: start; display: flex; align-items: center; gap: 8px; margin: var(--activity-row-block) 0 0; line-height: 21px; color: var(--admin-muted); font-size: var(--admin-type-meta); font-weight: 500; white-space: nowrap; }
+.activity-day > h3 span { display: grid; place-items: center; min-width: 21px; height: 21px; padding: 0 5px; border-radius: 5px; background: var(--admin-panel-subtle); font-size: var(--admin-type-badge); font-variant-numeric: tabular-nums; }
+.activity-day ol { list-style: none; padding: 0; margin: 0; }
+.activity-day li { position: relative; }
+/* Connect avatar centers; shared dimensions also cover wrapped rows and mobile. */
+.activity-day li:not(:last-child)::before { content: ""; position: absolute; top: calc(var(--activity-row-block) + var(--activity-avatar-size) / 2); bottom: calc(-1 * (var(--activity-row-block) + var(--activity-avatar-size) / 2)); left: calc(var(--activity-row-inline) + var(--activity-avatar-size) / 2); width: 1px; transform: translateX(-50%); background: var(--admin-line); pointer-events: none; }
+.activity-entry { position: relative; z-index: 1; display: flex; align-items: flex-start; gap: 14px; padding: var(--activity-row-block) var(--activity-row-inline); min-height: 78px; border-radius: 9px; transition: background-color 150ms ease; }
+.activity-actor-avatar { display: grid; place-items: center; width: var(--activity-avatar-size); height: var(--activity-avatar-size); box-sizing: border-box; flex-shrink: 0; border: 3px solid var(--admin-panel); border-radius: 50%; background: var(--admin-primary-light); color: var(--admin-primary); font-size: var(--admin-type-badge); font-weight: 600; }
+.activity-entry-content { flex: 1; min-width: 0; }
+.activity-action { display: flex; align-items: baseline; flex-wrap: wrap; gap: 5px; margin: 0; font-size: var(--admin-type-data); line-height: 1.5; }
+.activity-action strong { font-weight: 600; color: var(--admin-ink); overflow-wrap: anywhere; }
+.activity-action > span { color: var(--admin-muted); }
+.activity-entry-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; margin-top: 5px; }
+.activity-target { color: var(--admin-muted); font-size: var(--admin-type-meta); }
+.activity-entry-meta time { color: var(--admin-muted); font-size: var(--admin-type-meta); font-variant-numeric: tabular-nums; }
+.activity-inspect { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; flex-shrink: 0; padding: 6px 9px; border: 0; border-radius: 6px; background: transparent; color: var(--admin-muted); font: 500 var(--admin-type-meta)/1.5 var(--font-admin); cursor: pointer; }
+.activity-empty { display: flex; flex-direction: column; align-items: center; padding: 64px 24px; text-align: center; }
+.activity-empty > span { display: grid; place-items: center; width: 46px; height: 46px; margin-bottom: 15px; border-radius: 12px; background: var(--admin-primary-subtle); color: var(--admin-primary); }
+.activity-empty h3 { margin: 0; color: var(--admin-ink); font-size: var(--admin-type-section); font-weight: 600; }
+.activity-empty p { margin: 7px 0 0; max-width: 340px; color: var(--admin-muted); font-size: var(--admin-type-body); line-height: 1.6; }
+.activity-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 15px 24px; border-top: 1px solid var(--admin-line); color: var(--admin-muted); font-size: var(--admin-type-meta); font-variant-numeric: tabular-nums; }
+.activity-pagination > div { display: flex; align-items: center; gap: 12px; }
+.activity-page-number { min-width: 86px; color: var(--admin-ink); font-weight: 600; text-align: center; }
+.activity-pagination button { min-height: 36px; padding: 6px 11px; border: 1px solid var(--admin-line); border-radius: 7px; background: var(--admin-panel); color: var(--admin-primary); font: 500 var(--admin-type-meta)/1.5 var(--font-admin); cursor: pointer; }
+.activity-pagination button:disabled { opacity: .45; cursor: default; }
+.activity-log button:focus-visible { outline: 2px solid var(--admin-primary); outline-offset: 2px; }
+@media (hover:hover) and (pointer:fine) { .activity-entry:hover { background: var(--admin-panel-subtle); } .activity-inspect:hover { color: var(--admin-primary); background: var(--admin-primary-light); } .activity-pagination button:not(:disabled):hover { background: var(--admin-primary-subtle); } }
+@media (max-width:700px) { .activity-log-heading { padding: 20px 16px; } .activity-log-groups { padding: 0 16px 16px; } .activity-day { grid-template-columns: minmax(0,1fr); gap: 8px; padding-top: 20px; } .activity-day { --activity-row-inline: 4px; } .activity-day > h3 { position: static; margin-top: 0; } .activity-entry { gap: 9px; } .activity-inspect { width: 40px; justify-content: center; } .activity-inspect > span { display: none; } .activity-pagination { padding-inline: 16px; } }
+@media (max-width:400px) { .activity-day { --activity-avatar-size: 30px; } .activity-entry { gap: 7px; } .activity-entry-meta { gap: 4px 8px; } .activity-inspect { min-width: 40px; } }
+@media (prefers-reduced-motion:reduce) { .activity-log * { transition: none !important; } }

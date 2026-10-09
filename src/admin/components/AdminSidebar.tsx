@@ -1,21 +1,24 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import brandLogo from '../../assets/AgriMarket.svg'
 import type { AdminView } from '../types'
 
 const navigation: Array<{ id: AdminView; label: string; badge?: string; badgeVariant?: 'warning' | 'alert' | 'neutral' }> = [
-  { id: 'overview', label: 'Overview' },
+  { id: 'overview', label: 'Dashboard' },
   { id: 'users', label: 'Users' },
-  { id: 'organizations', label: 'Organizations', badge: '08', badgeVariant: 'warning' },
-  { id: 'moderation', label: 'Moderation', badge: '12', badgeVariant: 'alert' },
-  { id: 'security', label: 'Security & access', badge: '03', badgeVariant: 'warning' },
+  { id: 'organizations', label: 'Event Applications', badgeVariant: 'warning' },
+  { id: 'farmer-approvals', label: 'Farmer Approvals', badgeVariant: 'warning' },
+  { id: 'moderation', label: 'Reports', badgeVariant: 'alert' },
+  { id: 'security', label: 'Security & access' },
   { id: 'activity', label: 'Activity log' },
 ]
 
 type AdminSidebarProps = {
   activeView: AdminView
   onViewChange: (view: AdminView) => void
-  organizationCount?: number
-  moderationCount?: number
+  applicationCount?: number
+  farmerApprovalCount?: number
+  reportCount?: number
+  onSignOut?: () => void | Promise<void>
 }
 
 function NavigationIcon({ view }: { view: AdminView }) {
@@ -23,6 +26,7 @@ function NavigationIcon({ view }: { view: AdminView }) {
     overview: 'M3 3.5h7v7H3z M14 3.5h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z',
     users: 'M8.5 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z M2.5 20v-1.5a6 6 0 0 1 12 0V20z M17 4.5a3 3 0 0 1 0 6 M17 14a5 5 0 0 1 4.5 5v1',
     organizations: 'M3 20.5h18 M5 20V7l7-3 7 3v13 M9 10h1 M14 10h1 M9 14h1 M14 14h1 M11 20v-3h2v3',
+    'farmer-approvals': 'M12 3.5 20 7v5.2c0 4.1-2.6 7.3-8 9.3-5.4-2-8-5.2-8-9.3V7z M8.5 12.5l2.2 2.2 4.8-5',
     moderation: 'M12 3.5 20 7v5.2c0 4.1-2.6 7.3-8 9.3-5.4-2-8-5.2-8-9.3V7z M9 12.5l2 2 4-4',
     security: 'M7 10V7a5 5 0 0 1 10 0v3 M5 10h14v11H5z M12 14v3',
     activity: 'M4 4v5h5 M4.5 9a8 8 0 1 1-.2 6 M12 8v4l3 2',
@@ -44,13 +48,16 @@ function NavigationIcon({ view }: { view: AdminView }) {
   )
 }
 
-export default function AdminSidebar({ activeView, onViewChange, organizationCount, moderationCount }: AdminSidebarProps) {
+export default function AdminSidebar({ activeView, onViewChange, applicationCount, farmerApprovalCount, reportCount, onSignOut }: AdminSidebarProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const menuButton = useRef<HTMLButtonElement>(null)
+  const [signingOut, setSigningOut] = useState(false)
+  const [signOutError, setSignOutError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isOpen) return
     function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') setIsOpen(false)
+      if (event.key === 'Escape') { setIsOpen(false); menuButton.current?.focus() }
     }
     window.addEventListener('keydown', closeOnEscape)
     return () => window.removeEventListener('keydown', closeOnEscape)
@@ -64,6 +71,7 @@ export default function AdminSidebar({ activeView, onViewChange, organizationCou
   return (
     <>
       <button
+        ref={menuButton}
         className="admin-menu-button"
         type="button"
         aria-expanded={isOpen}
@@ -86,21 +94,17 @@ export default function AdminSidebar({ activeView, onViewChange, organizationCou
       <aside className={`admin-sidebar${isOpen ? ' is-open' : ''}`}>
         <div className="admin-sidebar-brand">
           <a href="/" className="admin-brand-link" aria-label="Return to AgriMarket public site">
-            <img src={brandLogo} alt="AgriMarket" className="admin-sidebar-logo" />
+            <img src={brandLogo} alt="AgriMarket" className="admin-sidebar-logo" width="666" height="375" />
           </a>
-          <div className="admin-workspace-tag">
-            <span className="admin-status-dot" aria-hidden="true" />
-            <p>Administrator workspace</p>
-          </div>
+          <p className="admin-workspace-label">Administrator workspace</p>
         </div>
 
         <nav id="administrator-navigation" aria-label="Administrator navigation">
-          <p className="admin-nav-heading">Workspace</p>
           <ul className="admin-nav-list">
             {navigation.map((item) => {
               const isActive = item.id === activeView
               return (
-                <li key={item.id}>
+                <li key={item.id} className={item.id === 'security' ? 'admin-nav-divider' : undefined}>
                   <button
                     className={`admin-nav-item${isActive ? ' is-active' : ''}`}
                     type="button"
@@ -109,13 +113,9 @@ export default function AdminSidebar({ activeView, onViewChange, organizationCou
                   >
                     <NavigationIcon view={item.id} />
                     <span className="admin-nav-label">{item.label}</span>
-                    {item.badge && (
+                    {((item.id === 'organizations' && (applicationCount ?? 0) > 0) || (item.id === 'farmer-approvals' && (farmerApprovalCount ?? 0) > 0) || (item.id === 'moderation' && (reportCount ?? 0) > 0)) && (
                       <span className={`admin-nav-badge admin-nav-badge-${item.badgeVariant || 'neutral'}`}>
-                        {item.id === 'organizations' && organizationCount !== undefined
-                          ? String(organizationCount).padStart(2, '0')
-                          : item.id === 'moderation' && moderationCount !== undefined
-                            ? String(moderationCount).padStart(2, '0')
-                            : item.badge}
+                        {Math.min(99, (item.id === 'organizations' ? applicationCount : item.id === 'farmer-approvals' ? farmerApprovalCount : reportCount) ?? 0)}{((item.id === 'organizations' ? applicationCount : item.id === 'farmer-approvals' ? farmerApprovalCount : reportCount) ?? 0) > 99 ? '+' : ''}
                       </span>
                     )}
                   </button>
@@ -128,14 +128,21 @@ export default function AdminSidebar({ activeView, onViewChange, organizationCou
         <div className="admin-sidebar-footer">
           <div className="admin-sidebar-profile">
             <div className="admin-profile-avatar-wrap">
-              <span className="admin-profile-avatar" aria-hidden="true">AM</span>
-              <span className="admin-avatar-status" aria-hidden="true" />
+              <span className="admin-profile-avatar" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="12" cy="8" r="3.5" /><path d="M5 21v-2a7 7 0 0 1 14 0v2" /></svg></span>
             </div>
             <div className="admin-profile-info">
-              <strong>AgriMarket admin</strong>
-              <small>Local demo session</small>
+              <strong>System administrator</strong>
+              <small>AgriMarket workspace</small>
             </div>
           </div>
+          {onSignOut && <button className="admin-signout-button" type="button" disabled={signingOut} onClick={() => {
+            setSigningOut(true)
+            setSignOutError(null)
+            Promise.resolve().then(onSignOut).catch((cause: unknown) => {
+              setSignOutError(cause instanceof Error ? cause.message : 'Sign-out failed. Please try again.')
+            }).finally(() => setSigningOut(false))
+          }}><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M9 4H4v16h5m6-12 4 4-4 4m-6-4h10" /></svg>{signingOut ? 'Signing out…' : 'Sign out'}</button>}
+          {signOutError && <p className="admin-sidebar-error" role="alert">{signOutError}</p>}
         </div>
       </aside>
     </>

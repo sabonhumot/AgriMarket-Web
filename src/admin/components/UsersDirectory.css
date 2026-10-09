@@ -1,0 +1,53 @@
+.users-directory { background: var(--admin-panel); border: 1px solid var(--admin-line); border-radius: 14px; overflow: hidden; }
+.users-directory button,.users-directory input,.users-directory select { font-family: inherit; }
+.users-role-tabs { display: flex; gap: 24px; padding: 0 24px; border-bottom: 1px solid var(--admin-line); overflow-x: auto; scrollbar-width: thin; }
+.users-role-tabs button { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; min-height: 62px; padding: 0 0 2px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--admin-muted); font-size: var(--admin-type-data); cursor: pointer; white-space: nowrap; font-weight: 500; }
+.users-role-tabs button[aria-pressed=true] { color: var(--admin-primary); border-bottom-color: var(--admin-primary); font-weight: 600; }
+.users-role-tabs button span { border-radius: 5px; background: var(--admin-panel-subtle); padding: 3px 6px; font-size: var(--admin-type-badge); font-variant-numeric: tabular-nums; }
+.users-role-tabs button[aria-pressed=true] span { background: var(--admin-primary-light); }
+.users-directory-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 24px 24px 12px; }
+.users-search { display: flex; align-items: center; flex: 1 1 220px; gap: 10px; min-width: 0; min-height: 44px; border: 1px solid var(--admin-line); border-radius: 8px; padding: 0 12px; color: var(--admin-muted); }
+.users-search svg { flex-shrink: 0; }
+.users-search:focus-within { outline: 2px solid var(--admin-primary); outline-offset: 2px; }
+.users-directory .users-search input { width: 100%; min-width: 0; height: 42px; padding: 0; background: transparent; border: 0; outline: none; font-size: var(--admin-type-data); color: var(--admin-ink); }
+.users-search input::placeholder { color: var(--admin-muted); }
+.users-select { display: flex; align-items: center; gap: 8px; padding: 0 10px 0 12px; min-height: 44px; border: 1px solid var(--admin-line); border-radius: 8px; font-size: var(--admin-type-meta); color: var(--admin-muted); }
+.users-select select { min-width: 0; max-width: 170px; min-height: 42px; border: 0; background: transparent; color: var(--admin-ink); font-size: var(--admin-type-meta); cursor: pointer; }
+.users-results { display: flex; justify-content: space-between; align-items: center; min-height: 38px; gap: 12px; padding: 0 24px 14px; font-size: var(--admin-type-meta); color: var(--admin-muted); }
+.users-results p { margin: 0; }
+.users-results strong { color: var(--admin-ink); font-weight: 500; }
+.users-results button { border: 0; padding: 6px 0; background: transparent; color: var(--admin-primary); font-size: var(--admin-type-meta); cursor: pointer; }
+.users-table-scroll { overflow-x: auto; scrollbar-width: thin; }
+.users-table { width: 100%; min-width: 680px; border-collapse: collapse; text-align: left; }
+.users-table th { padding: 12px 18px; background: var(--admin-panel-subtle); border-block: 1px solid var(--admin-line-subtle); color: var(--admin-muted); font-size: var(--admin-type-meta); font-weight: 600; }
+.users-table td { padding: 18px; border-bottom: 1px solid var(--admin-line-subtle); font-size: var(--admin-type-data); color: var(--admin-ink); vertical-align: middle; }
+.users-table tr:last-child td { border-bottom: 0; }
+.users-table :is(th,td):first-child { padding-left: 24px; }
+.users-table :is(th,td):last-child { padding-right: 24px; }
+.users-identity { display: flex; align-items: center; gap: 12px; }
+.users-identity > div { min-width: 0; }
+.users-avatar { width: 38px; height: 38px; flex-shrink: 0; display: grid; place-items: center; border-radius: 50%; background: var(--admin-primary-light); color: var(--admin-primary); font-size: var(--admin-type-meta); font-weight: 600; }
+.users-name { display: block; padding: 0; border: 0; background: transparent; text-align: left; color: var(--admin-ink); font-size: var(--admin-type-data); font-weight: 600; cursor: pointer; overflow-wrap: anywhere; max-width: 300px; line-height: 1.45; }
+.users-email { display: block; font-size: var(--admin-type-meta); color: var(--admin-muted); margin-top: 4px; overflow-wrap: anywhere; max-width: 300px; }
+.users-role-label { white-space: nowrap; font-size: var(--admin-type-meta); }
+.users-status { display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 6px; font-size: var(--admin-type-badge); white-space: nowrap; background: var(--admin-panel-subtle); color: var(--admin-muted); font-weight: 500; line-height: 1.4; }
+.users-status i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.users-status-active { background: var(--admin-primary-subtle); color: var(--admin-primary); }
+.users-status-pending_verification { background: var(--admin-sun-light); color: #88500e; }
+.users-status-suspended { background: var(--admin-coral-light); color: #9e3e20; }
+.users-table time { white-space: nowrap; font-size: var(--admin-type-meta); font-variant-numeric: tabular-nums; }
+.users-account-id { display: block; margin-top: 4px; font-size: var(--admin-type-badge); color: var(--admin-muted); font-variant-numeric: tabular-nums; }
+.users-view { display: inline-flex; align-items: center; justify-content: center; min-height: 36px; gap: 7px; padding: 5px 10px; border: 1px solid var(--admin-line); border-radius: 7px; background: var(--admin-panel); color: var(--admin-primary); font-size: var(--admin-type-meta); cursor: pointer; }
+.users-pagination { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; border-top: 1px solid var(--admin-line); padding: 16px 24px; color: var(--admin-muted); font-size: var(--admin-type-meta); font-variant-numeric: tabular-nums; }
+.users-pagination > div { display: flex; gap: 14px; align-items: center; }
+.users-pagination button,.users-empty button { min-height: 36px; padding: 7px 12px; border: 1px solid var(--admin-line); border-radius: 7px; background: var(--admin-panel); color: var(--admin-primary); font-size: var(--admin-type-meta); cursor: pointer; }
+.users-pagination button:disabled { opacity: .45; cursor: default; }
+.users-empty { padding: 60px 24px; text-align: center; color: var(--admin-muted); }
+.users-empty svg { margin-bottom: 14px; }
+.users-empty h2 { font-size: var(--admin-type-section); font-weight: 600; color: var(--admin-ink); margin: 0; }
+.users-empty p { font-size: var(--admin-type-body); margin: 8px 0 18px; line-height: 1.6; }
+.users-limit-note { padding: 0 24px 16px; margin: 0; font-size: var(--admin-type-meta); color: var(--admin-muted); }
+@media (hover:hover) and (pointer:fine) { .users-table tbody tr:hover { background: var(--admin-primary-subtle); } .users-name:hover { text-decoration: underline; text-underline-offset: 3px; } .users-view:hover,.users-pagination button:not(:disabled):hover { background: var(--admin-primary-light); } }
+@media (max-width:600px) { .users-role-tabs { padding-inline: 16px; gap: 20px; } .users-directory-tools { padding: 18px 16px 12px; gap: 10px; } .users-search { flex-basis: 100%; } .users-select { flex: 1; justify-content: space-between; } .users-select select { max-width: 140px; } .users-results { padding-inline: 16px; } .users-pagination { padding: 16px; } .users-view,.users-pagination button { min-height: 44px; } }
+
+.users-table .users-id-column { width: 1%; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--admin-muted); }

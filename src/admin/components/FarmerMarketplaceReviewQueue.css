@@ -1,0 +1,86 @@
+.farmer-review-queue { color: var(--admin-ink); }
+.farmer-review-location { display: block; max-width: 190px; color: var(--admin-muted); line-height: 1.4; }
+.farmer-review-status { display: inline-flex; align-items: center; gap: 7px; padding: 5px 8px; border-radius: 6px; background: var(--admin-panel-subtle); color: var(--admin-muted); font-size: var(--admin-type-badge); font-weight: 600; white-space: nowrap; }
+.farmer-review-status i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.farmer-review-status.is-pending_review { background: var(--admin-sun-light); color: #80520b; }
+.farmer-review-status.is-approved { background: var(--admin-primary-subtle); color: var(--admin-primary); }
+.farmer-review-status.is-changes_requested { background: var(--admin-coral-light); color: #893c24; }
+.farmer-review-status.is-not_submitted { background: var(--admin-panel-subtle); color: var(--admin-muted); }
+.farmer-review-empty { display: grid; justify-items: center; padding: 62px 24px; text-align: center; }
+.farmer-review-empty > span { display: grid; width: 46px; height: 46px; place-items: center; border-radius: 12px; background: var(--admin-primary-subtle); color: var(--admin-primary); }
+.farmer-review-empty h3 { margin: 15px 0 0; color: var(--admin-ink); font-size: var(--admin-type-section); font-weight: 600; }
+.farmer-review-empty p { max-width: 48ch; margin: 7px 0 0; color: var(--admin-muted); font-size: var(--admin-type-body); line-height: 1.6; }
+.farmer-review-feedback { margin: 12px 0 0; padding: 10px 12px; border-radius: 8px; font-size: var(--admin-type-meta); line-height: 1.45; }
+.farmer-review-feedback.is-success { background: var(--admin-primary-subtle); color: var(--admin-primary); }
+.farmer-review-feedback.is-error { background: var(--admin-alert-light); color: #9d1c1c; }
+.farmer-review-dialog { position: fixed; inset: 0 0 0 auto; width: min(680px, 100vw); max-width: 100vw; height: 100dvh; max-height: 100dvh; margin: 0; padding: 0; overflow: hidden; border: 0; background: var(--admin-panel); color: var(--admin-ink); font-family: var(--font-admin); box-shadow: var(--admin-shadow-drawer); font-size: var(--admin-type-data); line-height: 1.5; }
+.farmer-review-dialog::backdrop { background: rgba(12, 28, 20, .4); }
+.farmer-review-dialog[open] { animation: farmer-review-enter 190ms var(--admin-ease-out); }
+@keyframes farmer-review-enter { from { opacity: .7; transform: translateX(18px); } to { opacity: 1; transform: translateX(0); } }
+.farmer-review-dialog-layout { display: flex; height: 100%; flex-direction: column; }
+.farmer-review-dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 18px; flex: 0 0 auto; padding: 20px 26px; border-bottom: 1px solid var(--admin-line); }
+.farmer-review-dialog-header p { margin: 0 0 5px; color: var(--admin-muted); font-size: var(--admin-type-meta); font-variant-numeric: tabular-nums; }
+.farmer-review-dialog-header h2 { margin: 0; color: var(--admin-ink); font-size: var(--admin-type-dialog); line-height: 1.25; letter-spacing: -.02em; font-weight: 600; overflow-wrap: anywhere; }
+.farmer-review-close { display: grid; width: 38px; height: 38px; flex: 0 0 38px; place-items: center; border: 1px solid var(--admin-line); border-radius: 9px; background: var(--admin-panel); color: var(--admin-muted); cursor: pointer; }
+.farmer-review-dialog-body { flex: 1; overflow: auto; padding: 22px 26px 30px; scrollbar-color: #aac4b2 var(--admin-panel-subtle); scrollbar-width: thin; }
+.farmer-review-dialog-body ::selection { background: #cde7d5; color: var(--admin-ink); }
+.farmer-review-capture { overflow: hidden; border: 1px solid var(--admin-line); border-radius: 12px; background: var(--admin-panel-subtle); }
+.farmer-review-capture-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 15px; border-bottom: 1px solid var(--admin-line-subtle); }
+.farmer-review-capture-header h3,.farmer-review-detail-section h3 { margin: 0; color: var(--admin-ink); font-size: var(--admin-type-section); font-weight: 600; line-height: 1.35; }
+.farmer-review-capture-header p { margin: 4px 0 0; color: var(--admin-muted); font-size: var(--admin-type-meta); }
+.farmer-review-capture-header button { min-height: 32px; padding: 5px 8px; border: 1px solid var(--admin-line); border-radius: 7px; background: var(--admin-panel); color: var(--admin-primary); font: inherit; font-size: var(--admin-type-badge); cursor: pointer; }
+.farmer-review-capture-header button:disabled { opacity: .5; cursor: default; }
+.farmer-review-capture > img { display: block; width: 100%; max-height: 290px; object-fit: contain; background: #edf1ed; }
+.farmer-review-capture-state { display: flex; min-height: 150px; flex-direction: column; align-items: center; justify-content: center; gap: 7px; padding: 20px; color: var(--admin-muted); text-align: center; font-size: var(--admin-type-meta); }
+.farmer-review-capture-state strong { color: var(--admin-ink); font-size: var(--admin-type-data); }
+.farmer-review-capture-state span { max-width: 42ch; line-height: 1.5; }
+.farmer-review-detail-section { margin-top: 23px; }
+.farmer-review-detail-section h3 { padding-bottom: 10px; border-bottom: 1px solid var(--admin-line-subtle); }
+.farmer-review-detail-section dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 24px; margin: 16px 0 0; }
+.farmer-review-detail-section dl > div { min-width: 0; }
+.farmer-review-detail-section dl > .is-wide { grid-column: 1 / -1; }
+.farmer-review-detail-section dt { margin-bottom: 5px; color: var(--admin-ink); font-size: 0.875rem; font-weight: 600; line-height: 1.4; }
+.farmer-review-detail-section dd { margin: 0; color: var(--admin-muted); font-size: 0.8125rem; font-weight: 400; line-height: 1.55; overflow-wrap: anywhere; }
+.farmer-review-history { display: grid; gap: 13px; margin: 13px 0 0; padding: 0; list-style: none; }
+.farmer-review-history li { display: grid; gap: 4px; padding-left: 13px; border-left: 1px solid #bed5c6; }
+.farmer-review-history strong { color: var(--admin-ink); font-size: var(--admin-type-data); font-weight: 600; }
+.farmer-review-history span,.farmer-review-history p { margin: 0; color: var(--admin-muted); font-size: var(--admin-type-meta); line-height: 1.5; }
+.farmer-review-decision { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--admin-line); }
+.farmer-review-decision > label { display: flex; justify-content: space-between; gap: 12px; color: var(--admin-ink); font-size: var(--admin-type-data); font-weight: 600; }
+.farmer-review-decision > label span { color: var(--admin-muted); font-size: var(--admin-type-meta); font-weight: 400; text-align: right; }
+.farmer-review-decision textarea { width: 100%; min-height: 92px; margin-top: 9px; padding: 10px 11px; resize: vertical; border: 1px solid var(--admin-line); border-radius: 8px; background: #fff; color: var(--admin-ink); font: inherit; font-size: var(--admin-type-body); line-height: 1.6; caret-color: var(--admin-primary); }
+.farmer-review-decision textarea::placeholder { color: var(--admin-muted); opacity: 1; }
+.farmer-review-decision textarea:focus-visible,.farmer-review-dialog button:focus-visible { outline: 3px solid #8ec6a1; outline-offset: 2px; }
+.farmer-review-decision-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 12px; }
+.farmer-review-decision-actions button { min-height: 40px; padding: 8px 12px; border: 1px solid var(--admin-line); border-radius: 8px; background: var(--admin-panel); color: var(--admin-primary); font: inherit; font-size: var(--admin-type-data); font-weight: 600; cursor: pointer; transition: background-color 140ms ease, transform 120ms ease; }
+.farmer-review-decision-actions button:active:not(:disabled) { transform: scale(.98); }
+.farmer-review-decision-actions button:disabled { opacity: .5; cursor: default; }
+.farmer-review-decision-actions .farmer-review-approve { border-color: var(--admin-primary); background: var(--admin-primary); color: #fff; }
+.farmer-review-decision-actions .farmer-review-approve:hover:not(:disabled) { background: var(--admin-primary-hover); }
+.farmer-review-dialog-footer { display: flex; align-items: center; justify-content: space-between; flex: 0 0 auto; gap: 12px; padding: 12px 26px; border-top: 1px solid var(--admin-line); color: var(--admin-muted); font-size: var(--admin-type-meta); }
+.farmer-review-dialog-footer button { min-height: 34px; padding: 6px 12px; border: 1px solid var(--admin-line); border-radius: 7px; background: var(--admin-panel); color: var(--admin-primary); font: inherit; font-size: var(--admin-type-meta); cursor: pointer; }
+.farmer-review-dialog :focus-visible { outline-color: #6ca980; }
+@media (max-width: 520px) {
+  .farmer-review-dialog-header { padding: 16px; }
+  .farmer-review-dialog-body { padding: 16px 16px 24px; }
+  .farmer-review-dialog-footer { padding-inline: 16px; }
+  .farmer-review-capture-header { align-items: flex-start; flex-direction: column; }
+  .farmer-review-detail-section dl { grid-template-columns: minmax(0, 1fr); }
+  .farmer-review-detail-section dl > .is-wide { grid-column: auto; }
+  .farmer-review-decision > label { flex-direction: column; }
+  .farmer-review-decision > label span { text-align: left; }
+  .farmer-review-decision-actions { align-items: stretch; flex-direction: column-reverse; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .farmer-review-dialog[open] { animation: none; }
+  .farmer-review-decision-actions button { transition: none; }
+}
+
+.farmer-review-dialog-header > div { min-width: 0; }
+
+.farmer-approvals-table { min-width: 860px; }
+.farmer-approvals-table .users-identity { min-width: 210px; }
+.farmer-approval-avatar { padding: 0; }
+.farmer-approval-avatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.farmer-approvals-directory button:focus-visible { outline: 2px solid var(--admin-primary); outline-offset: 2px; }
+.farmer-approvals-directory .users-role-tabs button:focus-visible { outline-offset: -4px; }

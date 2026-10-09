@@ -6,7 +6,7 @@ import OrganizationApplication from './OrganizationApplication'
 import type { ActivityEntry, AdminView, OrganizationDecision, OrganizationRecord } from '../types'
 
 type ManagementViewProps = {
-  view: Exclude<AdminView, 'overview' | 'moderation'>
+  view: Exclude<AdminView, 'overview' | 'moderation' | 'farmer-approvals'>
   query: string
   onQueryChange: (query: string) => void
   onReset: () => void
@@ -168,12 +168,8 @@ export default function ManagementView({
   )
 
   return (
-    <section className="management-panel" aria-labelledby="management-view-title">
+    <section className="management-panel" aria-label={copy.title}>
       <header className="management-header">
-        <div>
-          <h2 id="management-view-title">{copy.title}</h2>
-          <p>{copy.description}</p>
-        </div>
         {controls}
       </header>
 
@@ -331,29 +327,32 @@ export default function ManagementView({
 
       {view === 'activity' &&
         (filteredActivity.length ? (
-          <ol className="admin-event-list admin-activity-list">
-            {filteredActivity.map((entry, index) => (
-              <li key={entry.id} className="activity-event-item">
-                <div className="activity-timeline-indicator">
-                  <span className="activity-node" aria-hidden="true" />
-                  {index < filteredActivity.length - 1 && <span className="activity-connector" aria-hidden="true" />}
-                </div>
-                <div className="activity-type-col">
-                  <span className="activity-type" data-type={entry.type}>
-                    {entry.type}
-                  </span>
-                </div>
-                <div className="admin-activity-content">
-                  <div className="admin-activity-titleline">
-                    <h3>{entry.title}</h3>
-                    <time dateTime={entry.dateTime}>{entry.createdLabel}</time>
-                  </div>
-                  <p className="activity-subject-text">{entry.subject}</p>
-                  {entry.details && <p className="activity-subject-text">Reason: {entry.details}</p>}
-                </div>
-              </li>
-            ))}
-          </ol>
+          <div className="admin-table-wrap activity-table-wrap">
+            <table className="admin-table activity-table">
+              <caption className="sr-only">Recent administrative activity</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Activity</th>
+                  <th scope="col">Subject</th>
+                  <th scope="col">Type</th>
+                  <th scope="col">Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredActivity.map((entry) => (
+                  <tr key={entry.id}>
+                    <th scope="row">
+                      <span className="activity-table-title">{entry.title}</span>
+                      {entry.details && <span className="activity-table-detail">Reason: {entry.details}</span>}
+                    </th>
+                    <td className="activity-table-subject">{entry.subject}</td>
+                    <td><span className="activity-type" data-type={entry.type}>{entry.type}</span></td>
+                    <td><time dateTime={entry.dateTime}>{entry.createdLabel}</time></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
           <EmptyResults onReset={resetFilters} />
         ))}

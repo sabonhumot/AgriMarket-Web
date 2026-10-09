@@ -16,7 +16,8 @@ export default function ActionCenter({
   const resolvedCount = items.filter((i) => i.status === 'resolved').length
 
   // High & medium priority items that require administrator action
-  const urgentItems = items.filter((i) => i.status !== 'resolved').slice(0, 4)
+  const openItems = items.filter((i) => i.status !== 'resolved')
+  const urgentItems = openItems.slice(0, 4)
 
   return (
     <section className="action-center-panel" aria-labelledby="action-center-title">
@@ -30,10 +31,10 @@ export default function ActionCenter({
                 <line x1="12" y1="16" x2="12.01" y2="16" />
               </svg>
             </span>
-            <h2 id="action-center-title">Action Center</h2>
-            <span className="action-center-urgent-count">{urgentItems.length} require action</span>
+            <h2 id="action-center-title">Needs attention</h2>
+            <span className="action-center-urgent-count">{openItems.length} open</span>
           </div>
-          <p>Prioritized items requiring administrator oversight across listings, verifications, and accounts.</p>
+          <p>Start with the reports, verifications, and access checks waiting on your review.</p>
         </div>
 
         <div className="action-center-nav-actions">
@@ -53,25 +54,28 @@ export default function ActionCenter({
 
       {/* Workload Status Distribution Bar */}
       <div className="action-workload-bar" role="region" aria-label="Review status summary">
-        <div className="workload-pill workload-needs-review" onClick={onNavigateToModeration}>
+        <button type="button" className="workload-pill workload-needs-review" onClick={onNavigateToModeration}>
           <span className="workload-dot" aria-hidden="true" />
           <span className="workload-label">Needs review</span>
           <span className="workload-count">{needsReviewCount}</span>
-        </div>
-        <div className="workload-pill workload-investigating" onClick={onNavigateToModeration}>
+        </button>
+        <button type="button" className="workload-pill workload-investigating" onClick={onNavigateToModeration}>
           <span className="workload-dot" aria-hidden="true" />
           <span className="workload-label">Investigating</span>
           <span className="workload-count">{investigatingCount}</span>
-        </div>
-        <div className="workload-pill workload-resolved" onClick={onNavigateToModeration}>
+        </button>
+        <button type="button" className="workload-pill workload-resolved" onClick={onNavigateToModeration}>
           <span className="workload-dot" aria-hidden="true" />
           <span className="workload-label">Resolved</span>
           <span className="workload-count">{resolvedCount}</span>
-        </div>
+        </button>
       </div>
 
       {/* Priority Action List */}
       <div className="action-items-list">
+        {urgentItems.length === 0 && (
+          <p className="action-empty">All caught up. New items needing review will appear here.</p>
+        )}
         {urgentItems.map((item) => (
           <article key={item.id} className="action-item-card">
             <div className="action-item-main">

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import CustomDropdown from './CustomDropdown'
+import GeneralReviewCaseDetail from './GeneralReviewCaseDetail'
 import ListingCaseDetail from './ListingCaseDetail'
 import type { ListingCase, ListingCaseAction, ReviewItem, ReviewStatus } from '../types'
 
@@ -36,17 +37,19 @@ export default function ReviewBoard({
   const caseTriggerRef = useRef<HTMLButtonElement | null>(null)
 
   const selectedCase = listingCases.find((item) => item.reportId === selectedReportId)
+  const selectedItem = items.find((item) => item.id === selectedReportId)
+  const isListingCase = selectedItem?.type === 'Listing report'
 
   useEffect(() => {
     if (!selectedReportId) return
     const dialog = caseDialogRef.current
     if (!dialog) return
     if (!dialog.open) dialog.showModal()
-    document.getElementById('listing-case-title')?.focus()
+    document.getElementById(isListingCase ? 'listing-case-title' : 'general-review-case-title')?.focus()
     return () => {
       if (dialog.open) dialog.close()
     }
-  }, [selectedReportId])
+  }, [selectedReportId, isListingCase])
 
   function openCase(reportId: string, trigger?: HTMLButtonElement | null) {
     if (trigger) caseTriggerRef.current = trigger
@@ -58,7 +61,7 @@ export default function ReviewBoard({
     window.requestAnimationFrame(() => {
       const trigger = caseTriggerRef.current
       if (trigger?.isConnected && trigger.getClientRects().length) trigger.focus()
-      else document.getElementById('review-board-title')?.focus()
+      else document.getElementById('admin-page-title')?.focus()
     })
   }
 
@@ -100,7 +103,7 @@ export default function ReviewBoard({
   }
 
   return (
-    <section className="review-board" aria-labelledby="review-board-title">
+    <section className="review-board" aria-label="Review queue">
       {/* Moderation Metrics Bar */}
       <div className="moderation-metrics-row">
         <div className="moderation-metric-pill mod-pill-total">
@@ -131,14 +134,6 @@ export default function ReviewBoard({
 
       {/* Moderation Search & Filter Bar */}
       <div className="review-board-heading">
-        <div className="review-board-title-group">
-          <div className="review-board-badge-wrap">
-            <h2 id="review-board-title" tabIndex={-1}>Review queue</h2>
-            <span className="review-total-count">{items.length} items</span>
-          </div>
-          <p>Work through reports, verification checks, access requests, and organization reviews.</p>
-        </div>
-
         <div className="review-board-controls">
           <label className="admin-search">
             <span className="sr-only">Search review queue</span>
@@ -339,21 +334,21 @@ export default function ReviewBoard({
         </div>
       )}
 
-      {selectedCase && (
+      {selectedCase && selectedItem && (
         <dialog
           ref={caseDialogRef}
           className="listing-case-modal"
-          aria-labelledby="listing-case-title"
+          aria-labelledby={isListingCase ? 'listing-case-title' : 'general-review-case-title'}
           onCancel={(event) => {
             event.preventDefault()
             closeCase()
           }}
         >
-          <ListingCaseDetail
-            listingCase={selectedCase}
-            onAction={recordCaseAction}
-            onClose={closeCase}
-          />
+          {isListingCase ? (
+            <ListingCaseDetail listingCase={selectedCase} onAction={recordCaseAction} onClose={closeCase} />
+          ) : (
+            <GeneralReviewCaseDetail item={selectedItem} reviewCase={selectedCase} onAction={recordCaseAction} onClose={closeCase} />
+          )}
         </dialog>
       )}
     </section>
