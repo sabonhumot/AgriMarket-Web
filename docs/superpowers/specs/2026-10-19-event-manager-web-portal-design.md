@@ -5,14 +5,15 @@
 
 ## Intent and success criteria
 
-Build a working desktop and responsive web portal for AgriMarket Event Managers. It must let the same active Event Manager account manage the same events and farmer participation seen in the mobile app. A manager can sign in, plan and publish an event, review applications, invite eligible farmers, check farmers in, communicate event updates, and inspect or export results. The portal uses live Supabase data and makes loading, empty, and failure states explicit.
+Build a working desktop and responsive web portal for AgriMarket Event Managers. It must let the same active Event Manager account manage the same events and farmer participation seen in the mobile app. A manager can sign in through the web app's single login page, plan and publish an event, review applications, invite eligible farmers, check farmers in, communicate event updates, and inspect or export results. The portal uses live Supabase data and makes loading, empty, and failure states explicit.
 
 ## Placement and access
 
-- Add the portal at `/event-manager` within the existing Vite and React app. Keep `/admin` as an administrator oversight workspace and `/` as the public site.
-- Reuse the existing Supabase browser client and email/password session. Check the authenticated `users` row for `role = 'event_manager'` and `user_status = 'active'` before showing manager data. A failed role check signs out the local session and displays a role-specific error.
+- Add the portal at `/event-manager` within the existing Vite and React app. Keep `/admin` as an administrator oversight workspace and `/` as the public site. Add one `/login` page for both web roles; retire the separate administrator login screen as a route-level experience.
+- Reuse the existing Supabase browser client and email/password session. After sign-in, read the authenticated `users` row and require `user_status = 'active'`. Route `role = 'admin'` to `/admin` and `role = 'event_manager'` to `/event-manager`. Other roles and inactive accounts get a clear access message and are signed out locally.
+- A signed-in admin who opens `/event-manager` goes to `/admin`; a signed-in Event Manager who opens `/admin` goes to `/event-manager`. Neither workspace renders protected data until the role check completes. Both workspaces send signed-out users to `/login`.
 - The portal calls the existing manager-scoped Supabase RPCs. Ownership and authorization remain enforced by the database. The browser never supplies an arbitrary manager ID or uses an admin query to mutate manager data.
-- A signed-in manager can refresh, sign out, and return to the public site. A manager visiting `/admin` does not gain administrator access.
+- A signed-in manager can refresh, sign out, and return to the public site. Signing out returns to `/login`.
 
 ## Information architecture and interface
 
@@ -31,7 +32,7 @@ The portal covers Event Manager event operations from mobile. The shared mobile 
 ## Data and component boundaries
 
 - A web-specific Event Manager service wraps typed RPC calls and maps returned event, application, farmer, notification, and performance records into UI models. Copy the behavior of the mobile mappers and validators that is platform-independent; do not import Expo modules into the Vite app.
-- A route-level access component owns session changes and role checks. The portal shell owns navigation. Each screen owns its loading and interaction state and calls the service, then refreshes affected data after mutations.
+- A shared web auth route owns sign-in, session changes, and role checks for `/login`, `/admin`, and `/event-manager`. The portal shell owns manager navigation. Each screen owns its loading and interaction state and calls the service, then refreshes affected data after mutations.
 - Map RPC errors to actionable messages without claiming a write succeeded. Display a confirmation step for publish, cancel, broadcast, promotion, rejection, no-show, and invitation actions. Disable repeat submission while a mutation is pending.
 - Create and edit operations use `create_my_market_event`, `update_my_market_event`, and `publish_my_market_event`; event detail uses `get_managed_event_details` and the corresponding application, invitation, check-in, notification, and report RPCs already used by mobile.
 - CSV exports use the existing export RPCs and browser `Blob` downloads. Event cover and organization logo uploads use the existing `event-manager-media` bucket with size/type limits equivalent to mobile.
@@ -39,13 +40,13 @@ The portal covers Event Manager event operations from mobile. The shared mobile 
 
 ## Failure and safety behavior
 
-- Missing Supabase configuration, signed-out access, inactive/wrong-role accounts, data loading failure, empty results, camera denial, and mutation failure have distinct states.
+- Missing Supabase configuration, signed-out access, inactive/unsupported-role accounts, data loading failure, empty results, camera denial, and mutation failure have distinct states. A valid session on the other web role's route redirects to the correct workspace without signing out.
 - The check-in camera starts only after a direct user action, stops when the user leaves check-in, and ignores further detections while one code is being verified. Manual entry sends the same payload to `check_in_event_farmer`.
 - Keep manager navigation functional after refresh through the `/event-manager` path and client-side view state. Do not expose event data before the access check completes.
 - No new database migration is expected. If a required RPC or media policy differs from the mobile contract, surface the mismatch instead of weakening authorization or substituting mock data.
 
 ## Verification
 
-- Unit tests for role gating, RPC mapping, schedule/form validation, CSV output, and important state/action guards.
+- Unit tests for shared-login role routing and access gating, RPC mapping, schedule/form validation, CSV output, and important state/action guards.
 - Build, lint, focused tests, and current full web test suite.
 - Browser review at desktop and narrow widths: sign-in, navigation, loading/empty/error states, create/edit, event actions, notifications, and check-in permission/fallback. Live writes are exercised only with an authorized test account and test event; otherwise verify call contracts with mocks and report the untested live path.
