@@ -20,15 +20,14 @@ test('explains the Android installation path without promising silent installati
   assert.doesNotMatch(source, /Create your AgriMarket account/)
 })
 
-test('renders an accessible four-step buyer story separate from farmer tools', () => {
-  assert.match(source, /Browse harvests/)
-  assert.match(source, /Review crop details/)
-  assert.match(source, /Request a reservation/)
-  assert.match(source, /Get app guidance/)
-  assert.match(source, /role="tablist"/)
-  assert.match(source, /role="tab"/)
-  assert.match(source, /aria-selected=\{isActive\}/)
-  assert.match(source, /role="tabpanel"/)
+test('presents three buyer steps and keeps app guidance available separately', () => {
+  assert.match(source, /label: 'Browse'/)
+  assert.match(source, /label: 'Review'/)
+  assert.match(source, /label: 'Request'/)
+  assert.match(source, /journeyStories = stories\.slice\(0, 3\)/)
+  assert.match(source, /aria-current=\{index === tourIndex \? 'step' : undefined\}/)
+  assert.match(source, /Need a hand\?/)
+  assert.match(source, /guidanceStory\.image/)
 })
 
 test('defines responsive layouts without masking page overflow', () => {
@@ -43,6 +42,6 @@ test('keeps the compact download action at the minimum touch target size', () =>
   assert.match(css, /\.button-compact\s*\{[^}]*min-height:\s*44px/s)
 })
 
-test('keeps four buyer tabs in a two-by-two mobile layout', () => {
-  assert.match(css, /@media \(max-width: 540px\)\s*\{[\s\S]*?\.story-tabs-list\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/)
+test('places the tour phone before its copy on narrow screens', () => {
+  assert.match(css, /@media \(max-width: 540px\)\s*\{[\s\S]*?\.buyer-tour-phone\s*\{[^}]*order:\s*-1/s)
 })

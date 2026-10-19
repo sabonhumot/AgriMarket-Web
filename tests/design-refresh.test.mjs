@@ -47,20 +47,19 @@ test('shows an honest unavailable state when no APK URL is configured', async ()
   assert.doesNotMatch(html, /downloads\.agrimarket\.example/)
 })
 
-test('renders the product walkthrough as labelled tabs and a tab panel', async () => {
+test('renders the three-step buyer tour with one current step', async () => {
   const html = await renderLandingPage()
 
-  assert.match(html, /role="tablist"/)
-  assert.equal((html.match(/role="tab"/g) ?? []).length, 4)
-  assert.match(html, /aria-selected="true"/)
-  assert.match(html, /role="tabpanel"/)
+  assert.match(html, /class="buyer-tour-steps"/)
+  assert.equal((html.match(/aria-current="step"/g) ?? []).length, 1)
+  assert.match(html, /data-active="true" aria-hidden="false"/)
   assert.doesNotMatch(html, /For Growers/)
 })
 
 test('opens with one supplied app screen and no competing promotional widgets', async () => {
   const html = await renderLandingPage()
 
-  assert.match(html, /AgriMarket crop details screen showing produce pricing and availability/)
+  assert.match(html, /AgriMarket marketplace screen showing produce listings/)
   assert.doesNotMatch(html, /Scan to Phone/)
   assert.doesNotMatch(html, /100% Direct Farm Price/)
   assert.doesNotMatch(html, /Middleman Cut/)

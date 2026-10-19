@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import AdminLogin from './AdminLogin'
 import AdminWorkspace from './AdminWorkspace'
 import { checkAdminAccess } from './admin-auth'
@@ -86,6 +87,7 @@ export default function AdminRoute() {
     const { error: signOutError } = await client.auth.signOut({ scope: 'local' })
     if (signOutError) throw new Error('Sign-out failed. Please try again.', { cause: signOutError })
     setAccess('signed-out')
+    toast.success('Signed out of the admin portal')
   }
 
   if (access === 'checking') return <main className="admin-access-check" role="status">Checking administrator access…</main>

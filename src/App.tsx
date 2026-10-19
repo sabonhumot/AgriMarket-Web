@@ -1,4 +1,4 @@
-import { useRef, useState, type KeyboardEvent } from 'react'
+import { useState } from 'react'
 import brandLogo from './assets/AgriMarket.svg'
 import cropDetailsScreen from './assets/crop-details-page.jpg'
 import buyerDashboard from './assets/buyer-dashboard.jpg'
@@ -7,6 +7,7 @@ import marketPageScreen from './assets/market-page.jpg'
 import messagesScreen from './assets/messages.jpg'
 import reservationSuccessScreen from './assets/reservation-success.jpg'
 import AdminRoute from './admin/AdminRoute'
+import { Toaster } from 'sonner'
 import './App.css'
 
 type StoryId = 'market' | 'details' | 'reserve' | 'guidance'
@@ -17,41 +18,46 @@ type Story = {
   label: string
   title: string
   copy: string
-  highlights: string[]
   image: string
   imageAlt: string
 }
 
 const DOWNLOAD_URL = import.meta.env.VITE_APK_DOWNLOAD_URL?.trim()
 
+const screenHeights: Record<string, number> = {
+  [buyerDashboard]: 2375,
+  [cropDetailsScreen]: 2372,
+  [farmerDashboardScreen]: 2354,
+  [marketPageScreen]: 2364,
+  [messagesScreen]: 2276,
+  [reservationSuccessScreen]: 2369,
+}
+
 const stories: Story[] = [
   {
     id: 'market',
     step: '01',
-    label: 'Browse harvests',
+    label: 'Browse',
     title: 'See the crops available from local farmers.',
     copy: 'Browse produce listings and use the app’s search and category controls to narrow what you see.',
-    highlights: ['Crop listings in one place', 'Search and category controls', 'Farmer information on each listing'],
     image: marketPageScreen,
     imageAlt: 'AgriMarket marketplace screen showing produce listings',
   },
   {
     id: 'details',
     step: '02',
-    label: 'Review crop details',
+    label: 'Review',
     title: 'Check the details before you make a request.',
     copy: 'Review the listed price, available quantity, harvest information, and farmer details on the crop page.',
-    highlights: ['Listed price and quantity', 'Harvest information', 'Farmer and location details'],
     image: cropDetailsScreen,
     imageAlt: 'AgriMarket crop details screen showing produce pricing and availability',
   },
   {
     id: 'reserve',
     step: '03',
-    label: 'Request a reservation',
+    label: 'Request',
     title: 'Send the farmer a reservation request.',
     copy: 'Choose a quantity and submit your request. The confirmation screen keeps the request details easy to review.',
-    highlights: ['Choose the requested quantity', 'Review the reservation summary', 'Keep the request details together'],
     image: reservationSuccessScreen,
     imageAlt: 'AgriMarket reservation request confirmation screen',
   },
@@ -61,24 +67,18 @@ const stories: Story[] = [
     label: 'Get app guidance',
     title: 'Find help while using AgriMarket.',
     copy: 'Use the in-app assistant for guidance about browsing crops and working through the app.',
-    highlights: ['Guidance inside the app', 'Suggested questions to get started', 'A clear place to ask for help'],
     image: messagesScreen,
     imageAlt: 'AgriMarket assistant screen with suggested questions',
   },
 ]
 
+const journeyStories = stories.slice(0, 3)
+const guidanceStory = stories[3]
+
 function DownloadIcon() {
   return (
     <svg viewBox="0 0 20 20" aria-hidden="true">
       <path d="M10 3v10m0 0 4.5-4.5M10 13 5.5 8.5M3.5 16.5h13" />
-    </svg>
-  )
-}
-
-function CheckIcon() {
-  return (
-    <svg viewBox="0 0 20 20" aria-hidden="true" className="check-icon">
-      <path d="M4 10.5 8 14.5 16 5.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
@@ -108,27 +108,39 @@ function PhoneFrame({
   alt,
   priority = false,
   variant = 'default',
+  tourIndex,
 }: {
   src: string
   alt: string
   priority?: boolean
   variant?: 'default' | 'hero' | 'story' | 'farmer'
+  tourIndex?: number
 }) {
   return (
     <figure className={`phone-shell phone-shell-${variant}`}>
       <div className="phone-screen-container">
-        <div className="phone-notch" aria-hidden="true">
-          <span className="notch-speaker" />
-          <span className="notch-camera" />
-        </div>
-        <img
-          src={src}
-          alt={alt}
-          className="phone-screen-img"
-          loading={priority ? 'eager' : 'lazy'}
-          fetchPriority={priority ? 'high' : 'auto'}
-        />
-        <div className="phone-glass-glare" aria-hidden="true" />
+        {tourIndex === undefined ? (
+          <img
+            src={src}
+            alt={alt}
+            className="phone-screen-img"
+            width={1167}
+            height={screenHeights[src]}
+            loading={priority ? 'eager' : 'lazy'}
+            fetchPriority={priority ? 'high' : 'auto'}
+          />
+        ) : journeyStories.map((story, index) => (
+          <img
+            key={story.id}
+            src={story.image}
+            alt={index === tourIndex ? story.imageAlt : ''}
+            className="phone-screen-img tour-screen-img"
+            data-active={index === tourIndex}
+            width={1167}
+            height={screenHeights[story.image]}
+            loading="lazy"
+          />
+        ))}
       </div>
     </figure>
   )
@@ -146,26 +158,13 @@ function NavigationLinks({ onNavigate }: { onNavigate?: () => void }) {
 }
 
 function LandingPage() {
-  const [activeStoryId, setActiveStoryId] = useState<StoryId>('market')
+  const [tourIndex, setTourIndex] = useState(0)
+  const [tourInstant, setTourInstant] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
-  const tabRefs = useRef<Array<HTMLButtonElement | null>>([])
   const downloadAvailable = Boolean(DOWNLOAD_URL)
-  const activeStory = stories.find((story) => story.id === activeStoryId) ?? stories[0]
-
-  function selectTab(index: number) {
-    setActiveStoryId(stories[index].id)
-    tabRefs.current[index]?.focus()
-  }
-
-  function handleTabKey(event: KeyboardEvent<HTMLButtonElement>, index: number) {
-    if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return
-    event.preventDefault()
-
-    if (event.key === 'Home') return selectTab(0)
-    if (event.key === 'End') return selectTab(stories.length - 1)
-
-    const direction = event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : -1
-    selectTab((index + direction + stories.length) % stories.length)
+  function selectStory(index: number, animate: boolean) {
+    setTourInstant(!animate)
+    setTourIndex(index)
   }
 
   return (
@@ -189,18 +188,22 @@ function LandingPage() {
               aria-controls="mobile-navigation"
               onClick={() => setMobileNavOpen((open) => !open)}
             >
-              <span className="sr-only">Toggle navigation</span>
+              <span className="sr-only">{mobileNavOpen ? 'Close menu' : 'Open menu'}</span>
               <span aria-hidden="true" />
               <span aria-hidden="true" />
             </button>
           </div>
         </div>
 
-        {mobileNavOpen && (
-          <nav id="mobile-navigation" className="mobile-nav" aria-label="Mobile navigation">
-            <NavigationLinks onNavigate={() => setMobileNavOpen(false)} />
-          </nav>
-        )}
+        <nav
+          id="mobile-navigation"
+          className="mobile-nav"
+          aria-label="Mobile navigation"
+          data-open={mobileNavOpen}
+          inert={!mobileNavOpen}
+        >
+          <NavigationLinks onNavigate={() => setMobileNavOpen(false)} />
+        </nav>
       </header>
 
       <main id="top">
@@ -228,7 +231,7 @@ function LandingPage() {
               <div className="device-stage">
                 <PhoneFrame
                   src={buyerDashboard}
-                  alt="AgriMarket crop details screen showing produce pricing and availability"
+                  alt="AgriMarket buyer dashboard showing local produce listings and navigation"
                   variant="hero"
                   priority
                 />
@@ -265,59 +268,69 @@ function LandingPage() {
           <div className="section-container">
             <div className="section-heading walkthrough-heading">
               <p className="walkthrough-context">Buyer experience</p>
-              <h2 id="how-title" className="section-title">Explore the buyer journey.</h2>
-              <p className="section-subtitle">The screens below come from the app and show the main path from browsing to getting help.</p>
+              <h2 id="how-title" className="section-title">From finding a crop to sending a request.</h2>
+              <p className="section-subtitle">Follow the three steps a buyer takes in the app.</p>
             </div>
 
-            <div className="interactive-story-grid">
-              <div className="story-tabs-list" role="tablist" aria-label="AgriMarket buyer journey">
-                {stories.map((story, index) => {
-                  const isActive = story.id === activeStoryId
-                  return (
+            <div className="buyer-tour" data-instant={tourInstant}>
+              <div className="buyer-tour-content">
+                <div className="buyer-tour-progress">
+                  <span>{journeyStories[tourIndex].step} / 03</span>
+                  <div className="buyer-tour-progress-track" aria-hidden="true">
+                    <span style={{
+                      transform: `scaleX(${(tourIndex + 1) / journeyStories.length})`,
+                    }} />
+                  </div>
+                </div>
+                <div className="buyer-tour-steps" aria-label="Buyer journey steps">
+                  {journeyStories.map((story, index) => (
                     <button
                       key={story.id}
-                      id={`tab-${story.id}`}
-                      ref={(element) => { tabRefs.current[index] = element }}
-                      className={`story-tab-item${isActive ? ' is-active' : ''}`}
-                      role="tab"
-                      aria-selected={isActive}
-                      aria-controls={`panel-${story.id}`}
-                      tabIndex={isActive ? 0 : -1}
-                      onClick={() => setActiveStoryId(story.id)}
-                      onKeyDown={(event) => handleTabKey(event, index)}
                       type="button"
+                      aria-current={index === tourIndex ? 'step' : undefined}
+                      onClick={(event) => selectStory(index, event.detail !== 0)}
                     >
-                      <span className="tab-step-tag">{story.step}</span>
-                      <span className="tab-title">{story.label}</span>
+                      <span>{story.step}</span>{story.label}
                     </button>
-                  )
-                })}
+                  ))}
+                </div>
+                <div className="buyer-tour-description" aria-live="polite" aria-atomic="true">
+                  {journeyStories.map((story, index) => (
+                    <div key={story.id} className="buyer-tour-story" data-active={index === tourIndex} aria-hidden={index !== tourIndex}>
+                      <h3>{story.title}</h3>
+                      <p>{story.copy}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="buyer-tour-controls">
+                  <button type="button" disabled={tourIndex === 0} onClick={(event) => selectStory(tourIndex - 1, event.detail !== 0)}>
+                    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m12.5 4-6 6 6 6M7 10h10" /></svg>
+                    Previous
+                  </button>
+                  <button type="button" disabled={tourIndex === journeyStories.length - 1} onClick={(event) => selectStory(tourIndex + 1, event.detail !== 0)}>
+                    Next
+                    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m7.5 4 6 6-6 6M13 10H3" /></svg>
+                  </button>
+                </div>
               </div>
-
-              <div
-                key={activeStory.id}
-                id={`panel-${activeStory.id}`}
-                className="story-panel-showcase"
-                role="tabpanel"
-                aria-labelledby={`tab-${activeStory.id}`}
-                tabIndex={0}
-              >
-                <div className="showcase-details">
-                  <p className="showcase-step">Step {activeStory.step}</p>
-                  <h3>{activeStory.title}</h3>
-                  <p className="showcase-copy">{activeStory.copy}</p>
-                  <ul className="showcase-highlights">
-                    {activeStory.highlights.map((item) => (
-                      <li key={item}><CheckIcon /><span>{item}</span></li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="showcase-device-stage">
-                  <PhoneFrame src={activeStory.image} alt={activeStory.imageAlt} variant="story" />
-                </div>
+              <div className="buyer-tour-phone">
+                <PhoneFrame
+                  src={journeyStories[tourIndex].image}
+                  alt={journeyStories[tourIndex].imageAlt}
+                  variant="story"
+                  tourIndex={tourIndex}
+                />
               </div>
             </div>
+
+            <aside className="buyer-help" aria-labelledby="buyer-help-title">
+              <div className="buyer-help-copy">
+                <p className="walkthrough-context">When you need it</p>
+                <h3 id="buyer-help-title">Need a hand?</h3>
+                <p>{guidanceStory.copy}</p>
+              </div>
+              <PhoneFrame src={guidanceStory.image} alt={guidanceStory.imageAlt} variant="story" />
+            </aside>
           </div>
         </section>
 
@@ -384,7 +397,8 @@ function currentPathname() {
 export default function App({ initialPath }: { initialPath?: string }) {
   const path = initialPath ?? currentPathname()
 
-  if (path === '/admin') return <AdminRoute />
-
-  return <LandingPage />
+  return <>
+    {path === '/admin' ? <AdminRoute /> : <LandingPage />}
+    <Toaster position="top-right" richColors closeButton theme="light" />
+  </>
 }

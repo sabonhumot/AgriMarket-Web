@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { matchesQuery } from '../admin-state'
-import { activityEntries as demoActivityEntries, organizations as demoOrganizations, securityEvents, users } from '../demo-data'
+import { activityEntries as demoActivityEntries, organizations as demoOrganizations, users } from '../demo-data'
 import CustomDropdown from './CustomDropdown'
 import OrganizationApplication from './OrganizationApplication'
 import type { ActivityEntry, AdminView, OrganizationDecision, OrganizationRecord } from '../types'
 
 type ManagementViewProps = {
-  view: Exclude<AdminView, 'overview' | 'moderation' | 'farmer-approvals'>
+  view: Exclude<AdminView, 'overview' | 'moderation' | 'events'> | 'organizations'
   query: string
   onQueryChange: (query: string) => void
   onReset: () => void
@@ -28,12 +28,6 @@ const headings = {
     description: 'Track submitted organizations and their review states.',
     filterLabel: 'Filter organization status',
     options: ['Pending review', 'Approved', 'Needs details', 'Rejected'],
-  },
-  security: {
-    title: 'Security & access',
-    description: 'Review recent demo access activity and security signals.',
-    filterLabel: 'Filter severity',
-    options: ['High', 'Medium', 'Low'],
   },
   activity: {
     title: 'Activity log',
@@ -113,12 +107,6 @@ export default function ManagementView({
         },
         query
       ) && matchesFilter(organization.status)
-  )
-
-  const filteredSecurity = securityEvents.filter(
-    (event) =>
-      matchesQuery({ ...event, type: `${event.type} ${event.severity}` }, query) &&
-      matchesFilter(event.severity)
   )
 
   const filteredActivity = activityEntries.filter(
@@ -291,39 +279,6 @@ export default function ManagementView({
           onClose={() => setSelectedOrganizationId(null)}
         />
       )}
-
-      {view === 'security' &&
-        (filteredSecurity.length ? (
-          <ul className="admin-event-list admin-security-list">
-            {filteredSecurity.map((event) => (
-              <li key={event.id} className="security-event-item">
-                <span className={`severity severity-${event.severity.toLocaleLowerCase()}`}>
-                  {event.severity}
-                </span>
-                <div className="admin-security-content">
-                  <div className="admin-security-titleline">
-                    <h3>{event.title}</h3>
-                    <span className="security-time-tag">
-                      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
-                        <circle cx="8" cy="8" r="6" />
-                        <path d="M8 4.5V8l2.5 1.5" />
-                      </svg>
-                      {event.createdLabel}
-                    </span>
-                  </div>
-                  <p className="admin-security-context">
-                    <span className="security-subject">{event.subject}</span>
-                    <span className="security-divider">·</span>
-                    <span className="security-type-chip">{event.type}</span>
-                  </p>
-                  <p className="admin-security-description">{event.details}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <EmptyResults onReset={resetFilters} />
-        ))}
 
       {view === 'activity' &&
         (filteredActivity.length ? (

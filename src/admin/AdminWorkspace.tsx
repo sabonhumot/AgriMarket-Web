@@ -1,13 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import AdminSidebar from './components/AdminSidebar'
 import DetailDrawer, { type DetailModalTarget } from './components/DetailDrawer'
 import UsersDirectory from './components/UsersDirectory'
-import { ApplicationsDirectory, FarmerApprovalsDirectory, ReportsDirectory } from './components/ReviewDirectory'
+import EventsDirectory from './components/EventsDirectory'
+import { ReportsDirectory } from './components/ReviewDirectory'
 import DashboardOverview from './components/DashboardOverview'
 import ActivityLog from './components/ActivityLog'
 import { loadDashboardData, type DashboardData } from './dashboard-data'
 import { loadAdminData, type AdminData } from './admin-data'
-import { loadFaceCaptureUrl, reviewFarmerMarketplaceProfile } from './marketplace-review'
 import { getSupabaseClient } from './supabase'
 import type { AdminView } from './types'
 import './AdminWorkspace.css'
@@ -15,40 +16,9 @@ import './AdminWorkspace.css'
 const viewCopy: Record<AdminView, { title: string; description: string; badgeLabel?: string }> = {
   overview: { title: 'Dashboard', description: 'Your community, market events, and the work that needs attention.' },
   users: { title: 'Users', description: 'Find accounts, review their status, and open user details.' },
-  organizations: { title: 'Event Applications', description: 'Find submitted event applications and open their details.' },
-  'farmer-approvals': { title: 'Farmer Approvals', description: 'Review farm profiles and approve farmers before they create listings.' },
+  events: { title: 'Events', description: 'View every market event, including drafts, published events, and past events.' },
   moderation: { title: 'Reports', description: 'Review reservation issues, the people involved, and each case’s status.' },
-  security: { title: 'Security & access', description: 'Audit authentication logs, access changes, and security-sensitive events.' },
   activity: { title: 'Activity audit log', description: 'Chronological timeline of all administrative and system events.' },
-}
-
-function dateLabel(value: string): string {
-  if (!value) return 'Not recorded'
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? 'Not recorded' : date.toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' })
-}
-
-function humanize(value: string): string {
-  return value.replace(/[._]/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
-}
-
-function EmptyState({ title, detail, onClear }: { title: string; detail?: string; onClear?: () => void }) {
-  return (
-    <div className="admin-empty-state">
-      <div className="admin-empty-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <path d="M21 21l-4.35-4.35 M11 19a8 8 0 100-16 8 8 0 000 16z" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </div>
-      <h3 className="admin-empty-title">{title}</h3>
-      {detail && <p className="admin-empty-detail">{detail}</p>}
-      {onClear && (
-        <button type="button" className="admin-btn-secondary admin-empty-btn" onClick={onClear}>
-          Clear Search & Filters
-        </button>
-      )}
-    </div>
-  )
 }
 
 function SkeletonTable() {
@@ -67,8 +37,6 @@ function SkeletonTable() {
   )
 }
 
-const securityAction = /auth|sign.?in|access|role|password|security|suspend|deactivat/i
-
 export default function AdminWorkspace({ onSignOut }: { onSignOut?: () => void | Promise<void> }) {
   const [activeView, setActiveView] = useState<AdminView>('overview')
   const [query, setQuery] = useState('')
@@ -85,7 +53,7 @@ export default function AdminWorkspace({ onSignOut }: { onSignOut?: () => void |
   const pageTitleRef = useRef<HTMLHeadingElement>(null)
   const mounted = useRef(true)
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (notify = false) => {
     if (refreshing.current) return
     refreshing.current = true
     setLoading(true)
@@ -96,21 +64,19 @@ export default function AdminWorkspace({ onSignOut }: { onSignOut?: () => void |
         setData(next)
         setDashboard(nextDashboard)
         setUpdatedAt(new Date().toISOString())
+        if (notify) toast.success('Admin data refreshed')
       }
     } catch (cause) {
       if (mounted.current) {
-        setError(cause instanceof Error ? cause.message : 'Could not load administrator data.')
+        const message = cause instanceof Error ? cause.message : 'Could not load administrator data.'
+        setError(message)
+        if (notify) toast.error('Could not refresh admin data', { description: message })
       }
     } finally {
       refreshing.current = false
       if (mounted.current) setLoading(false)
     }
   }, [])
-
-  const loadMarketplaceFaceCapture = useCallback((profileId: number) =>
-    loadFaceCaptureUrl(getSupabaseClient(), profileId), [])
-  const submitMarketplaceDecision = useCallback((review: AdminData['marketplaceReviews'][number], decision: 'approved' | 'changes_requested', notes: string) =>
-    reviewFarmerMarketplaceProfile(getSupabaseClient(), review.profileId, review.submittedAt, decision, notes), [])
 
   useEffect(() => {
     mounted.current = true
@@ -119,9 +85,6 @@ export default function AdminWorkspace({ onSignOut }: { onSignOut?: () => void |
     return () => { mounted.current = false; clearTimeout(timer); clearInterval(interval) }
   }, [refresh])
 
-  const security = useMemo(() => data?.activity.filter((entry) => securityAction.test(entry.action)) ?? [], [data])
-  const pendingApplications = data?.applications.filter((item) => item.kind === 'Event application' && item.status === 'pending').length ?? 0
-  const pendingFarmerReviews = data?.marketplaceReviews?.filter((item) => item.status === 'pending_review').length ?? 0
   const openReports = data?.reports.filter((item) => !['resolved', 'closed', 'dismissed'].includes(item.status)).length ?? 0
 
   const search = query.trim().toLocaleLowerCase()
@@ -135,9 +98,6 @@ export default function AdminWorkspace({ onSignOut }: { onSignOut?: () => void |
     requestAnimationFrame(() => pageTitleRef.current?.focus())
   }
 
-  // Filtered Security
-  const filteredSecurity = security.filter((item) => matches(item.action, item.actor, item.entityType))
-
   // Filtered Activity
   const filteredActivity = data?.activity.filter((item) => matches(item.action, item.actor, item.entityType)) ?? []
 
@@ -147,8 +107,6 @@ export default function AdminWorkspace({ onSignOut }: { onSignOut?: () => void |
       <AdminSidebar
         activeView={activeView}
         onViewChange={changeView}
-        applicationCount={pendingApplications}
-        farmerApprovalCount={pendingFarmerReviews}
         reportCount={openReports}
         onSignOut={onSignOut}
       />
@@ -163,10 +121,6 @@ export default function AdminWorkspace({ onSignOut }: { onSignOut?: () => void |
               <span className="breadcrumb-current">{viewCopy[activeView].title}</span>
             </nav>
             <div className="admin-topbar-actions">
-              <span className={`admin-live-pulse${error ? ' has-error' : ''}`} role="status">
-                <span className="pulse-dot" aria-hidden="true" />
-                <span>{error ? 'Sync failed' : loading ? 'Syncing data' : 'Data loaded'}</span>
-              </span>
               <a className="admin-public-link" href="/" target="_blank" rel="noreferrer">
                 <span>Public site</span>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
@@ -187,7 +141,7 @@ export default function AdminWorkspace({ onSignOut }: { onSignOut?: () => void |
               <button
                 type="button"
                 className="admin-btn-refresh"
-                onClick={() => void refresh()}
+                onClick={() => void refresh(true)}
                 disabled={loading}
                 title="Refresh database records"
               >
@@ -222,14 +176,14 @@ export default function AdminWorkspace({ onSignOut }: { onSignOut?: () => void |
               <strong>Database Connection Error</strong>
               <p>{error}</p>
             </div>
-            <button type="button" className="admin-btn-secondary" onClick={() => void refresh()}>
+            <button type="button" className="admin-btn-secondary" onClick={() => void refresh(true)}>
               Retry
             </button>
           </div>
         )}
 
         {/* Search & Filter Bar (Views other than Overview) */}
-        {(activeView === 'security' || activeView === 'activity') && (
+        {activeView === 'activity' && (
           <div className="admin-toolbar-card">
             <div className="admin-search-wrapper">
               <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -258,6 +212,7 @@ export default function AdminWorkspace({ onSignOut }: { onSignOut?: () => void |
           <DashboardOverview
             data={dashboard} reports={data.reports} activity={data.activity}
             onUsers={(role) => { changeView('users'); if (role) setRoleFilter(role) }}
+            onEvents={() => changeView('events')}
             onReports={() => changeView('moderation')}
             onActivity={() => changeView('activity')}
             onReport={(report) => setDetailTarget({ type: 'report', data: report })}
@@ -274,59 +229,11 @@ export default function AdminWorkspace({ onSignOut }: { onSignOut?: () => void |
             onOpen={(user) => setDetailTarget({ type: 'user', data: user })} />
         )}
 
-        {data && activeView === 'organizations' && (
-          <ApplicationsDirectory applications={data.applications.filter((item) => item.kind === 'Event application')}
-            onOpen={(item) => setDetailTarget({ type: 'application', data: item })}
-          />
-        )}
-
-        {data && activeView === 'farmer-approvals' && (
-          <FarmerApprovalsDirectory marketplaceReviews={data.marketplaceReviews ?? []}
-            onFaceCapture={loadMarketplaceFaceCapture}
-            onMarketplaceDecision={submitMarketplaceDecision}
-            onRefresh={refresh}
-            loading={loading} />
-        )}
+        {data && dashboard && activeView === 'events' && <EventsDirectory events={dashboard.events} users={data.users} onOpen={(event, managerName) => setDetailTarget({ type: 'event', data: event, managerName })} />}
 
         {data && activeView === 'moderation' && (
           <ReportsDirectory reports={data.reports}
             onOpen={(item) => setDetailTarget({ type: 'report', data: item })} />
-        )}
-
-        {/* View Content: Security */}
-        {!loading && data && activeView === 'security' && (
-          <div className="admin-table-container">
-            {filteredSecurity.length ? (
-              <table className="admin-modern-table">
-                <thead>
-                  <tr>
-                    <th scope="col">Security Action</th>
-                    <th scope="col">Actor</th>
-                    <th scope="col">Target Record</th>
-                    <th scope="col">Timestamp</th>
-                    <th scope="col" className="text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredSecurity.map((item) => (
-                    <tr key={item.id} onClick={() => setDetailTarget({ type: 'activity', data: item })}>
-                      <td><strong className="font-mono text-ink">{humanize(item.action)}</strong></td>
-                      <td><span className="text-ink font-medium">{item.actor}</span></td>
-                      <td><span className="admin-tag-pill">{humanize(item.entityType)}{item.entityId ? ` #${item.entityId}` : ''}</span></td>
-                      <td className="table-muted-date"><time dateTime={item.createdAt}>{dateLabel(item.createdAt)}</time></td>
-                      <td className="text-right">
-                        <button type="button" className="table-row-btn" onClick={(e) => { e.stopPropagation(); setDetailTarget({ type: 'activity', data: item }) }}>
-                          Details
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <EmptyState title="No security events" detail="No access or authentication events recorded matching the search." onClear={() => setQuery('')} />
-            )}
-          </div>
         )}
 
         {data && activeView === 'activity' && (
@@ -337,7 +244,7 @@ export default function AdminWorkspace({ onSignOut }: { onSignOut?: () => void |
       </main>
 
       {/* Slide-over Detail Drawer */}
-      {detailTarget && <DetailDrawer target={detailTarget} onClose={closeDetail} />}
+      {detailTarget && <DetailDrawer target={detailTarget} reports={data?.reports ?? []} onClose={closeDetail} onReportResolved={async () => { closeDetail(); await refresh() }} onUserUpdated={async () => { closeDetail(); await refresh() }} onOpenReport={report => setDetailTarget({ type: 'report', data: report })} />}
     </div>
   )
 }

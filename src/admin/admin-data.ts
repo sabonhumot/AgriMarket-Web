@@ -7,27 +7,49 @@ export type AdminUser = {
   role: string
   status: string
   createdAt: string
-}
-
-export type AdminApplication = {
-  id: string
-  kind: 'Farmer verification' | 'Event application'
-  title: string
-  applicant: string
-  status: string
-  submittedAt: string
-  detail: string | null
+  buyerWarningCount: number
+  manualSuspensionReason: string | null
+  manuallySuspendedAt: string | null
 }
 
 export type AdminReport = {
   id: number
+  reportedUserId: number | null
+  buyerId: number | null
   reporter: string
   subject: string
   reason: string
   description: string | null
+  evidencePath: string | null
   status: string
   outcome: string | null
+  resolutionNotes: string | null
+  caseDecision: string | null
+  decisionReason: string | null
+  decisionSeverity: string | null
   createdAt: string
+  buyerWarningCount: number
+}
+
+export type AdminReportParticipant = { user_id: number; first_name: string | null; last_name: string | null; email: string | null; mobile: string | null }
+export type AdminReportDetail = {
+  report: { report_id: number; reservation_id: number; reporter_id: number; reported_user_id: number; report_category: string; reporter_description: string; evidence_path: string | null; status: string; resolution_outcome: string | null; resolution_notes: string | null; case_decision: string | null; decision_reason: string | null; decision_severity: string | null; created_at: string; decided_at: string | null }
+  reservation: { reservation_id: number; listing_id: number; buyer_id: number; farmer_id: number; reservation_status: string; quantity_requested: number; total_price: number; fulfillment_mode: string | null; pickup_arrangement_snapshot: string | null; event_name_snapshot: string | null; event_date_snapshot: string | null; event_location_snapshot: string | null }
+  participants: { reporter: AdminReportParticipant | null; reported: AdminReportParticipant | null }
+  messages: Array<{ message_id: string; sender_id: number | null; body: string; created_at: string }>
+  messages_available: boolean
+  active_points: number
+  active_restriction: { type: string; ends_at: string; review_required: boolean } | null
+  evidence_url?: string | null
+}
+
+export type AdminReportDecision = {
+  reportId: number
+  caseDecision: 'resolved' | 'dismissed' | 'violation_confirmed' | 'critical_investigation'
+  reason: string
+  reservationOutcome?: 'fulfilled' | 'not_fulfilled'
+  severity?: 'warning' | 'ordinary' | 'serious'
+  restrictionEndsAt?: string
 }
 
 export type AdminActivity = {
@@ -39,40 +61,16 @@ export type AdminActivity = {
   createdAt: string
 }
 
-export type AdminMarketplaceReview = {
-  profileId: number
-  userId: number
-  farmerName: string
-  email: string
-  mobile: string
-  farmName: string
-  farmDescription: string
-  municipality: string
-  barangay: string
-  landmark: string
-  profilePhotoUrl: string | null
-  status: 'not_submitted' | 'pending_review' | 'approved' | 'changes_requested'
-  submittedAt: string
-  reviewedAt: string | null
-  reviewedBy: string | null
-  notes: string | null
-  history: Array<{ decision: string; notes: string | null; actor: string; createdAt: string }>
-}
-
 export type AdminData = {
   users: AdminUser[]
-  applications: AdminApplication[]
   reports: AdminReport[]
   activity: AdminActivity[]
-  marketplaceReviews: AdminMarketplaceReview[]
 }
 
 type UserRow = { user_id: number; first_name: string | null; last_name: string | null; email: string | null; mobile: string | null; role: string; user_status: string; created_at: string }
-type FarmerProfileRow = { farmer_profile_id: number; user_id: number; farm_name: string | null; farm_description: string | null; farm_municipality: string | null; farm_barangay: string | null; farm_landmark: string | null; profile_photo_path: string | null; marketplace_review_status: AdminMarketplaceReview['status']; marketplace_review_submitted_at: string | null; marketplace_reviewed_by: number | null; marketplace_reviewed_at: string | null; marketplace_review_notes: string | null }
-type VerificationRow = { verification_id: number; user_id: number; review_status: string; processing_status: string; submitted_at: string | null; review_notes: string | null }
-type EventApplicationRow = { application_id: number; farmer_id: number; market_event_id: number; status: string; created_at: string; rejection_reason: string | null }
-type EventRow = { market_event_id: number; event_name: string }
-type ReportRow = { report_id: number; reporter_id: number | null; reported_user_id: number | null; reason: string; reporter_description: string | null; status: string; resolution_outcome: string | null; created_at: string }
+type ReportRow = { report_id: number; reporter_id: number | null; reported_user_id: number | null; buyer_id: number | null; reason: string | null; report_category: string | null; reporter_description: string | null; evidence_path: string | null; status: string; resolution_outcome: string | null; resolution_notes: string | null; case_decision: string | null; decision_reason: string | null; decision_severity: string | null; created_at: string }
+type BuyerWarningCountRow = { buyer_id: number; warning_count: number | string }
+type UserSuspensionRow = { user_id: number; reason: string; suspended_at: string }
 type ActivityRow = { system_log_id: number; actor_id: number | null; action: string; entity_type: string; entity_id: number | null; created_at: string; metadata: Record<string, unknown> | null }
 
 function nameOf(user: UserRow | undefined): string {
@@ -83,73 +81,19 @@ function nameOf(user: UserRow | undefined): string {
 export async function loadAdminData(client: SupabaseClient): Promise<AdminData> {
   const responses = await Promise.all([
     client.from('users').select('user_id, first_name, last_name, email, mobile, role, user_status, created_at'),
-    client.rpc('admin_list_farmer_verifications'),
-    client.from('market_event_applications').select('application_id, farmer_id, market_event_id, status, created_at, rejection_reason'),
-    client.from('market_events').select('market_event_id, event_name'),
-    client.from('reservation_reports').select('report_id, reporter_id, reported_user_id, reason, reporter_description, status, resolution_outcome, created_at'),
+    client.rpc('get_admin_transaction_reports'),
+    client.rpc('get_admin_buyer_warning_counts'),
+    client.rpc('get_admin_user_suspensions'),
     client.from('system_logs').select('system_log_id, actor_id, action, entity_type, entity_id, created_at, metadata'),
-    client.from('farmer_profiles').select('farmer_profile_id, user_id, farm_name, farm_description, farm_municipality, farm_barangay, farm_landmark, profile_photo_path, marketplace_review_status, marketplace_review_submitted_at, marketplace_reviewed_by, marketplace_reviewed_at, marketplace_review_notes'),
   ])
   for (const response of responses) if (response.error) throw response.error
 
-  const [users, verifications, eventApplications, events, reports, activity, profiles] = responses.map((response) => response.data ?? []) as unknown as [
-    UserRow[], VerificationRow[], EventApplicationRow[], EventRow[], ReportRow[], ActivityRow[], FarmerProfileRow[],
+  const [users, reports, warningRows, suspensionRows, activity] = responses.map((response) => response.data ?? []) as unknown as [
+    UserRow[], ReportRow[], BuyerWarningCountRow[], UserSuspensionRow[], ActivityRow[],
   ]
   const people = new Map(users.map((user) => [user.user_id, user]))
-  const eventNames = new Map(events.map((event) => [event.market_event_id, event.event_name]))
-  const marketplaceReviews: AdminMarketplaceReview[] = profiles.map((profile) => {
-    const user = people.get(profile.user_id)
-    const history = activity
-      .filter((entry) => entry.entity_type === 'farmer_profile' && entry.entity_id === profile.farmer_profile_id && entry.action === 'farmer.marketplace_reviewed')
-      .sort((a, b) => b.created_at.localeCompare(a.created_at))
-      .map((entry) => ({
-        decision: String(entry.metadata?.decision ?? 'reviewed'),
-        notes: typeof entry.metadata?.notes === 'string' ? entry.metadata.notes : null,
-        actor: nameOf(people.get(entry.actor_id ?? -1)),
-        createdAt: entry.created_at,
-      }))
-    return {
-      profileId: profile.farmer_profile_id,
-      userId: profile.user_id,
-      farmerName: nameOf(user),
-      email: user?.email ?? '',
-      mobile: user?.mobile ?? '',
-      farmName: profile.farm_name ?? '',
-      farmDescription: profile.farm_description ?? '',
-      municipality: profile.farm_municipality ?? '',
-      barangay: profile.farm_barangay ?? '',
-      landmark: profile.farm_landmark ?? '',
-      profilePhotoUrl: profile.profile_photo_path
-        ? client.storage.from('profile-images').getPublicUrl(profile.profile_photo_path).data.publicUrl
-        : null,
-      status: profile.marketplace_review_status,
-      submittedAt: profile.marketplace_review_submitted_at ?? '',
-      reviewedAt: profile.marketplace_reviewed_at,
-      reviewedBy: profile.marketplace_reviewed_by == null ? null : nameOf(people.get(profile.marketplace_reviewed_by)),
-      notes: profile.marketplace_review_notes,
-      history,
-    }
-  }).filter((profile) => profile.status !== 'not_submitted').sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))
-  const applications: AdminApplication[] = [
-    ...verifications.map((row) => ({
-      id: `verification-${row.verification_id}`,
-      kind: 'Farmer verification' as const,
-      title: 'Farmer identity verification',
-      applicant: nameOf(people.get(row.user_id)),
-      status: row.review_status,
-      submittedAt: row.submitted_at ?? '',
-      detail: row.review_notes,
-    })),
-    ...eventApplications.map((row) => ({
-      id: `event-${row.application_id}`,
-      kind: 'Event application' as const,
-      title: eventNames.get(row.market_event_id) ?? `Event #${row.market_event_id}`,
-      applicant: nameOf(people.get(row.farmer_id)),
-      status: row.status,
-      submittedAt: row.created_at,
-      detail: row.rejection_reason,
-    })),
-  ].sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))
+  const warningCounts = new Map(warningRows.map(row => [row.buyer_id, Number(row.warning_count)]))
+  const suspensions = new Map(suspensionRows.map(row => [row.user_id, row]))
 
   return {
     users: users.map((row) => ({
@@ -159,17 +103,27 @@ export async function loadAdminData(client: SupabaseClient): Promise<AdminData> 
       role: row.role,
       status: row.user_status,
       createdAt: row.created_at,
+      buyerWarningCount: warningCounts.get(row.user_id) ?? 0,
+      manualSuspensionReason: suspensions.get(row.user_id)?.reason ?? null,
+      manuallySuspendedAt: suspensions.get(row.user_id)?.suspended_at ?? null,
     })).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
-    applications,
     reports: reports.map((row) => ({
       id: row.report_id,
+      reportedUserId: row.reported_user_id,
+      buyerId: row.buyer_id,
       reporter: nameOf(people.get(row.reporter_id ?? -1)),
       subject: nameOf(people.get(row.reported_user_id ?? -1)),
-      reason: row.reason,
+      reason: row.reason?.trim() || row.report_category?.replaceAll('_', ' ').replace(/\b\w/g, letter => letter.toUpperCase()) || `Report #${row.report_id}`,
       description: row.reporter_description,
+      evidencePath: row.evidence_path ?? null,
       status: row.status,
       outcome: row.resolution_outcome,
+      resolutionNotes: row.resolution_notes ?? null,
+      caseDecision: row.case_decision ?? null,
+      decisionReason: row.decision_reason ?? null,
+      decisionSeverity: row.decision_severity ?? null,
       createdAt: row.created_at,
+      buyerWarningCount: row.reported_user_id === row.buyer_id ? warningCounts.get(row.buyer_id ?? -1) ?? 0 : 0,
     })).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     activity: activity.map((row) => ({
       id: row.system_log_id,
@@ -179,6 +133,63 @@ export async function loadAdminData(client: SupabaseClient): Promise<AdminData> 
       entityId: row.entity_id,
       createdAt: row.created_at,
     })).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
-    marketplaceReviews,
   }
+}
+
+export async function setAdminUserSuspension(client: SupabaseClient, input: { userId: number; suspend: boolean; reason: string }): Promise<{ user_id: number; status: string }> {
+  const reason = input.reason.trim()
+  if (!reason || reason.length > 2000) throw new Error('A reason of 1 to 2000 characters is required.')
+  const { data, error } = await client.rpc('admin_set_user_suspension', {
+    p_user_id: input.userId,
+    p_suspend: input.suspend,
+    p_reason: reason,
+  })
+  if (error) throw error
+  return data as { user_id: number; status: string }
+}
+
+export async function resolveAdminReportCase(client: SupabaseClient, input: { reportId: number; outcome: 'fulfilled' | 'not_fulfilled' | 'dismissed'; notes: string; issueBuyerWarning: boolean }): Promise<{ reservation_status: string; buyer_warning_count: number }> {
+  const notes = input.notes.trim()
+  if (!notes || notes.length > 2000) throw new Error('Resolution notes must be 1 to 2000 characters.')
+  if (input.issueBuyerWarning && input.outcome !== 'not_fulfilled') throw new Error('A buyer warning requires a not fulfilled resolution.')
+  const { data, error } = await client.rpc('admin_resolve_report_case', {
+    p_report_id: input.reportId,
+    p_outcome: input.outcome,
+    p_notes: notes,
+    p_issue_buyer_warning: input.issueBuyerWarning,
+  })
+  if (error) throw error
+  return data as { reservation_status: string; buyer_warning_count: number }
+}
+
+export async function loadReportEvidenceUrl(client: SupabaseClient, evidencePath: string | null): Promise<string | null> {
+  if (!evidencePath) return null
+  const { data, error } = await client.storage.from('reservation-reports').createSignedUrl(evidencePath, 3600)
+  if (error) throw error
+  return data.signedUrl
+}
+
+export async function loadAdminReportDetail(client: SupabaseClient, reportId: number): Promise<AdminReportDetail> {
+  const { data, error } = await client.rpc('admin_get_reservation_report_detail', { p_report_id: reportId })
+  if (error) throw error
+  const detail = data as unknown as AdminReportDetail
+  if (detail.report.evidence_path) {
+    const { data: signed, error: signedError } = await client.storage.from('reservation-reports').createSignedUrl(detail.report.evidence_path, 300)
+    if (signedError) throw signedError
+    detail.evidence_url = signed.signedUrl
+  }
+  return detail
+}
+
+export async function decideAdminReport(client: SupabaseClient, decision: AdminReportDecision): Promise<Record<string, unknown>> {
+  const { data, error } = await client.rpc('admin_decide_reservation_report', {
+    p_report_id: decision.reportId,
+    p_case_decision: decision.caseDecision,
+    p_decision_reason: decision.reason,
+    p_reservation_outcome: decision.reservationOutcome ?? null,
+    p_severity: decision.severity ?? null,
+    p_restriction_ends_at: decision.restrictionEndsAt ?? null,
+  })
+  if (error) throw error
+  return data as Record<string, unknown>
 }

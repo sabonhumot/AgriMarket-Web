@@ -4,6 +4,7 @@
 .review-record-icon { display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border-radius: 9px; background: var(--admin-primary-subtle); color: var(--admin-primary); }
 .review-record-icon.is-report { background: var(--admin-panel-subtle); color: var(--admin-muted); }
 .review-record-subtitle { display: block; margin-top: 5px; font-size: var(--admin-type-meta); color: var(--admin-muted); font-variant-numeric: tabular-nums; }
+.review-warning-flag { display: inline-block; margin-top: 6px; padding: 3px 7px; border-radius: 5px; background: var(--admin-coral-light); color: #9e3e20; font-size: var(--admin-type-badge); font-weight: 600; }
 .review-description { margin: 7px 0 0; max-width: 300px; color: var(--admin-muted); font-size: var(--admin-type-meta); line-height: 1.5; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .review-participants { display: grid; gap: 8px; min-width: 145px; max-width: 240px; }
 .review-participants > div { display: grid; grid-template-columns: 4rem minmax(0,1fr); gap: 8px; align-items: baseline; }

@@ -229,35 +229,6 @@
   gap: 12px;
 }
 
-.admin-live-pulse {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: var(--admin-radius-full);
-  background: var(--admin-primary-light);
-  border: 1px solid rgba(24, 90, 55, 0.15);
-  font-size: var(--admin-type-badge);
-  font-weight: 600;
-  color: var(--admin-primary);
-}
-
-.admin-live-pulse.has-error {
-  background: var(--admin-alert-light);
-  border-color: #f5b7b7;
-  color: #9f2424;
-}
-
-.admin-live-pulse.has-error .pulse-dot { background: currentColor; }
-
-.pulse-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--admin-accent);
-  flex: none;
-}
-
 .admin-public-link {
   display: inline-flex;
   align-items: center;
@@ -1360,6 +1331,17 @@
   border: 0;
   background: rgba(11, 31, 20, 0.48);
   cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 220ms var(--admin-ease-out), visibility 0s linear 220ms;
+}
+
+  .admin-sidebar-scrim[data-open='true'] {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition-delay: 0s;
 }
 
   .admin-sidebar.is-open {
@@ -1368,7 +1350,7 @@
   transition: transform 220ms var(--admin-ease-out);
 }
 
-  .admin-menu-button:focus-visible ~ .admin-sidebar {
+  .admin-menu-button:focus-visible ~ :is(.admin-sidebar, .admin-sidebar-scrim) {
   transition-duration: 0ms;
 }
 
@@ -1436,6 +1418,16 @@
 .admin-shell :is(button, a, input, select, textarea):focus-visible {
   outline: 2px solid var(--admin-primary);
   outline-offset: 3px;
+}
+
+.admin-shell .users-search input:focus-visible,
+.admin-shell .users-select select:focus-visible {
+  outline: none;
+}
+
+.admin-shell .users-select:focus-within {
+  outline: 2px solid var(--admin-primary);
+  outline-offset: 2px;
 }
 
 .admin-sidebar :is(button, a):focus-visible {

@@ -1,10 +1,9 @@
 import { useState } from 'react'
-import type { AdminApplication, AdminMarketplaceReview, AdminReport } from '../admin-data'
-import FarmerMarketplaceReviewQueue from './FarmerMarketplaceReviewQueue'
+import type { AdminReport } from '../admin-data'
 import './UsersDirectory.css'
 import './ReviewDirectory.css'
 
-type RecordRow = { id: string; title: string; description: string | null; person: string; otherPerson?: string; kind?: string; status: string; date: string; onOpen: () => void }
+type RecordRow = { id: string; title: string; description: string | null; person: string; otherPerson?: string; kind?: string; status: string; date: string; warningCount?: number; onOpen: () => void }
 type StatusTab = { value: string; label: string; matches: (row: RecordRow) => boolean }
 const humanize = (value: string) => value.replaceAll('_', ' ').replace(/\b\w/g, letter => letter.toUpperCase())
 const dateLabel = (value: string) => Number.isNaN(Date.parse(value)) ? 'Not recorded' : new Date(value).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'Asia/Manila' })
@@ -25,6 +24,7 @@ function ReviewDirectory({ mode, rows }: { mode: 'applications' | 'reports'; row
   const isReports = mode === 'reports'
   const tabs: StatusTab[] = [{ value: 'all', label: isReports ? 'All reports' : 'All applications', matches: () => true }]
   if (isReports) tabs.push({ value: 'needs-action', label: 'Needs review', matches: row => !closed.has(row.status.toLowerCase()) })
+  if (isReports) tabs.push({ value: 'suspension-review', label: 'Suspension review', matches: row => (row.warningCount ?? 0) >= 4 })
   const tabValues = isReports ? ['resolved', 'dismissed', ...(rows.some(row => row.status.toLowerCase() === 'closed') ? ['closed'] : [])] : Array.from(new Set(['pending', 'approved', 'rejected', ...rows.map(row => row.status.toLowerCase())]))
   tabValues.forEach(value => tabs.push({ value, label: humanize(value), matches: row => row.status.toLowerCase() === value }))
   const selectedTab = tabs.find(tab => tab.value === status) ?? tabs[0]
@@ -44,7 +44,7 @@ function ReviewDirectory({ mode, rows }: { mode: 'applications' | 'reports'; row
     </div>
     <div className="users-results"><p role="status"><strong>{filtered.length.toLocaleString('en-PH')}</strong> {filtered.length === 1 ? (isReports ? 'report' : 'application') : mode}{hasFilters ? ' matching your filters' : ' in this directory'}</p>{hasFilters && <button type="button" onClick={clear}>Clear filters</button>}</div>
     {visible.length ? <div className="users-table-scroll" role="region" aria-label={isReports ? 'Reservation reports' : 'Applications'} tabIndex={0}><table className="users-table review-table"><thead><tr><th scope="col">{isReports ? 'Report' : 'Application'}</th><th scope="col">{isReports ? 'People involved' : 'Applicant'}</th><th scope="col">Status</th><th scope="col">{isReports ? 'Filed' : 'Submitted'}</th><th scope="col"><span className="admin-sr-only">Details</span></th></tr></thead><tbody>{visible.map(row => <tr key={row.id}>
-      <td><div className="review-record-title"><span className={`review-record-icon${isReports ? ' is-report' : ''}`} aria-hidden="true"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.6">{isReports ? <><path d="M12 3 3 7v5c0 5 9 9 9 9s9-4 9-9V7z" /><path d="M12 8v5m0 3v.1" /></> : <><path d="M7 3h8l4 4v14H5V3zm7 0v5h5M8 12h8m-8 4h6" /></>}</svg></span><div><button type="button" className="users-name" onClick={row.onOpen}>{row.title}</button><span className="review-record-subtitle">{isReports ? `Case #${row.id}` : row.kind}</span>{isReports && row.description && <p className="review-description">{row.description}</p>}</div></div></td>
+      <td><div className="review-record-title"><span className={`review-record-icon${isReports ? ' is-report' : ''}`} aria-hidden="true"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.6">{isReports ? <><path d="M12 3 3 7v5c0 5 9 9 9 9s9-4 9-9V7z" /><path d="M12 8v5m0 3v.1" /></> : <><path d="M7 3h8l4 4v14H5V3zm7 0v5h5M8 12h8m-8 4h6" /></>}</svg></span><div><button type="button" className="users-name" onClick={row.onOpen}>{row.title}</button><span className="review-record-subtitle">{isReports ? `Case #${row.id}` : row.kind}</span>{isReports && (row.warningCount ?? 0) >= 4 && <span className="review-warning-flag">Suspension review needed</span>}{isReports && row.description && <p className="review-description">{row.description}</p>}</div></div></td>
       <td>{isReports ? <div className="review-participants"><div><span>Reporter</span><strong>{row.person}</strong></div><div><span>Reported</span><strong>{row.otherPerson}</strong></div></div> : <span className="review-applicant">{row.person}</span>}</td>
       <td><Status value={row.status} /></td><td><time dateTime={row.date || undefined}>{dateLabel(row.date)}</time>{!isReports && <span className="users-account-id">{row.id}</span>}</td><td><button className="users-view" type="button" aria-label={`${isReports ? 'View report' : 'View application'} ${row.id}: ${row.title}`} onClick={row.onOpen}>View<Arrow /></button></td>
     </tr>)}</tbody></table></div> : <div className="users-empty"><svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M7 3h8l4 4v14H5V3zm7 0v5h5M8 12h8m-8 4h6" /></svg><h2>{hasFilters ? `No ${mode} match your filters` : `No ${mode} yet`}</h2><p>{hasFilters ? 'Try another search or status, or clear your filters.' : isReports ? 'Reservation reports will appear here when submitted.' : 'Submitted applications will appear here automatically.'}</p>{hasFilters && <button type="button" onClick={clear}>Clear filters</button>}</div>}
@@ -52,21 +52,6 @@ function ReviewDirectory({ mode, rows }: { mode: 'applications' | 'reports'; row
   </section>
 }
 
-export function ApplicationsDirectory({ applications, onOpen }: {
-  applications: AdminApplication[]
-  onOpen: (item: AdminApplication) => void
-}) {
-  return <ReviewDirectory mode="applications" rows={applications.map(item => ({ id: item.id, title: item.title, description: item.detail, person: item.applicant, kind: item.kind, status: item.status, date: item.submittedAt, onOpen: () => onOpen(item) }))} />
-}
-export function FarmerApprovalsDirectory({ marketplaceReviews, onFaceCapture, onMarketplaceDecision, onRefresh, loading }: {
-  marketplaceReviews: AdminMarketplaceReview[]
-  onFaceCapture: (profileId: number) => Promise<string | null>
-  onMarketplaceDecision: (review: AdminMarketplaceReview, decision: 'approved' | 'changes_requested', notes: string) => Promise<void>
-  onRefresh: () => Promise<void>
-  loading: boolean
-}) {
-  return <FarmerMarketplaceReviewQueue reviews={marketplaceReviews} onFaceCapture={onFaceCapture} onDecision={onMarketplaceDecision} onRefresh={onRefresh} loading={loading} />
-}
 export function ReportsDirectory({ reports, onOpen }: { reports: AdminReport[]; onOpen: (item: AdminReport) => void }) {
-  return <ReviewDirectory mode="reports" rows={reports.map(item => ({ id: String(item.id), title: item.reason, description: item.description, person: item.reporter, otherPerson: item.subject, status: item.status, date: item.createdAt, onOpen: () => onOpen(item) }))} />
+  return <ReviewDirectory mode="reports" rows={reports.map(item => ({ id: String(item.id), title: item.reason, description: item.description, person: item.reporter, otherPerson: item.subject, status: item.status, date: item.createdAt, warningCount: item.buyerWarningCount, onOpen: () => onOpen(item) }))} />
 }

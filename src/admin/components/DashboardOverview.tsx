@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import type { AdminActivity, AdminReport } from '../admin-data'
 import { activeEvents, registrationDays, type DashboardData } from '../dashboard-data'
 import './DashboardOverview.css'
@@ -8,6 +8,7 @@ type Props = {
   reports: AdminReport[]
   activity: AdminActivity[]
   onUsers: (role?: string) => void
+  onEvents: () => void
   onReports: () => void
   onActivity: () => void
   onReport: (report: AdminReport) => void
@@ -17,28 +18,23 @@ const dateLabel = (value: string) => new Date(value).toLocaleDateString('en-PH',
 const roles = [{ key: 'buyer', label: 'Buyers' }, { key: 'farmer', label: 'Farmers' }, { key: 'coordinator', label: 'Event Managers' }, { key: 'admin', label: 'Admins' }, { key: 'cooperative', label: 'Cooperatives' }]
 function Arrow() { return <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4 10h12m-5-5 5 5-5 5" /></svg> }
 
-export default function DashboardOverview({ data, reports, activity, onUsers, onReports, onActivity, onReport }: Props) {
+export default function DashboardOverview({ data, reports, activity, onUsers, onEvents, onReports, onActivity, onReport }: Props) {
   const [period, setPeriod] = useState(30)
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
   const now = new Date(data.refreshedAt).getTime()
   const events = activeEvents(data.events, now).sort((a, b) => a.event_date.localeCompare(b.event_date))
-  const people = new Map(data.users.map(user => [user.user_id, user]))
-  const uncovered = events.filter(event => !event.coordinator_user_id || people.get(event.coordinator_user_id)?.user_status !== 'active')
-  const pending = uncovered.length + data.invitations.length
-  const days = useMemo(() => registrationDays(data.users, period, now), [data.users, period, now])
+  const days = registrationDays(data.users, period, now)
   const registrations = days.reduce((sum, day) => sum + day.count, 0)
   const ceiling = Math.max(4, Math.ceil(Math.max(...days.map(day => day.count)) / 4) * 4)
   const selected = days.find(day => day.date === selectedDay)
   const active = data.users.filter(user => user.user_status === 'active').length
   const openReports = reports.filter(report => !['resolved', 'closed', 'dismissed'].includes(report.status.toLowerCase()))
-  function goTo(id: string) { document.getElementById(id)?.focus(); document.getElementById(id)?.scrollIntoView({ block: 'nearest' }) }
 
   return <div className="dashboard-overview">
     <div className="dashboard-metrics" aria-label="Platform statistics">
       <button className="dashboard-metric" onClick={() => onUsers()}><span>Total users <Arrow /></span><strong>{number(data.totalUsers)}</strong><small>{number(active)} active accounts</small></button>
-      <button className="dashboard-metric" onClick={() => goTo('dashboard-events')}><span>Active events <Arrow /></span><strong>{number(events.length)}</strong><small>Published · upcoming or ongoing</small></button>
+      <button className="dashboard-metric" onClick={onEvents}><span>Active events <Arrow /></span><strong>{number(events.length)}</strong><small>Published · upcoming or ongoing</small></button>
       <button className="dashboard-metric" onClick={onReports}><span>Reports awaiting review <Arrow /></span><strong>{number(data.openReports)}</strong><small>Open and unresolved cases</small></button>
-      <button className={`dashboard-metric${pending ? ' needs-attention' : ''}`} onClick={() => goTo('dashboard-actions')}><span>Pending admin actions <Arrow /></span><strong>{number(pending)}</strong><small>Manager access and event coverage</small></button>
     </div>
 
     <div className="dashboard-statistics">
@@ -63,10 +59,8 @@ export default function DashboardOverview({ data, reports, activity, onUsers, on
 
     <div className="dashboard-operations">
       <section className="dashboard-panel" aria-labelledby="reports-title"><div className="dashboard-panel-heading"><div><h2 id="reports-title">Reports to review</h2><p>Reservation issues needing a decision</p></div><button className="dashboard-text-link" onClick={onReports}>View all <Arrow /></button></div><div className="dashboard-record-list">{openReports.slice(0, 4).map(report => <button className="dashboard-record" key={report.id} onClick={() => onReport(report)}><span><strong>{report.reason}</strong><small>{report.reporter} · {report.subject}</small></span><span className="dashboard-record-meta">{dateLabel(report.createdAt)}<Arrow /></span></button>)}{!openReports.length && <div className="dashboard-empty"><strong>No reports waiting</strong><p>New reservation reports will appear here.</p></div>}</div></section>
-      <section className="dashboard-panel" aria-labelledby="dashboard-actions"><div className="dashboard-panel-heading"><div><h2 id="dashboard-actions" tabIndex={-1}>Admin follow-up</h2><p>Manager access and event continuity</p></div><span className="dashboard-count">{pending}</span></div><div className="dashboard-record-list">{data.invitations.slice(0, 3).map(invitation => <button className="dashboard-record" key={invitation.invitation_id} onClick={() => onUsers('coordinator')}><span><strong>Manager invitation expired</strong><small>Account #{invitation.account_user_id} · {dateLabel(invitation.expires_at)}</small></span><Arrow /></button>)}{uncovered.slice(0, 3).map(event => <div className="dashboard-record" key={event.market_event_id}><span><strong>{event.event_name}</strong><small>Needs an active Event Manager</small></span></div>)}{pending === 0 && <div className="dashboard-empty"><strong>No follow-up needed</strong><p>No expired manager invitations or uncovered active events.</p></div>}</div></section>
+      <section className="dashboard-panel" aria-labelledby="dashboard-events"><div className="dashboard-panel-heading"><div><h2 id="dashboard-events" tabIndex={-1}>Active market events</h2><p>Published events that are upcoming or ongoing</p></div><span className="dashboard-count">{events.length}</span></div><div className="dashboard-event-list">{events.slice(0, 5).map(event => <div className="dashboard-event" key={event.market_event_id}><time dateTime={event.event_date}>{dateLabel(`${event.event_date}T12:00:00+08:00`)}</time><div><strong>{event.event_name}</strong><small>{event.location || 'Location not recorded'}</small></div><span className="dashboard-event-status">{new Date(`${event.event_date}T00:00:00+08:00`).getTime() > now ? 'Upcoming' : 'Ongoing'}</span></div>)}{!events.length && <div className="dashboard-empty"><strong>No active events</strong><p>Upcoming and ongoing published events will appear here.</p></div>}</div>{events.length > 5 && <p className="dashboard-footnote">Showing the next 5 of {events.length} active events.</p>}</section>
     </div>
-
-    <section className="dashboard-panel" aria-labelledby="dashboard-events"><div className="dashboard-panel-heading"><div><h2 id="dashboard-events" tabIndex={-1}>Active market events</h2><p>Published events that are upcoming or ongoing</p></div><span className="dashboard-count">{events.length}</span></div><div className="dashboard-event-list">{events.slice(0, 5).map(event => <div className="dashboard-event" key={event.market_event_id}><time dateTime={event.event_date}>{dateLabel(`${event.event_date}T12:00:00+08:00`)}</time><div><strong>{event.event_name}</strong><small>{event.location || 'Location not recorded'}</small></div><span className="dashboard-event-status">{new Date(`${event.event_date}T00:00:00+08:00`).getTime() > now ? 'Upcoming' : 'Ongoing'}</span></div>)}{!events.length && <div className="dashboard-empty"><strong>No active events</strong><p>Upcoming and ongoing published events will appear here.</p></div>}</div>{events.length > 5 && <p className="dashboard-footnote">Showing the next 5 of {events.length} active events.</p>}</section>
     <section className="dashboard-activity" aria-labelledby="activity-title"><div className="dashboard-panel-heading"><h2 id="activity-title">Recent admin activity</h2><button className="dashboard-text-link" onClick={onActivity}>Open system log <Arrow /></button></div>{activity.slice(0, 3).map(entry => <div className="dashboard-activity-row" key={entry.id}><span>{entry.action.replace(/[._]/g, ' ')}</span><span>{entry.actor}</span><time dateTime={entry.createdAt}>{dateLabel(entry.createdAt)}</time></div>)}{!activity.length && <p>No activity recorded yet.</p>}</section>
   </div>
 }

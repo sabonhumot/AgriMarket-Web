@@ -1,5 +1,5 @@
 .users-directory { background: var(--admin-panel); border: 1px solid var(--admin-line); border-radius: 14px; overflow: hidden; }
-.users-directory button,.users-directory input,.users-directory select { font-family: inherit; }
+:is(.users-directory,.events-directory) :is(button,input,select) { font-family: inherit; }
 .users-role-tabs { display: flex; gap: 24px; padding: 0 24px; border-bottom: 1px solid var(--admin-line); overflow-x: auto; scrollbar-width: thin; }
 .users-role-tabs button { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; min-height: 62px; padding: 0 0 2px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--admin-muted); font-size: var(--admin-type-data); cursor: pointer; white-space: nowrap; font-weight: 500; }
 .users-role-tabs button[aria-pressed=true] { color: var(--admin-primary); border-bottom-color: var(--admin-primary); font-weight: 600; }
@@ -9,7 +9,7 @@
 .users-search { display: flex; align-items: center; flex: 1 1 220px; gap: 10px; min-width: 0; min-height: 44px; border: 1px solid var(--admin-line); border-radius: 8px; padding: 0 12px; color: var(--admin-muted); }
 .users-search svg { flex-shrink: 0; }
 .users-search:focus-within { outline: 2px solid var(--admin-primary); outline-offset: 2px; }
-.users-directory .users-search input { width: 100%; min-width: 0; height: 42px; padding: 0; background: transparent; border: 0; outline: none; font-size: var(--admin-type-data); color: var(--admin-ink); }
+.users-search input { width: 100%; min-width: 0; height: 42px; padding: 0; background: transparent; border: 0; outline: none; font-size: var(--admin-type-data); color: var(--admin-ink); }
 .users-search input::placeholder { color: var(--admin-muted); }
 .users-select { display: flex; align-items: center; gap: 8px; padding: 0 10px 0 12px; min-height: 44px; border: 1px solid var(--admin-line); border-radius: 8px; font-size: var(--admin-type-meta); color: var(--admin-muted); }
 .users-select select { min-width: 0; max-width: 170px; min-height: 42px; border: 0; background: transparent; color: var(--admin-ink); font-size: var(--admin-type-meta); cursor: pointer; }
@@ -35,6 +35,7 @@
 .users-status-active { background: var(--admin-primary-subtle); color: var(--admin-primary); }
 .users-status-pending_verification { background: var(--admin-sun-light); color: #88500e; }
 .users-status-suspended { background: var(--admin-coral-light); color: #9e3e20; }
+.users-warning-flag { display: block; margin-top: 5px; color: #9e3e20; font-size: var(--admin-type-badge); font-weight: 600; }
 .users-table time { white-space: nowrap; font-size: var(--admin-type-meta); font-variant-numeric: tabular-nums; }
 .users-account-id { display: block; margin-top: 4px; font-size: var(--admin-type-badge); color: var(--admin-muted); font-variant-numeric: tabular-nums; }
 .users-view { display: inline-flex; align-items: center; justify-content: center; min-height: 36px; gap: 7px; padding: 5px 10px; border: 1px solid var(--admin-line); border-radius: 7px; background: var(--admin-panel); color: var(--admin-primary); font-size: var(--admin-type-meta); cursor: pointer; }

@@ -1,14 +1,14 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 export type DashboardUser = { user_id: number; role: string; user_status: string; created_at: string }
-export type DashboardEvent = { market_event_id: number; event_name: string; status: string; event_date: string; end_date: string | null; end_time: string | null; coordinator_user_id: number | null; location: string | null }
+export type DashboardEvent = { market_event_id: number; event_name: string; status: string; event_date: string; end_date: string | null; start_time: string | null; end_time: string | null; coordinator_user_id: number | null; location: string | null; venue_name: string | null; event_type: string | null; description: string | null }
 export type DashboardInvitation = { invitation_id: number; account_user_id: number; expires_at: string; used_at: string | null; revoked_at: string | null }
 export type DashboardData = { users: DashboardUser[]; totalUsers: number; events: DashboardEvent[]; invitations: DashboardInvitation[]; openReports: number; refreshedAt: string }
 
 // Page every result set so statistics cannot silently stop at the API row limit.
 async function readAll<T>(client: SupabaseClient, table: string, columns: string, key: string) {
   const rows: T[] = []
-  let total = 0
+  let total: number
   for (let offset = 0; ; offset += 500) {
     const result = await client.from(table).select(columns, { count: 'exact' }).order(key).range(offset, offset + 499)
     if (result.error) throw result.error
@@ -22,7 +22,7 @@ async function readAll<T>(client: SupabaseClient, table: string, columns: string
 export async function loadDashboardData(client: SupabaseClient): Promise<DashboardData> {
   const [users, events, invitations, reports] = await Promise.all([
     readAll<DashboardUser>(client, 'users', 'user_id,role,user_status,created_at', 'user_id'),
-    readAll<DashboardEvent>(client, 'market_events', 'market_event_id,event_name,status,event_date,end_date,end_time,coordinator_user_id,location', 'market_event_id'),
+    readAll<DashboardEvent>(client, 'market_events', 'market_event_id,event_name,status,event_date,end_date,start_time,end_time,coordinator_user_id,location,venue_name,event_type,description', 'market_event_id'),
     readAll<DashboardInvitation>(client, 'event_manager_account_invitations', 'invitation_id,account_user_id,expires_at,used_at,revoked_at', 'invitation_id'),
     client.from('reservation_reports').select('report_id', { count: 'exact', head: true }).not('status', 'in', '(resolved,closed,dismissed)'),
   ])
