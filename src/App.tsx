@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import brandLogo from './assets/AgriMarket.svg'
 import cropDetailsScreen from './assets/crop-details-page.jpg'
 import buyerDashboard from './assets/buyer-dashboard.jpg'
@@ -6,7 +6,7 @@ import farmerDashboardScreen from './assets/farmer-dashboard.jpg'
 import marketPageScreen from './assets/market-page.jpg'
 import messagesScreen from './assets/messages.jpg'
 import reservationSuccessScreen from './assets/reservation-success.jpg'
-import AdminRoute from './admin/AdminRoute'
+import WebRoute, { type WebPath } from './auth/WebRoute'
 import { Toaster } from 'sonner'
 import './App.css'
 
@@ -395,10 +395,17 @@ function currentPathname() {
 }
 
 export default function App({ initialPath }: { initialPath?: string }) {
-  const path = initialPath ?? currentPathname()
+  const [path, setPath] = useState(initialPath ?? currentPathname)
+
+  useEffect(() => {
+    if (initialPath) return
+    const syncPath = () => setPath(currentPathname())
+    window.addEventListener('popstate', syncPath)
+    return () => window.removeEventListener('popstate', syncPath)
+  }, [initialPath])
 
   return <>
-    {path === '/admin' ? <AdminRoute /> : <LandingPage />}
+    {path === '/admin' || path === '/login' || path.startsWith('/event-manager') ? <WebRoute path={path as WebPath} /> : <LandingPage />}
     <Toaster position="top-right" richColors closeButton theme="light" />
   </>
 }

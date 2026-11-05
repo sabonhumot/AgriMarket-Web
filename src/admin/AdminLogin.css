@@ -23,6 +23,10 @@
 .admin-login-perspective { position: absolute; inset: 0; z-index: -1; width: 100%; height: 100%; stroke: #185a37; stroke-opacity: .065; stroke-width: 1; pointer-events: none; mask-image: linear-gradient(transparent, #000 35%); }
 .admin-login-shell { width: min(100%, 480px); }
 .admin-login-panel { background: transparent; }
+.admin-login-heading { margin-top: 20px; text-align: center; }
+.admin-login-heading p { margin: 0 0 8px; color: #185a37; font-size: .69rem; font-weight: 750; letter-spacing: .16em; }
+.admin-login-heading h1 { margin: 0; color: #143628; font-size: clamp(2rem, 5vw, 2.75rem); letter-spacing: -.055em; line-height: 1.05; }
+.admin-login-heading span { display: block; margin-top: 10px; color: #557264; font-size: .9rem; }
 .admin-login-brand { display: flex; justify-content: center; }
 .admin-login-brand a { display: inline-flex; border-radius: 8px; }
 .admin-login-brand img { display: block; width: 244px; height: auto; max-width: 100%; }

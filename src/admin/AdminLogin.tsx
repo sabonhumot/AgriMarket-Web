@@ -42,7 +42,7 @@ export default function AdminLogin({ onSignIn, initialError }: Props) {
     setBusy(true)
     try {
       await onSignIn(normalizedEmail, password)
-      toast.success('Signed in to the admin portal')
+      toast.success('Signed in to AgriMarket')
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : 'Sign-in failed. Please try again.'
       setError(message)
@@ -57,13 +57,14 @@ export default function AdminLogin({ onSignIn, initialError }: Props) {
         <path d="M440 300 0 0M1000 300 1440 0M440 780 0 900M1000 780 1440 900M440 420 0 280M440 540 0 500M440 660 0 710M1000 420 1440 280M1000 540 1440 500M1000 660 1440 710M552 300 420 0M664 300 620 0M776 300 820 0M888 300 1020 0M552 780 480 900M664 780 640 900M776 780 800 900M888 780 960 900" />
       </svg>
       <div className="admin-login-shell">
-        <section className="admin-login-panel" aria-label="AgriMarket administrator login">
+        <section className="admin-login-panel" aria-label="AgriMarket sign in">
           <div className="admin-login-brand">
             <a href="/" aria-label="AgriMarket public site">
               <img src={brandLogo} alt="AgriMarket" width="666" height="375" />
             </a>
           </div>
           <div className="admin-login-content">
+            <div className="admin-login-heading"><h1>Welcome back.</h1><span>Sign in to your AgriMarket workspace.</span></div>
             <form onSubmit={submit} noValidate aria-busy={busy} aria-describedby={visibleError ? 'admin-login-error' : undefined}>
               <div className="admin-login-field">
                 <label htmlFor="admin-email">Email address</label>

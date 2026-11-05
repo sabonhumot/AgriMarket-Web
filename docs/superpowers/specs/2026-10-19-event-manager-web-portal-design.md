@@ -1,7 +1,11 @@
 # Event Manager Web Portal Design
 
 **Date:** 2026-10-19  
-**Status:** Design approved in chat; written spec pending review
+**Status:** Portal features implemented; live role-account verification pending
+
+## Current milestone
+
+The current delivery includes the shared `/login` page, Event Manager overview, Events directory, event creation/editing, event detail operations, Notifications, Profile, and farmer directory. It includes the manager-scoped event RPC workflows for applications, invitations, attendance, communication, cancellation, event reports, notification read state, and organization/contact editing.
 
 ## Intent and success criteria
 
@@ -10,7 +14,7 @@ Build a working desktop and responsive web portal for AgriMarket Event Managers.
 ## Placement and access
 
 - Add the portal at `/event-manager` within the existing Vite and React app. Keep `/admin` as an administrator oversight workspace and `/` as the public site. Add one `/login` page for both web roles; retire the separate administrator login screen as a route-level experience.
-- Reuse the existing Supabase browser client and email/password session. After sign-in, read the authenticated `users` row and require `user_status = 'active'`. Route `role = 'admin'` to `/admin` and `role = 'event_manager'` to `/event-manager`. Other roles and inactive accounts get a clear access message and are signed out locally.
+- Reuse the existing Supabase browser client and email/password session. After sign-in, read the authenticated `users` row and require `user_status = 'active'`. Route `role = 'admin'` to `/admin` and the database's `role = 'coordinator'` (labeled Event Manager in the product) to `/event-manager`. Other roles and inactive accounts get a clear access message and are signed out locally.
 - A signed-in admin who opens `/event-manager` goes to `/admin`; a signed-in Event Manager who opens `/admin` goes to `/event-manager`. Neither workspace renders protected data until the role check completes. Both workspaces send signed-out users to `/login`.
 - The portal calls the existing manager-scoped Supabase RPCs. Ownership and authorization remain enforced by the database. The browser never supplies an arbitrary manager ID or uses an admin query to mutate manager data.
 - A signed-in manager can refresh, sign out, and return to the public site. Signing out returns to `/login`.
@@ -44,6 +48,10 @@ The portal covers Event Manager event operations from mobile. The shared mobile 
 - The check-in camera starts only after a direct user action, stops when the user leaves check-in, and ignores further detections while one code is being verified. Manual entry sends the same payload to `check_in_event_farmer`.
 - Keep manager navigation functional after refresh through the `/event-manager` path and client-side view state. Do not expose event data before the access check completes.
 - No new database migration is expected. If a required RPC or media policy differs from the mobile contract, surface the mismatch instead of weakening authorization or substituting mock data.
+
+Missing Supabase configuration, signed-out access, inactive/unsupported-role accounts, data loading failure, empty results, camera denial, and mutation failure have distinct states. A valid session on the other web role's route redirects to the correct workspace without signing out
+
+
 
 ## Verification
 

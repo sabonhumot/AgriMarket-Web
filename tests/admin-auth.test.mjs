@@ -64,7 +64,7 @@ test('the login form labels its credentials and has no public sign-up path', asy
   const { default: AdminLogin } = await server.ssrLoadModule('/src/admin/AdminLogin.tsx')
   const html = renderToStaticMarkup(createElement(AdminLogin, { onSignIn: async () => {} }))
 
-  assert.match(html, /aria-label="AgriMarket administrator login"/)
+  assert.match(html, /aria-label="AgriMarket sign in"/)
   assert.match(html, /noValidate=""/)
   assert.match(html, /type="email"/)
   assert.match(html, /type="password"/)

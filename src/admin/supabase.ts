@@ -8,7 +8,7 @@ export function getSupabaseClient(): SupabaseClient {
   const url = import.meta.env.VITE_SUPABASE_URL
   const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
   if (!url || !key) {
-    throw new Error('Admin sign-in is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.')
+    throw new Error('Web sign-in is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.')
   }
 
   client = createClient(url, key, {
