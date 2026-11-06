@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { getSupabaseClient } from '../admin/supabase'
 import EventManagerSidebar from './EventManagerSidebar'
 import EventManagerTopbar from './EventManagerTopbar'
+import { navigateWeb } from '../auth/web-navigation'
 import { loadEventManagerDashboard, type EventManagerDashboard, type OverviewEvent } from './dashboard-data'
 import './EventManagerOverview.css'
 
@@ -27,6 +28,18 @@ function dateLabel(value: string, options: Intl.DateTimeFormatOptions = { month:
   return Number.isNaN(date.getTime()) ? 'Date to be announced' : date.toLocaleDateString('en-PH', { ...options, timeZone: 'Asia/Manila' })
 }
 
+function todayInManila() {
+  const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date())
+  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? ''
+  return `${part('year')}-${part('month')}-${part('day')}`
+}
+
+function isCurrentOrUpcoming(event: OverviewEvent, today: string) {
+  if (['draft', 'completed', 'cancelled'].includes(event.status.toLowerCase())) return false
+  const lastDay = event.endDate || event.date
+  return /^\d{4}-\d{2}-\d{2}$/.test(lastDay) && lastDay >= today
+}
+
 function EventCard({ event, prominent = false }: { event: OverviewEvent; prominent?: boolean }) {
   const date = new Date(`${event.date}T12:00:00+08:00`)
   const day = Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString('en-PH', { day: '2-digit', timeZone: 'Asia/Manila' })
@@ -38,8 +51,16 @@ function EventCard({ event, prominent = false }: { event: OverviewEvent; promine
       <h3>{event.name}</h3>
       <div className="em-event-facts"><span><Icon name="calendar" size={16} />{dateLabel(event.date)}{event.endDate && event.endDate !== event.date ? ` – ${dateLabel(event.endDate)}` : ''}</span><span><Icon name="clock" size={16} />{event.time || 'Time to be announced'}</span><span><Icon name="pin" size={16} />{event.location}</span></div>
       <div className="em-event-bottom"><span><Icon name="people" size={17} /> <strong>{event.approvedFarmers}</strong> of {event.farmerCount} farmer slots approved</span>{event.pendingApplications > 0 && <span className="em-pending-pill">{event.pendingApplications} awaiting review</span>}</div>
+      <a className="em-overview-event-link" href={`/event-manager/events/${event.id}`} onClick={(click) => navigateWeb(click, `/event-manager/events/${event.id}`)}>Open event <Icon name="arrow" size={15} /></a>
     </div>
   </article>
+}
+
+function OverviewMetric({ label, value, hint, href }: { label: string; value: number; hint: string; href: string }) {
+  return <a className="em-metric em-metric-link" href={href} onClick={(event) => navigateWeb(event, href)}>
+    <span className="em-metric-label">{label} <Icon name="arrow" size={15} /></span>
+    <strong>{value.toLocaleString('en-PH')}</strong><small>{hint}</small>
+  </a>
 }
 
 export default function EventManagerOverview({ onSignOut, initialData }: { onSignOut?: () => void | Promise<void>; initialData?: EventManagerDashboard }) {
@@ -69,7 +90,10 @@ export default function EventManagerOverview({ onSignOut, initialData }: { onSig
     return () => clearTimeout(timer)
   }, [initialData, refresh])
 
-  const nextEvent = data?.events[0]
+  const today = todayInManila()
+  const upcomingEvents = (data?.events ?? []).filter((event) => isCurrentOrUpcoming(event, today)).sort((a, b) => a.date.localeCompare(b.date))
+  const nextEvent = upcomingEvents[0]
+  const openFarmerSlots = upcomingEvents.reduce((total, event) => total + Math.max(0, event.farmerCount - event.approvedFarmers), 0)
   return <div className="em-shell">
     <EventManagerSidebar active="overview" organizationName={data?.organizationName} onSignOut={onSignOut} />
 
@@ -82,11 +106,16 @@ export default function EventManagerOverview({ onSignOut, initialData }: { onSig
         {loading && !data && <div className="em-loading" role="status"><div className="em-loading-metrics">{[0, 1, 2, 3].map(n => <span key={n} />)}</div><div className="em-loading-panel" /><span className="em-sr-only">Loading event overview</span></div>}
 
         {data && <>
-          <section className="em-metrics" aria-label="Event statistics"><div className="em-metric"><span className="em-metric-label">Active & upcoming</span><strong>{data.activeCount.toLocaleString('en-PH')}</strong></div><div className="em-metric"><span className="em-metric-label">Expected farmers</span><strong>{data.expectedFarmers.toLocaleString('en-PH')}</strong></div><div className="em-metric"><span className="em-metric-label">Pending applications</span><strong>{data.pendingApplications.toLocaleString('en-PH')}</strong></div><div className="em-metric"><span className="em-metric-label">Completed events</span><strong>{data.completedCount.toLocaleString('en-PH')}</strong></div></section>
+          <section className="em-metrics" aria-label="Event statistics">
+            <OverviewMetric label="Active & upcoming" value={data.activeCount} hint="Browse managed events" href="/event-manager/events" />
+            <OverviewMetric label="Open farmer slots" value={openFarmerSlots} hint="Across upcoming events" href="/event-manager/events" />
+            <OverviewMetric label="Unread notifications" value={data.unreadNotifications} hint="View recent updates" href="/event-manager/notifications" />
+            <OverviewMetric label="Completed events" value={data.completedCount} hint="Browse event history" href="/event-manager/events?view=past" />
+          </section>
 
-          <div className="em-overview-grid"><section className="em-panel em-next" aria-labelledby="em-next-title"><div className="em-panel-head"><h2 id="em-next-title">Your next market day</h2>{nextEvent && <span className="em-count">{data.events.length} scheduled</span>}</div>{nextEvent ? <EventCard event={nextEvent} prominent /> : <div className="em-empty"><span className="em-empty-icon"><Icon name="calendar" size={26} /></span><h3>No active events yet</h3><p>Upcoming market events will appear here when they are scheduled.</p></div>}</section><section className="em-panel em-activity" aria-labelledby="em-activity-title"><div className="em-panel-head"><h2 id="em-activity-title">What needs attention</h2></div><div className="em-attention-row"><span className="em-attention-icon"><Icon name="inbox" size={20} /></span><div><strong>Farmer applications</strong><p>{data.pendingApplications ? `${data.pendingApplications} awaiting your review` : 'All caught up for now'}</p></div><strong className="em-attention-value">{data.pendingApplications}</strong></div><div className="em-attention-row"><span className="em-attention-icon em-attention-green"><Icon name="people" size={20} /></span><div><strong>Approved farmers</strong><p>Across your active market events</p></div><strong className="em-attention-value">{data.expectedFarmers}</strong></div></section></div>
+          <div className="em-overview-grid"><section className="em-panel em-next" aria-labelledby="em-next-title"><div className="em-panel-head"><h2 id="em-next-title">Your next market day</h2>{nextEvent && <span className="em-count">{upcomingEvents.length} scheduled</span>}</div>{nextEvent ? <EventCard event={nextEvent} prominent /> : <div className="em-empty"><span className="em-empty-icon"><Icon name="calendar" size={26} /></span><h3>No active events yet</h3><p>Upcoming market events will appear here when they are scheduled.</p></div>}</section><section className="em-panel em-activity" aria-labelledby="em-activity-title"><div className="em-panel-head"><h2 id="em-activity-title">What needs attention</h2></div><div className="em-attention-row"><span className="em-attention-icon"><Icon name="inbox" size={20} /></span><div><strong>Farmer applications</strong><p>{data.pendingApplications ? `${data.pendingApplications} awaiting your review` : 'All caught up for now'}</p></div><strong className="em-attention-value">{data.pendingApplications}</strong></div><div className="em-attention-row"><span className="em-attention-icon em-attention-green"><Icon name="people" size={20} /></span><div><strong>Approved farmers</strong><p>Across your active market events</p></div><strong className="em-attention-value">{data.expectedFarmers}</strong></div></section></div>
 
-          {data.events.length > 1 && <section className="em-panel em-schedule" aria-labelledby="em-schedule-title"><div className="em-panel-head"><h2 id="em-schedule-title">More upcoming events</h2><span className="em-count">{data.events.length - 1} more</span></div><div className="em-schedule-list">{data.events.slice(1, 4).map(event => <EventCard key={event.id} event={event} />)}</div></section>}
+          {upcomingEvents.length > 1 && <section className="em-panel em-schedule" aria-labelledby="em-schedule-title"><div className="em-panel-head"><h2 id="em-schedule-title">More upcoming events</h2><span className="em-count">{upcomingEvents.length - 1} more</span></div><div className="em-schedule-list">{upcomingEvents.slice(1, 4).map(event => <EventCard key={event.id} event={event} />)}</div></section>}
         </>}
       </div>
     </main>

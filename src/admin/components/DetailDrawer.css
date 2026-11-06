@@ -51,6 +51,7 @@
 .record-warning-option { display: flex; align-items: flex-start; gap: 10px; padding: 12px; border-radius: 8px; background: var(--admin-sun-light); color: var(--admin-ink); font-size: var(--admin-type-meta); }
 .record-warning-option input { margin-top: 3px; accent-color: var(--admin-primary); }
 .record-resolution-hint { margin: 0; color: var(--admin-muted); font-size: var(--admin-type-meta); }
+.record-invite-regenerate { margin-top: 14px; }
 .record-resolution-error { margin: 0; color: #9e3e20; font-size: var(--admin-type-meta); }
 .record-resolution-form .record-done { justify-self: start; margin-top: 8px; }
 .record-resolution-form .record-done:disabled { opacity: .55; cursor: not-allowed; }
@@ -75,7 +76,6 @@
 .record-confirm-cancel { min-height: 42px; padding: 10px 20px; border: 1px solid var(--admin-line); border-radius: 8px; background: var(--admin-panel); color: var(--admin-ink); font: 500 var(--admin-type-meta)/1.5 var(--font-admin); cursor: pointer; }
 .record-confirm-actions button:disabled { opacity: .55; cursor: not-allowed; }
 .record-confirm-dialog button:focus-visible { outline: 2px solid var(--admin-primary); outline-offset: 3px; }
-.record-action-code { font-size: var(--admin-type-meta); color: var(--admin-ink); white-space: pre-wrap; overflow-wrap: anywhere; }
 .record-footer { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-shrink: 0; border-top: 1px solid var(--admin-line); padding: 18px 28px max(18px,env(safe-area-inset-bottom)); background: var(--admin-panel); }
 .record-footer > span { font-size: var(--admin-type-meta); color: var(--admin-muted); }
 .record-done { min-height: 42px; padding: 10px 24px; border: 0; border-radius: 8px; background: var(--admin-primary); color: #fff; font: 500 var(--admin-type-meta)/1.5 var(--font-admin); cursor: pointer; transition: background-color 150ms ease; }

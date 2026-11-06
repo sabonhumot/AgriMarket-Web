@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState, type MouseEvent } from 'react'
+import { getWebAccount } from '../auth/web-role'
+import { getSupabaseClient } from '../admin/supabase'
 import brandLogo from '../assets/AgriMarket.svg'
 import { navigateWeb } from '../auth/web-navigation'
 import './EventManagerOverview.css'
@@ -25,12 +27,21 @@ type Props = {
   onSignOut?: () => void | Promise<void>
 }
 
-export default function EventManagerSidebar({ active, organizationName, onSignOut }: Props) {
+export default function EventManagerSidebar({ active, onSignOut }: Props) {
   const [isOpen, setIsOpen] = useState(false)
   const menuButton = useRef<HTMLButtonElement>(null)
   const [signingOut, setSigningOut] = useState(false)
   const [signOutError, setSignOutError] = useState<string | null>(null)
-  const name = organizationName?.trim() || 'AgriMarket Operations'
+  const [account, setAccount] = useState<{ name: string; email: string } | null>(null)
+  const name = account?.name || 'Event Manager'
+
+  useEffect(() => {
+    let active = true
+    void getWebAccount(getSupabaseClient()).then((value) => {
+      if (active && value?.role === 'event_manager') setAccount(value)
+    }).catch(() => {})
+    return () => { active = false }
+  }, [])
 
   useEffect(() => {
     if (!isOpen) return
@@ -68,7 +79,7 @@ export default function EventManagerSidebar({ active, organizationName, onSignOu
         <div className="em-nav-divider"><a className={active === 'profile' ? 'em-nav-active' : 'em-nav-link'} href="/event-manager/profile" onClick={(event) => openPage(event, '/event-manager/profile')} aria-current={active === 'profile' ? 'page' : undefined}><Icon name="person" /><span>Profile</span></a></div>
       </nav>
       <div className="em-sidebar-bottom">
-        <div className="em-sidebar-user"><div className="em-user-avatar" aria-hidden="true"><Icon name="person" size={20} /></div><div><strong>{name}</strong><span>Event Coordinator</span></div></div>
+        <div className="em-sidebar-user"><div className="em-user-avatar" aria-hidden="true"><Icon name="person" size={20} /></div><div><strong>{name}</strong><span>{account?.email || 'Event Coordinator'}</span></div></div>
         {onSignOut && <button type="button" onClick={() => void signOut()} disabled={signingOut}><Icon name="logout" size={18} />{signingOut ? 'Signing out…' : 'Sign out'}</button>}
         {signOutError && <p role="alert">{signOutError}</p>}
       </div>

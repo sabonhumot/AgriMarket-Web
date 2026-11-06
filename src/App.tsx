@@ -7,6 +7,7 @@ import marketPageScreen from './assets/market-page.jpg'
 import messagesScreen from './assets/messages.jpg'
 import reservationSuccessScreen from './assets/reservation-success.jpg'
 import WebRoute, { type WebPath } from './auth/WebRoute'
+import InviteAccept from './auth/InviteAccept'
 import { Toaster } from 'sonner'
 import './App.css'
 
@@ -405,7 +406,7 @@ export default function App({ initialPath }: { initialPath?: string }) {
   }, [initialPath])
 
   return <>
-    {path === '/admin' || path === '/login' || path.startsWith('/event-manager') ? <WebRoute path={path as WebPath} /> : <LandingPage />}
+    {path === '/invite/accept' ? <InviteAccept /> : path === '/admin' || path === '/login' || path.startsWith('/event-manager') ? <WebRoute path={path as WebPath} /> : <LandingPage />}
     <Toaster position="top-right" richColors closeButton theme="light" />
   </>
 }

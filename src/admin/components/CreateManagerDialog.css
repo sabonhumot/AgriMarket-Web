@@ -1,0 +1,24 @@
+.manager-create-dialog { width: min(560px,calc(100vw - 32px)); max-width: none; max-height: min(90dvh,800px); padding: 0; border: 1px solid var(--admin-line); border-radius: 14px; background: var(--admin-panel); color: var(--admin-ink); font-family: var(--font-admin); overflow: auto; }
+.manager-create-dialog::backdrop { background: rgba(12,28,20,.55); }
+.manager-create-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 24px 28px; border-bottom: 1px solid var(--admin-line); }
+.manager-create-header h2 { margin: 0; font-size: var(--admin-type-dialog); }
+.manager-create-header p { margin: 5px 0 0; color: var(--admin-muted); }
+.manager-create-header button { width: 38px; height: 38px; border: 0; border-radius: 7px; background: var(--admin-panel-subtle); color: var(--admin-ink); font-size: 24px; cursor: pointer; }
+.manager-create-body { display: grid; gap: 16px; padding: 26px 28px 28px; }
+.manager-create-body label { display: grid; gap: 6px; color: var(--admin-ink); font-size: var(--admin-type-meta); font-weight: 600; }
+.manager-create-body label span { color: var(--admin-muted); font-weight: 400; }
+.manager-create-body input,.manager-create-body select { width: 100%; min-width: 0; min-height: 42px; padding: 9px 11px; border: 1px solid var(--admin-line); border-radius: 7px; background: #fff; color: var(--admin-ink); font: inherit; }
+.manager-create-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+.manager-create-note,.manager-invite-handoff p { margin: 0; color: var(--admin-muted); font-size: var(--admin-type-meta); line-height: 1.5; }
+.manager-create-error { margin: 0; color: #9e3e20; }
+.manager-create-footer,.manager-invite-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+.manager-create-dialog button { min-height: 40px; padding: 8px 14px; border: 1px solid var(--admin-line); border-radius: 7px; background: #fff; color: var(--admin-primary); font: inherit; font-weight: 600; cursor: pointer; }
+.manager-create-dialog .manager-create-primary { border-color: var(--admin-primary); background: var(--admin-primary); color: #fff; }
+.manager-create-dialog button:disabled { opacity: .55; cursor: default; }
+.manager-create-dialog :is(button,input,select):focus-visible { outline: 2px solid var(--admin-primary); outline-offset: 2px; }
+.manager-invite-handoff { display: grid; gap: 12px; min-width: 0; }
+.manager-invite-handoff label { font-size: var(--admin-type-meta); font-weight: 600; }
+.manager-invite-handoff input { font-size: var(--admin-type-meta); }
+.manager-invite-qr { display: grid; justify-items: center; gap: 8px; padding: 18px; background: #fff; }
+.manager-invite-qr span { color: var(--admin-muted); font-size: var(--admin-type-meta); text-align: center; }
+@media(max-width:600px) { .manager-create-header,.manager-create-body { padding-inline: 20px; } .manager-create-grid { grid-template-columns: 1fr; } }

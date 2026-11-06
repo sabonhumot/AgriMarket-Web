@@ -35,7 +35,7 @@
   --admin-radius-xl: 20px;
   --admin-radius-full: 9999px;
   --admin-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  --font-admin: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --font-admin: var(--font-ui, system-ui, sans-serif);
   /* Shared admin roles: badge, metadata, table/control, prose, section, dialog, page. */
   --admin-type-badge: 0.75rem;
   --admin-type-meta: 0.8125rem;
@@ -56,7 +56,7 @@
   font-family: var(--font-admin);
   -webkit-font-smoothing: antialiased;
   font-size: var(--admin-type-data);
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 .admin-main {
@@ -261,8 +261,8 @@
 .admin-view-header-main h1 {
   margin: 0;
   font-size: var(--admin-type-page);
-  font-weight: 600;
-  letter-spacing: -0.025em;
+  font-weight: 650;
+  letter-spacing: -0.03em;
   color: var(--admin-ink);
   outline: none;
   line-height: 1.2;
@@ -272,7 +272,7 @@
   margin: 10px 0 0;
   font-size: var(--admin-type-body);
   color: var(--admin-muted);
-  line-height: 1.6;
+  line-height: 1.65;
   max-width: 65ch;
 }
 
@@ -1462,6 +1462,7 @@
 }
 
 /* Match the Event Manager workspace's quiet shell and task hierarchy. */
+html:has(.admin-shell) { scrollbar-gutter: stable; }
 .admin-shell {
   --admin-ground: #f5f7f3;
   --admin-panel-subtle: #f7faf7;
@@ -1472,8 +1473,11 @@
 }
 .admin-main { max-width: 1376px; padding: 36px 48px 72px; }
 .admin-breadcrumb-bar {
+  position: relative;
   min-height: 64px;
-  margin: -36px -48px 34px;
+  left: calc(-48px - max(0px, 50vw - 823px));
+  width: calc(100vw - 270px);
+  margin: -36px 0 34px;
   padding: 0 48px;
   border-bottom: 1px solid var(--admin-line);
   background: #fff;
@@ -1481,9 +1485,11 @@
 .admin-breadcrumb { font-size: 12px; }
 .admin-public-link { min-height: 34px; padding: 0 11px; border-radius: 7px; box-shadow: none; font-size: 12px; font-weight: 650; }
 .admin-topbar-wrapper { margin-bottom: 24px; }
+.admin-view-content { display: grid; grid-template-columns: minmax(0,1fr); align-content: start; width: 100%; min-width: 0; }
+.admin-view-content > * { box-sizing: border-box; width: 100%; min-width: 0; margin: 0; }
 .admin-view-header { align-items: flex-start; }
-.admin-view-header-main h1 { font-size: 2.35rem; font-weight: 750; letter-spacing: -.035em; line-height: 1.1; }
-.admin-page-description { margin-top: 8px; color: #526b5a; font-size: 13px; line-height: 1.55; max-width: 70ch; }
+.admin-view-header-main h1 { font-size: 2.125rem; font-weight: 700; letter-spacing: -.03em; line-height: 1.15; }
+.admin-page-description { margin-top: 8px; color: #526b5a; font-size: 14px; line-height: 1.6; max-width: 70ch; }
 .admin-header-sync { flex-wrap: wrap; justify-content: flex-end; }
 .admin-btn-refresh { min-height: 41px; padding: 0 14px; border-radius: 7px; box-shadow: none; color: #31533d; font-size: 12px; }
 .admin-sync-time { color: #526b5a; font-size: 11px; }
@@ -1502,14 +1508,14 @@
   .admin-shell { grid-template-columns: 1fr; }
   .admin-sidebar { width: min(270px, calc(100vw - 72px)); }
   .admin-main { padding: 80px 24px 60px; }
-  .admin-breadcrumb-bar { margin: -80px -24px 28px; padding: 0 100px 0 24px; }
+  .admin-breadcrumb-bar { left: -24px; width: 100vw; margin: -80px 0 28px; padding: 0 100px 0 24px; }
   .admin-menu-button { box-shadow: none; }
 }
 @media (max-width: 640px) {
   .admin-main { padding: 72px 20px 48px; }
-  .admin-breadcrumb-bar { min-height: 52px; flex-direction: row; align-items: center; margin: -72px -20px 26px; padding: 0 100px 0 20px; }
+  .admin-breadcrumb-bar { left: -20px; width: 100vw; min-height: 52px; flex-direction: row; align-items: center; margin: -72px 0 26px; padding: 0 100px 0 20px; }
   .admin-topbar-actions { display: none; }
-  .admin-view-header-main h1 { font-size: 2rem; }
+  .admin-view-header-main h1 { font-size: 1.875rem; }
   .admin-view-header { gap: 16px; }
   .admin-header-sync { justify-content: flex-start; }
   .admin-sync-time { width: 100%; }

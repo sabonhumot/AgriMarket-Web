@@ -36,6 +36,11 @@ export default function WebRoute({ path }: { path: WebPath }) {
         const role = await getWebRole(client)
         if (!active) return
         if (!role) {
+          const { data: pending } = await client.from('users').select('role,user_status').eq('auth_id', sessionData.session.user.id).maybeSingle()
+          if (pending?.role === 'coordinator' && pending.user_status === 'pending_verification') {
+            window.location.replace('/invite/accept')
+            return
+          }
           await client.auth.signOut({ scope: 'local' })
           if (!active) return
           setAccess('guest')
@@ -63,6 +68,14 @@ export default function WebRoute({ path }: { path: WebPath }) {
     try {
       const role = await getWebRole(client)
       if (!role) {
+        const { data: auth } = await client.auth.getUser()
+        if (auth.user) {
+          const { data: pending } = await client.from('users').select('role,user_status').eq('auth_id', auth.user.id).maybeSingle()
+          if (pending?.role === 'coordinator' && pending.user_status === 'pending_verification') {
+            window.location.assign('/invite/accept')
+            return
+          }
+        }
         await client.auth.signOut({ scope: 'local' })
         throw new Error('This account does not have active web workspace access.')
       }

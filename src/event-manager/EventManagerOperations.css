@@ -19,6 +19,7 @@
 .em-form-review p { margin:7px 0 0; color:#61776a; font-size:12px; }
 .em-form-actions,.em-operation-buttons { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:10px; }
 .em-button-primary,.em-button-secondary,.em-button-danger { display:inline-flex; align-items:center; justify-content:center; min-height:40px; padding:0 15px; border:1px solid transparent; border-radius:8px; text-decoration:none; font:inherit; font-size:12px; font-weight:750; cursor:pointer; }
+.em-farmer-searching { display:inline-flex; align-items:center; flex:none; min-height:40px; color:#526b5a; font-size:12px; font-weight:600; }
 .em-button-primary { background:#185a37; color:#fff; }.em-button-primary:hover { background:#12482b; }
 .em-button-secondary { border-color:#d2dfd5; background:#fff; color:#31533d; }.em-button-secondary:hover { border-color:#91b49a; background:#f5f9f5; }
 .em-button-danger { background:#a54e39; color:#fff; }

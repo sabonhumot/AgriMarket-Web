@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import brandLogo from '../../assets/AgriMarket.svg'
 import type { AdminView } from '../types'
+import { getWebAccount } from '../../auth/web-role'
+import { getSupabaseClient } from '../supabase'
 
 const navigation: Array<{ id: AdminView; label: string; badge?: string; badgeVariant?: 'warning' | 'alert' | 'neutral' }> = [
   { id: 'overview', label: 'Dashboard' },
@@ -48,6 +50,15 @@ export default function AdminSidebar({ activeView, onViewChange, reportCount, on
   const menuButton = useRef<HTMLButtonElement>(null)
   const [signingOut, setSigningOut] = useState(false)
   const [signOutError, setSignOutError] = useState<string | null>(null)
+  const [account, setAccount] = useState<{ name: string; email: string } | null>(null)
+
+  useEffect(() => {
+    let active = true
+    void getWebAccount(getSupabaseClient()).then((value) => {
+      if (active && value?.role === 'admin') setAccount(value)
+    }).catch(() => {})
+    return () => { active = false }
+  }, [])
 
   useEffect(() => {
     if (!isOpen) return
@@ -128,8 +139,8 @@ export default function AdminSidebar({ activeView, onViewChange, reportCount, on
               <span className="admin-profile-avatar" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="12" cy="8" r="3.5" /><path d="M5 21v-2a7 7 0 0 1 14 0v2" /></svg></span>
             </div>
             <div className="admin-profile-info">
-              <strong>System administrator</strong>
-              <small>AgriMarket workspace</small>
+              <strong>{account?.name || 'Administrator'}</strong>
+              <small>{account?.email || 'Administrator account'}</small>
             </div>
           </div>
           {onSignOut && <button className="admin-signout-button" type="button" disabled={signingOut} onClick={() => {

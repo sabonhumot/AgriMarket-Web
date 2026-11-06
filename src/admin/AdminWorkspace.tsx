@@ -182,6 +182,7 @@ export default function AdminWorkspace({ onSignOut }: { onSignOut?: () => void |
           </div>
         )}
 
+        <div className="admin-view-content">
         {/* Search & Filter Bar (Views other than Overview) */}
         {activeView === 'activity' && (
           <div className="admin-toolbar-card">
@@ -226,7 +227,8 @@ export default function AdminWorkspace({ onSignOut }: { onSignOut?: () => void |
           <UsersDirectory users={data.users} totalUsers={dashboard?.totalUsers}
             query={query} role={roleFilter} status={statusFilter}
             onQuery={setQuery} onRole={setRoleFilter} onStatus={setStatusFilter}
-            onOpen={(user) => setDetailTarget({ type: 'user', data: user })} />
+            onOpen={(user) => setDetailTarget({ type: 'user', data: user })}
+            onManagerCreated={async () => { await refresh() }} />
         )}
 
         {data && dashboard && activeView === 'events' && <EventsDirectory events={dashboard.events} users={data.users} onOpen={(event, managerName) => setDetailTarget({ type: 'event', data: event, managerName })} />}
@@ -240,6 +242,7 @@ export default function AdminWorkspace({ onSignOut }: { onSignOut?: () => void |
           <ActivityLog entries={filteredActivity}
             onOpen={(entry) => setDetailTarget({ type: 'activity', data: entry })} />
         )}
+        </div>
 
       </main>
 

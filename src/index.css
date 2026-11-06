@@ -1,4 +1,5 @@
 :root {
+  --font-ui: system-ui, -apple-system, "Segoe UI", sans-serif;
   --ink: #15372a;
   --ink-muted: #587167;
   --leaf: #1b6b43;

@@ -19,6 +19,7 @@ export type EventManagerDashboard = {
   expectedFarmers: number
   completedCount: number
   pendingApplications: number
+  unreadNotifications: number
   events: OverviewEvent[]
 }
 
@@ -54,6 +55,7 @@ export function mapEventManagerDashboard(value: unknown): EventManagerDashboard 
     expectedFarmers: count(root.approved_farmer_count),
     completedCount: count(analytics.total_events),
     pendingApplications: count(root.pending_application_count),
+    unreadNotifications: count(root.unread_notification_count),
     events,
   }
 }

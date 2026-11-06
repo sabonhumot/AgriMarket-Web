@@ -9,6 +9,7 @@ import {
   type ManagerEvent,
 } from './events-service'
 import { invalidateManagedEventsCache } from './EventManagerEvents'
+import { loadManagerFarmers, type ManagerFarmer } from './manager-service'
 import './EventManagerOperations.css'
 import './EventManagerEventDetail.css'
 
@@ -61,7 +62,9 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
   const [farmerQuery, setFarmerQuery] = useState('')
   const [farmers, setFarmers] = useState<Row[]>([])
   const [searchedFarmers, setSearchedFarmers] = useState(false)
+  const [farmerSearchLoading, setFarmerSearchLoading] = useState(false)
   const [selectedFarmers, setSelectedFarmers] = useState<number[]>([])
+  const [invitedDirectory, setInvitedDirectory] = useState<Record<string, Pick<ManagerFarmer, 'name' | 'farmName'>>>({})
   const [inviteLink, setInviteLink] = useState('')
   const [qrPayload, setQrPayload] = useState('')
   const [checkInResult, setCheckInResult] = useState<Row | null>(null)
@@ -73,6 +76,8 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
   const streamRef = useRef<MediaStream | null>(null)
   const frameRef = useRef<number | null>(null)
   const detectingRef = useRef(false)
+  const farmerSearchRequest = useRef(0)
+  const invitedDirectoryRef = useRef<Record<string, Pick<ManagerFarmer, 'name' | 'farmName'>>>({})
 
   const refresh = useCallback(async () => {
     setLoading(true); setError(null)
@@ -101,6 +106,18 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
   const applications = useMemo(() => array(data?.applications), [data])
   const pending = useMemo(() => applications.filter((row) => str(row.status) === 'pending'), [applications])
   const approved = useMemo(() => applications.filter((row) => ['approved', 'checked_in'].includes(str(row.status))), [applications])
+  useEffect(() => {
+    const unresolved = array(data?.invitations).some((row) => !str(row.farmer_name).trim() && !invitedDirectoryRef.current[str(row.farmer_id)])
+    if (!unresolved) return
+    let active = true
+    void loadManagerFarmers(getSupabaseClient(), '').then((directory) => {
+      if (!active) return
+      const names = Object.fromEntries(directory.map((farmer) => [farmer.id, farmer]))
+      invitedDirectoryRef.current = { ...invitedDirectoryRef.current, ...names }
+      setInvitedDirectory(invitedDirectoryRef.current)
+    }).catch(() => { /* Invitation statuses remain available if the directory cannot be loaded. */ })
+    return () => { active = false }
+  }, [data?.invitations])
 
   async function runAction<T>(action: () => Promise<T>, success: (result: T) => string): Promise<T | null> {
     if (busy) return null
@@ -125,18 +142,39 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
     const result = await runAction(() => reviewApplication(getSupabaseClient(), id, decision, decision === 'approved' ? undefined : rejectionReason.trim()), () => decision === 'approved' ? 'Application approved.' : 'Application rejected.')
     if (result !== null) { setRejectingId(null); setRejectionReason('') }
   }
-  async function searchFarmers() {
-    if (busy) return
-    setBusy(true); setError(null)
-    try { setFarmers(await loadEligibleFarmers(getSupabaseClient(), eventId, farmerQuery.trim())); setSearchedFarmers(true); setSelectedFarmers([]) }
-    catch (cause) { setError(cause instanceof Error ? cause.message : 'Eligible farmers could not be loaded.') }
-    finally { setBusy(false) }
-  }
+  const searchFarmers = useCallback(async (query: string) => {
+    const currentRequest = ++farmerSearchRequest.current
+    setFarmerSearchLoading(true)
+    try {
+      const results = await loadEligibleFarmers(getSupabaseClient(), eventId, query)
+      if (currentRequest === farmerSearchRequest.current) { setFarmers(results); setSearchedFarmers(true) }
+    } catch (cause) {
+      if (currentRequest === farmerSearchRequest.current) setError(cause instanceof Error ? cause.message : 'Eligible farmers could not be loaded.')
+    } finally {
+      if (currentRequest === farmerSearchRequest.current) setFarmerSearchLoading(false)
+    }
+  }, [eventId])
+  useEffect(() => {
+    if (!data || !isPublished(data.event) || Date.now() >= eventStart(data.event)) return
+    farmerSearchRequest.current += 1
+    setFarmerSearchLoading(true)
+    setSearchedFarmers(false)
+    setFarmers([])
+    setSelectedFarmers([])
+    const timer = setTimeout(() => { void searchFarmers(farmerQuery.trim()) }, farmerQuery.trim() ? 250 : 0)
+    return () => { clearTimeout(timer); farmerSearchRequest.current += 1 }
+  }, [data, farmerQuery, searchFarmers])
   async function sendInvitations() {
     if (!selectedFarmers.length) { setError('Select at least one eligible farmer.'); return }
     if (!window.confirm('Send invitations to ' + selectedFarmers.length + ' selected farmer' + (selectedFarmers.length === 1 ? '' : 's') + '?')) return
+    const selectedNames = Object.fromEntries(farmers.filter((farmer) => selectedFarmers.includes(num(farmer.id))).map((farmer) => [str(farmer.id), { name: str(farmer.name), farmName: str(farmer.farm_name) }]))
     const result = await runAction(() => inviteFarmers(getSupabaseClient(), eventId, selectedFarmers), (value) => value.sent + ' invitation' + (value.sent === 1 ? '' : 's') + ' sent' + (value.skipped ? '; ' + value.skipped + ' skipped' : '') + '.')
-    if (result) setSelectedFarmers([])
+    if (result) {
+      invitedDirectoryRef.current = { ...invitedDirectoryRef.current, ...selectedNames }
+      setInvitedDirectory(invitedDirectoryRef.current)
+      setSelectedFarmers([])
+      document.getElementById('event-invited-farmers')?.scrollIntoView({ block: 'start' })
+    }
   }
   async function makeLink() {
     const result = await runAction(async () => {
@@ -222,6 +260,8 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
   const checkInOpen = isPublished(event) && now >= eventStart(event) && now < eventEnd(event)
   const coverUrl = event.coverPhotoPath ? getSupabaseClient().storage.from('event-manager-media').getPublicUrl(event.coverPhotoPath).data.publicUrl : ''
   const approvedCount = num(data.summary.approved_farmers ?? event.approvedFarmers)
+  const invitations = array(data.invitations).filter((row) => str(row.source || 'direct_invitation') === 'direct_invitation')
+  const awaitingReply = invitations.filter((row) => str(row.status) === 'pending' && new Date(str(row.expires_at)).getTime() > now).length
   return <div className="em-shell em-detail-page"><EventManagerSidebar active="events" onSignOut={onSignOut} /><main className="em-main">
     <EventManagerTopbar current="Event details" parent="Events" parentHref="/event-manager/events" />
     <div className="em-content">
@@ -233,7 +273,7 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
       </section>
       {error && <div className="em-operation-error" role="alert">{error}</div>}{notice && <div className="em-operation-notice" role="status">{notice}</div>}
       <div className="em-detail-intro"><div>{event.description && <p>{event.description}</p>}{event.farmerInstructions && <details><summary>Instructions for farmers</summary><p>{event.farmerInstructions}</p></details>}</div></div>
-      <nav className="em-detail-section-nav" aria-label="Event sections"><a href="#event-applications">Applications{pending.length > 0 && <span>{pending.length}</span>}</a><a href="#event-invitations">Invitations</a><a href="#event-checkin">Check-in</a><a href="#event-reports">Reports</a></nav>
+      <nav className="em-detail-section-nav" aria-label="Event sections"><a href="#event-applications">Applications{pending.length > 0 && <span>{pending.length}</span>}</a><a href="#event-invited-farmers">Invited farmers{awaitingReply > 0 && <span>{awaitingReply}</span>}</a><a href="#event-checkin">Check-in</a><a href="#event-reports">Reports</a></nav>
       {(pending.length > 0 || checkInOpen) && <div className="em-detail-priority" role="status"><div><strong>{checkInOpen ? 'Event day check-in is open' : pending.length + ' application' + (pending.length === 1 ? '' : 's') + ' waiting for review'}</strong><span>{checkInOpen ? 'Scan a farmer’s Virtual ID or enter the QR payload to record attendance.' : 'Review farmers before the application window closes.'}</span></div><a href={checkInOpen ? '#event-checkin' : '#event-applications'}>{checkInOpen ? 'Go to check-in' : 'Review applications'} <span aria-hidden="true">→</span></a></div>}
       <section className="em-detail-stats" aria-label="Event participation"><div><span>Applications</span><strong>{num(data.summary.applications ?? applications.length)}</strong></div><div><span>Approved farmers</span><strong>{approvedCount}</strong></div><div><span>Checked in</span><strong>{num(data.summary.checked_in_farmers ?? event.checkedInFarmers)}</strong></div><div><span>Open slots</span><strong>{Math.max(0, event.farmerCount - approvedCount)}</strong></div></section>
 
@@ -243,9 +283,48 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
           {pending.length === 0 ? <div className="em-detail-empty"><strong>Nothing to review right now</strong><p>New farmer applications will appear here.</p></div> : pending.map((row) => <article className="em-detail-person" key={num(row.application_id)}><div className="em-person-avatar">{str(row.farmer_name || 'F').charAt(0)}</div><div className="em-detail-person-main"><strong>{str(row.farmer_name || 'Farmer')}</strong><span>{str(row.farm_name || 'Farm details not provided')}{[row.farm_barangay, row.farm_municipality].filter(Boolean).length ? ' · ' + [row.farm_barangay, row.farm_municipality].filter(Boolean).join(', ') : ''}</span>{array(row.intended_listings).map((listing, index) => <small key={str(listing.listing_id || index)}>{str(listing.product_name)} · {str(listing.requested_quantity)} {str(listing.unit)}</small>)}<div className="em-detail-person-actions"><button type="button" disabled={busy || !joinOpen} onClick={() => void review(row, 'approved')}>Approve</button><button type="button" className="is-danger" disabled={busy} onClick={() => { setRejectingId(num(row.application_id)); setRejectionReason('') }}>Reject</button></div>{rejectingId === num(row.application_id) && <div className="em-detail-reject"><label>Reason for rejection<textarea value={rejectionReason} onChange={(event) => setRejectionReason(event.target.value)} placeholder="Explain the decision to the farmer" /></label><div><button className="em-button-secondary" type="button" onClick={() => setRejectingId(null)}>Keep application</button><button className="em-button-danger" type="button" disabled={busy} onClick={() => void review(row, 'rejected')}>Confirm rejection</button></div></div>}</div></article>)}
           <div className="em-detail-list-heading em-detail-approved-heading"><h3>Approved farmers</h3><span>{approved.length}</span></div>
           {approved.length === 0 ? <div className="em-detail-empty"><strong>No approved farmers yet</strong><p>Approved applicants will appear here for check-in.</p></div> : approved.map((row) => <article className="em-detail-person" key={num(row.application_id)}><div className="em-person-avatar">{str(row.farmer_name || 'F').charAt(0)}</div><div className="em-detail-person-main"><strong>{str(row.farmer_name || 'Farmer')}</strong><span>{str(row.farm_name || 'Approved farmer')}</span></div><span className={'em-detail-person-status ' + (row.status === 'checked_in' ? 'is-checked' : '')}>{statusLabel(str(row.status))}</span>{completed && row.status === 'approved' && <button className="em-button-secondary" type="button" disabled={busy} onClick={() => { if (window.confirm('Mark ' + str(row.farmer_name) + ' as a no-show?')) void runAction(() => markNoShow(getSupabaseClient(), num(row.application_id)), () => 'Farmer marked as a no-show.') }}>Mark no-show</button>}</article>)}
+          <div className="em-invite-tracking" id="event-invited-farmers">
+            <div className="em-invite-tracking-head"><div><h3>Invited farmers</h3><p>{awaitingReply > 0 ? `${awaitingReply} awaiting a response` : invitations.length > 0 ? 'Invitation responses are up to date' : 'Sent invitations will appear here.'}</p></div><button className="em-invite-refresh" type="button" disabled={loading || busy} onClick={() => void refresh()}>{loading ? 'Refreshing…' : 'Refresh status'}</button><span>{invitations.length}</span></div>
+            {invitations.length > 0 && <div className="em-invite-tracking-list">{invitations.map((invitation) => {
+              const status = str(invitation.status)
+              const expired = status === 'pending' && new Date(str(invitation.expires_at)).getTime() <= now
+              const tone = expired ? 'expired' : status
+              const label = status === 'pending' && !expired ? 'Awaiting reply' : statusLabel(tone)
+              const directoryFarmer = invitedDirectory[str(invitation.farmer_id)]
+              const name = str(invitation.farmer_name).trim() || directoryFarmer?.name || 'Farmer name unavailable'
+              const farmName = str(invitation.farm_name).trim() || directoryFarmer?.farmName
+              return <div className="em-invite-tracking-row" key={str(invitation.invitation_id)}><span className="em-invite-tracking-avatar" aria-hidden="true">{name.charAt(0).toUpperCase()}</span><div><strong>{name}</strong><small>{farmName || `Invited ${new Date(str(invitation.created_at)).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' })}`}</small></div><span className={'em-invite-status is-' + tone}>{label}</span></div>
+            })}</div>}
+          </div>
         </section>
-        <section className="em-operation-card em-detail-invitations" id="event-invitations"><div className="em-operation-card-head"><div><span className="em-detail-section-label">GROW PARTICIPATION</span><h2>Invite farmers</h2></div></div><p className="em-operation-copy">{event.eligibilityScope === 'cebu' ? 'Find verified farmers across Cebu.' : 'Find verified farmers in ' + (event.venueCity || 'the event municipality') + '.'}</p>
-          {joinOpen ? <><div className="em-inline-form"><input aria-label="Search eligible farmers" value={farmerQuery} onChange={(change) => setFarmerQuery(change.target.value)} onKeyDown={(key) => { if (key.key === 'Enter') { key.preventDefault(); void searchFarmers() } }} placeholder="Search by name or farm" /><button className="em-button-secondary" type="button" disabled={busy} onClick={() => void searchFarmers()}>Search</button></div>{searchedFarmers && farmers.length === 0 && <p className="em-detail-search-empty">No eligible farmers matched that search.</p>}<div className="em-farmer-results">{farmers.map((farmer) => <label className="em-farmer-option" key={str(farmer.id)}><input type="checkbox" checked={selectedFarmers.includes(num(farmer.id))} onChange={(change) => setSelectedFarmers((current) => change.target.checked ? [...current, num(farmer.id)] : current.filter((id) => id !== num(farmer.id)))} /><span><strong>{str(farmer.name)}</strong><small>{str(farmer.farm_name || 'Farmer')} · {[farmer.barangay, farmer.municipality].filter(Boolean).join(', ')}</small><small className="em-farmer-verified-summary">Verified farmer · {num(farmer.active_listings)} active listings · {num(farmer.total_transactions)} completed transactions</small></span></label>)}</div><button className="em-button-primary em-full-button" type="button" disabled={busy || selectedFarmers.length === 0} onClick={() => void sendInvitations()}>Send {selectedFarmers.length || ''} invitation{selectedFarmers.length === 1 ? '' : 's'}</button>{event.joinMode !== 'invite_only' && <><div className="em-operation-divider">or share an application link</div><button className="em-button-secondary em-full-button" type="button" disabled={busy} onClick={() => void makeLink()}>Create application link</button>{inviteLink && <div className="em-created-link"><strong>Application link</strong><code>{inviteLink}</code><button type="button" onClick={() => { void navigator.clipboard.writeText(inviteLink).then(() => setNotice('Link copied.')).catch(() => setError('Clipboard access is unavailable. Select and copy the link above.')) }}>Copy link</button></div>}</>}</> : <div className="em-detail-empty"><strong>Invitations are closed</strong><p>{draft ? 'Publish this draft to invite farmers.' : 'The application window has ended for this event.'}</p></div>}
+        <section className="em-operation-card em-detail-invitations" id="event-invitations">
+          <div className="em-invite-header">
+            <div><h2>Invite farmers</h2><p>{event.eligibilityScope === 'cebu' ? 'Find verified farmers across Cebu.' : 'Find verified farmers in ' + (event.venueCity || 'the event municipality') + '.'}</p></div>
+            {joinOpen && <span className="em-invite-selected-count" aria-live="polite">{selectedFarmers.length} selected</span>}
+          </div>
+          {joinOpen ? <>
+            <label className="em-invite-search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><circle cx="10.75" cy="10.75" r="6.75" /><path d="m16 16 4 4" /></svg>
+              <span className="em-sr-only">Search eligible farmers</span>
+              <input type="search" value={farmerQuery} onChange={(change) => { farmerSearchRequest.current += 1; setFarmerQuery(change.target.value) }} placeholder="Search by name or farm" />
+            </label>
+            <div className="em-invite-results-head"><span>Eligible farmers</span><span aria-live="polite">{farmerSearchLoading ? 'Searching…' : `${farmers.length} found`}</span></div>
+            {searchedFarmers && farmers.length === 0 && <div className="em-invite-empty">{farmerQuery.trim() ? 'No eligible farmers matched your search.' : 'No eligible farmers are available for this event.'}</div>}
+            {farmers.length > 0 && <div className="em-invite-list">{farmers.map((farmer) => {
+              const id = num(farmer.id)
+              const selected = selectedFarmers.includes(id)
+              const name = str(farmer.name || 'Farmer')
+              const location = [farmer.barangay, farmer.municipality].filter(Boolean).join(', ')
+              return <label className={'em-invite-farmer' + (selected ? ' is-selected' : '')} key={str(farmer.id)}>
+                <input type="checkbox" checked={selected} onChange={(change) => setSelectedFarmers((current) => change.target.checked ? [...current, id] : current.filter((value) => value !== id))} />
+                <span className="em-invite-avatar" aria-hidden="true">{name.charAt(0).toUpperCase()}</span>
+                <span className="em-invite-person"><strong>{name}</strong><small>{str(farmer.farm_name || 'Farm name not provided')}{location && ` · ${location}`}</small><small className="em-invite-meta">Verified · {num(farmer.active_listings)} active listings · {num(farmer.total_transactions)} transactions</small></span>
+                <span className="em-invite-check" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m4 10 4 4 8-8" /></svg></span>
+              </label>
+            })}</div>}
+            <button className="em-button-primary em-invite-submit" type="button" disabled={busy || farmerSearchLoading || selectedFarmers.length === 0} onClick={() => void sendInvitations()}>Send invitations <span>{selectedFarmers.length}</span></button>
+            {event.joinMode !== 'invite_only' && <div className="em-invite-share"><span>Or share an application link</span><button className="em-button-secondary" type="button" disabled={busy} onClick={() => void makeLink()}>Create application link</button>{inviteLink && <div className="em-created-link"><strong>Application link</strong><code>{inviteLink}</code><button type="button" onClick={() => { void navigator.clipboard.writeText(inviteLink).then(() => setNotice('Link copied.')).catch(() => setError('Clipboard access is unavailable. Select and copy the link above.')) }}>Copy link</button></div>}</div>}
+          </> : <div className="em-detail-empty"><strong>Invitations are closed</strong><p>{draft ? 'Publish this draft to invite farmers.' : 'The application window has ended for this event.'}</p></div>}
         </section>
         <section className="em-operation-card em-detail-attendance" id="event-checkin"><div className="em-operation-card-head"><div><span className="em-detail-section-label">EVENT DAY</span><h2>Farmer check-in</h2></div></div>{checkInOpen ? <><p className="em-operation-copy">Scan a farmer Virtual ID QR code or paste its complete payload.</p><div className="em-detail-camera-actions"><button className="em-button-secondary" type="button" disabled={busy || cameraState === 'starting'} onClick={() => cameraState === 'scanning' ? (stopCamera(), setCameraState('idle')) : void startCamera()}>{cameraState === 'scanning' ? 'Stop camera' : cameraState === 'starting' ? 'Starting camera…' : 'Scan QR with camera'}</button></div><video ref={videoRef} className="em-detail-video" hidden={cameraState !== 'starting' && cameraState !== 'scanning'} playsInline muted aria-label="Camera preview for QR scanning" />{cameraState === 'scanning' && <p className="em-detail-camera-note" role="status">Point the camera at the farmer’s Virtual ID QR code.</p>}{cameraState === 'denied' && <p className="em-detail-camera-note" role="alert">Camera access was denied. Allow access in your browser or use manual entry below.</p>}{cameraState === 'unsupported' && <p className="em-detail-camera-note" role="status">Camera QR scanning is unavailable in this browser. Use manual entry below.</p>}{cameraState === 'error' && <p className="em-detail-camera-note" role="alert">The camera could not scan a QR code. Try again or use manual entry.</p>}<div className="em-inline-form"><input aria-label="Farmer Virtual ID QR code data" value={qrPayload} onChange={(change) => setQrPayload(change.target.value)} placeholder="Paste complete Virtual ID QR payload" /><button className="em-button-primary" type="button" disabled={busy || !qrPayload.trim()} onClick={() => void checkIn(qrPayload)}>Check in</button></div>{checkInResult && <div className="em-detail-checkin-result" role="status"><strong>{str(checkInResult.farmer_name || 'Farmer')} checked in</strong><span>Application #{str(checkInResult.application_id)} · Attendance recorded</span></div>}</> : <div className="em-detail-empty"><strong>Check-in is unavailable</strong><p>{draft ? 'Publish the event first.' : cancelled ? 'This event was cancelled.' : completed ? 'This event has ended.' : 'Check-in opens when the event starts.'}</p></div>}</section>
         <section className="em-operation-card em-detail-communication"><div className="em-operation-card-head"><div><span className="em-detail-section-label">COMMUNICATION</span><h2>Reach your audience</h2></div></div><p className="em-operation-copy">Share an update with approved farmers or promote the event to nearby buyers.</p><label className="em-field">Message<textarea value={message} onChange={(change) => setMessage(change.target.value)} placeholder="Add an optional message" rows={3} /></label><div className="em-operation-buttons"><button className="em-button-secondary" type="button" disabled={busy || !isPublished(event)} onClick={() => void sendMessage('broadcast')}>Notify farmers</button><button className="em-button-secondary" type="button" disabled={busy || !isPublished(event)} onClick={() => void sendMessage('promotion')}>Promote to buyers</button></div></section>

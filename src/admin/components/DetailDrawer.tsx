@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'rea
 import { toast } from 'sonner'
 import { loadReportEvidenceUrl, resolveAdminReportCase, setAdminUserSuspension, type AdminActivity, type AdminReport, type AdminUser } from '../admin-data'
 import { getSupabaseClient } from '../supabase'
+import { regenerateManagerInvite, type InviteHandoff as Handoff } from '../event-manager-invites'
+import InviteHandoff from './InviteHandoff'
 import type { DashboardEvent } from '../dashboard-data'
 import './DetailDrawer.css'
 
@@ -212,6 +214,23 @@ function UserActions({ user, reports, onUpdated, onOpenReport }: { user: AdminUs
   </>
 }
 
+function PendingManagerInvite({ user }: { user: AdminUser }) {
+  const [invite, setInvite] = useState<Handoff | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  async function regenerate() {
+    setBusy(true); setError(''); setInvite(null)
+    try { setInvite(await regenerateManagerInvite(getSupabaseClient(), user.id)) }
+    catch (cause) { setError(cause instanceof Error ? cause.message : 'The invitation could not be generated.') }
+    finally { setBusy(false) }
+  }
+  return <Section title="Event Manager invitation">
+    <p className="record-resolution-hint">This account is waiting for its owner to complete browser setup and choose a password.</p>
+    {invite ? <InviteHandoff invite={invite} /> : <button type="button" className="record-done record-invite-regenerate" disabled={busy} onClick={() => void regenerate()}>{busy ? 'Generating…' : 'Generate new invite'}</button>}
+    {error && <p className="record-resolution-error" role="alert">{error}</p>}
+  </Section>
+}
+
 export default function DetailDrawer({ target, reports, onClose, onReportResolved, onUserUpdated, onOpenReport }: { target: DetailModalTarget; reports: AdminReport[]; onClose: () => void; onReportResolved: () => Promise<void>; onUserUpdated: () => Promise<void>; onOpenReport: (report: AdminReport) => void }) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const closeTimer = useRef<number | null>(null)
@@ -255,6 +274,7 @@ export default function DetailDrawer({ target, reports, onClose, onReportResolve
         {target.type === 'user' && <>
           <Section title="Account information"><dl className="record-fields"><Field label="User ID">#{target.data.id}</Field><Field label="Role">{roleLabel(target.data.role)}</Field><Field label="Account status"><Status value={target.data.status} /></Field><Field label="Registered">{dateLabel(target.data.createdAt)}</Field>{target.data.role === 'buyer' && <Field label="Buyer warnings">{target.data.buyerWarningCount}{target.data.buyerWarningCount >= 4 && ' · Suspension review needed'}</Field>}</dl></Section>
           <Section title="Contact details"><dl className="record-fields"><Field label="Full name">{target.data.name}</Field><Field label="Email address">{target.data.email || 'Not recorded'}</Field></dl></Section>
+          {target.data.role === 'coordinator' && target.data.status === 'pending_verification' && <PendingManagerInvite user={target.data} />}
           {target.data.role !== 'admin' && <UserActions user={target.data} reports={reports} onUpdated={onUserUpdated} onOpenReport={onOpenReport} />}
         </>}
         {target.type === 'report' && <>
@@ -271,7 +291,7 @@ export default function DetailDrawer({ target, reports, onClose, onReportResolve
         </>}
         {target.type === 'activity' && <>
           <Section title="Activity information"><dl className="record-fields"><Field label="Actor">{target.data.actor}</Field><Field label="Recorded">{dateLabel(target.data.createdAt)}</Field><Field label="Log ID">#{target.data.id}</Field></dl></Section>
-          <Section title="Recorded action"><dl className="record-fields"><Field label="Action"><code className="record-action-code">{target.data.action}</code></Field><Field label="Record type">{humanize(target.data.entityType)}</Field><Field label="Record ID">{target.data.entityId == null ? 'Not recorded' : `#${target.data.entityId}`}</Field></dl></Section>
+          <Section title="Recorded action"><dl className="record-fields"><Field label="Action">{humanize(target.data.action)}</Field><Field label="Record type">{humanize(target.data.entityType)}</Field><Field label="Record ID">{target.data.entityId == null ? 'Not recorded' : `#${target.data.entityId}`}</Field></dl></Section>
         </>}
       </div>
       <footer className="record-footer"><span>Times shown in Philippine time</span><button type="button" className="record-done" onClick={event => requestClose(event.detail !== 0)}>Done</button></footer>

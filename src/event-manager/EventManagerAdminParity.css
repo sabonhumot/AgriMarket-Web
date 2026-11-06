@@ -7,11 +7,15 @@
   --em-panel: #fff;
   --em-ground: #f5f7f3;
   --em-radius: 12px;
+  --em-control-radius: 12px;
+  --em-compact-control-radius: 10px;
   --em-ease-out: cubic-bezier(.23, 1, .32, 1);
   grid-template-columns: 270px minmax(0, 1fr);
   background: var(--em-ground);
   color: var(--em-ink);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  font-family: var(--font-ui, system-ui, -apple-system, "Segoe UI", sans-serif);
+  font-size: 14px;
+  line-height: 1.55;
 }
 .em-shell .em-main {
   width: 100%;
@@ -38,7 +42,7 @@
   min-height: 34px;
   padding: 0 11px;
   border: 1px solid var(--em-line);
-  border-radius: 7px;
+  border-radius: var(--em-compact-control-radius);
   background: #fff;
   color: var(--em-ink);
   font-size: 12px;
@@ -56,18 +60,18 @@
 .em-shell :is(.em-heading h1,.em-workspace-heading h1,.em-create-heading h1,.em-operation-heading h1) {
   margin: 0;
   color: var(--em-ink);
-  font-size: 2.35rem;
-  font-weight: 750;
-  line-height: 1.1;
-  letter-spacing: -.035em;
+  font-size: 2.125rem;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -.03em;
 }
 .em-shell :is(.em-intro,.em-workspace-heading p,.em-create-heading p) {
   max-width: 70ch;
   margin: 8px 0 0;
   color: #526b5a;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 400;
-  line-height: 1.55;
+  line-height: 1.6;
 }
 .em-shell :is(.em-panel-head h2,.em-workspace-card h2,.em-form-section-head h2,.em-operation-card-head h2,.em-events-section-heading h2) {
   color: var(--em-ink);
@@ -78,7 +82,7 @@
 }
 .em-shell :is(.em-panel-head p,.em-workspace-card-head p,.em-form-section-head p) {
   color: var(--em-muted);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.5;
 }
 .em-shell :is(.em-panel,.em-workspace-card,.em-form-section,.em-operation-card,.em-list-card,.em-notification-list,.em-profile-identity,.em-profile-readout,.em-profile-form) {
@@ -90,9 +94,9 @@
   align-items: center;
   justify-content: center;
   gap: 7px;
-  min-height: 41px;
+  min-height: 44px;
   padding: 0 14px;
-  border-radius: 7px;
+  border-radius: var(--em-control-radius);
   font-family: inherit;
   font-size: 12px;
   font-weight: 700;
@@ -114,7 +118,8 @@
 }
 .em-shell :is(.em-button-primary,.em-button-secondary,.em-button-danger,.em-heading-actions button,.em-error button,.em-events-empty button):active:not(:disabled) { transform: scale(.97); }
 .em-shell :is(.em-button-primary,.em-button-secondary,.em-button-danger,.em-heading-actions button,.em-error button,.em-events-empty button):disabled { opacity: .6; cursor: wait; }
-.em-shell :is(.em-event-tabs button,.em-workspace-tabs button) { min-height: 34px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+.em-shell :is(.em-event-tabs button,.em-workspace-tabs button,.em-person-actions button,.em-detail-person-actions button,.em-detail-reject button) { border-radius: var(--em-compact-control-radius); }
+.em-shell :is(.em-event-tabs button,.em-workspace-tabs button) { min-height: 44px; font-size: 12px; font-weight: 600; }
 .em-shell :is(.em-event-tabs button.is-active,.em-workspace-tabs button.is-active) { background: var(--em-green); color: #fff; }
 .em-shell :is(.em-event-tabs button.is-active,.em-workspace-tabs button.is-active) span { color: var(--em-green); }
 .em-shell :is(.em-metric-label,.em-detail-stats span) { color: var(--em-ink); font-size: 13px; font-weight: 600; }
@@ -133,7 +138,7 @@
   .em-shell .em-main { padding: 72px 20px 48px; }
   .em-shell .em-topbar { min-height: 52px; margin: -72px -20px 26px; padding: 0 100px 0 20px; }
   .em-shell :is(.em-heading,.em-workspace-heading,.em-create-heading) { margin-bottom: 20px; }
-  .em-shell :is(.em-heading h1,.em-workspace-heading h1,.em-create-heading h1,.em-operation-heading h1) { font-size: 2rem; }
+  .em-shell :is(.em-heading h1,.em-workspace-heading h1,.em-create-heading h1,.em-operation-heading h1) { font-size: 1.875rem; }
   .em-shell .em-metric { padding: 18px 14px; }
   .em-shell :is(.em-panel,.em-workspace-card) { padding: 19px; }
 }

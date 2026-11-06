@@ -1,9 +1,4 @@
 .activity-log { border: 1px solid var(--admin-line); border-radius: 14px; background: var(--admin-panel); overflow: hidden; }
-.activity-log-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 22px 24px; border-bottom: 1px solid var(--admin-line); }
-.activity-log-heading h2 { margin: 0; font-size: var(--admin-type-section); font-weight: 600; color: var(--admin-ink); line-height: 1.35; }
-.activity-log-heading p { margin: 5px 0 0; color: var(--admin-muted); font-size: var(--admin-type-meta); }
-.activity-log-heading > span { color: var(--admin-muted); font-size: var(--admin-type-meta); white-space: nowrap; }
-.activity-log-heading > span strong { color: var(--admin-ink); font-weight: 600; font-variant-numeric: tabular-nums; }
 .activity-log-groups { padding: 4px 24px 20px; }
 .activity-day { --activity-avatar-size: 34px; --activity-row-inline: 12px; --activity-row-block: 14px; display: grid; grid-template-columns: 10.5rem minmax(0,1fr); gap: 16px; padding-top: 24px; }
 .activity-day > h3 { position: sticky; top: 8px; align-self: start; display: flex; align-items: center; gap: 8px; margin: var(--activity-row-block) 0 0; line-height: 21px; color: var(--admin-muted); font-size: var(--admin-type-meta); font-weight: 500; white-space: nowrap; }
@@ -33,6 +28,6 @@
 .activity-pagination button:disabled { opacity: .45; cursor: default; }
 .activity-log button:focus-visible { outline: 2px solid var(--admin-primary); outline-offset: 2px; }
 @media (hover:hover) and (pointer:fine) { .activity-entry:hover { background: var(--admin-panel-subtle); } .activity-inspect:hover { color: var(--admin-primary); background: var(--admin-primary-light); } .activity-pagination button:not(:disabled):hover { background: var(--admin-primary-subtle); } }
-@media (max-width:700px) { .activity-log-heading { padding: 20px 16px; } .activity-log-groups { padding: 0 16px 16px; } .activity-day { grid-template-columns: minmax(0,1fr); gap: 8px; padding-top: 20px; } .activity-day { --activity-row-inline: 4px; } .activity-day > h3 { position: static; margin-top: 0; } .activity-entry { gap: 9px; } .activity-inspect { width: 40px; justify-content: center; } .activity-inspect > span { display: none; } .activity-pagination { padding-inline: 16px; } }
+@media (max-width:700px) { .activity-log-groups { padding: 0 16px 16px; } .activity-day { grid-template-columns: minmax(0,1fr); gap: 8px; padding-top: 20px; } .activity-day { --activity-row-inline: 4px; } .activity-day > h3 { position: static; margin-top: 0; } .activity-entry { gap: 9px; } .activity-inspect { width: 40px; justify-content: center; } .activity-inspect > span { display: none; } .activity-pagination { padding-inline: 16px; } }
 @media (max-width:400px) { .activity-day { --activity-avatar-size: 30px; } .activity-entry { gap: 7px; } .activity-entry-meta { gap: 4px 8px; } .activity-inspect { min-width: 40px; } }
 @media (prefers-reduced-motion:reduce) { .activity-log * { transition: none !important; } }
