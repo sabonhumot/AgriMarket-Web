@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { toast } from 'sonner'
 import { getSupabaseClient } from '../admin/supabase'
 import EventManagerSidebar from './EventManagerSidebar'
 import EventManagerTopbar from './EventManagerTopbar'
@@ -19,18 +20,18 @@ export default function EventManagerProfile({ onSignOut, initialData }: { onSign
   const [photoBusy, setPhotoBusy] = useState(false)
   const [editing, setEditing] = useState<keyof ManagerProfile | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
   const [photoPreview, setPhotoPreview] = useState('')
   const photoInput = useRef<HTMLInputElement>(null)
   const nameInput = useRef<HTMLInputElement | HTMLSelectElement>(null)
   const photoObjectUrl = useRef<string | null>(null)
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (notify = false) => {
     setLoading(true); setError(null)
     try {
       const value = await loadManagerProfile(getSupabaseClient())
       setProfile(value); setDraft(value); setEditing(null)
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Profile could not be loaded.') }
+      if (notify) toast.success('Profile refreshed.')
+    } catch (cause) { const message = cause instanceof Error ? cause.message : 'Profile could not be loaded.'; setError(message); toast.error('Profile could not be loaded.', { description: message }) }
     finally { setLoading(false) }
   }, [])
   useEffect(() => { if (initialData) return; const timer = setTimeout(() => { void refresh() }, 0); return () => clearTimeout(timer) }, [initialData, refresh])
@@ -38,12 +39,12 @@ export default function EventManagerProfile({ onSignOut, initialData }: { onSign
 
   function update<K extends keyof ManagerProfile>(key: K, value: ManagerProfile[K]) {
     setDraft((current) => current ? { ...current, [key]: value } : current)
-    setError(null); setNotice(null)
+    setError(null)
   }
   function beginEditing(field: keyof ManagerProfile) {
     if (editing && draft && profile && JSON.stringify(draft) !== JSON.stringify(profile) && !window.confirm('Discard the unsaved change?')) return
     setDraft(profile)
-    setEditing(field); setError(null); setNotice(null)
+    setEditing(field); setError(null)
     requestAnimationFrame(() => nameInput.current?.focus())
   }
   function cancelEditing() {
@@ -51,17 +52,17 @@ export default function EventManagerProfile({ onSignOut, initialData }: { onSign
   }
   async function changePhoto(file: File | undefined) {
     if (!file || photoBusy || busy) return
-    if (!['image/jpeg', 'image/png'].includes(file.type)) { setError('Choose a JPG or PNG photo.'); return }
-    if (file.size > 5 * 1024 * 1024) { setError('Choose a photo smaller than 5 MB.'); return }
+    if (!['image/jpeg', 'image/png'].includes(file.type)) { setError('Choose a JPG or PNG photo.'); toast.error('Choose a JPG or PNG photo.'); return }
+    if (file.size > 5 * 1024 * 1024) { setError('Choose a photo smaller than 5 MB.'); toast.error('Choose a photo smaller than 5 MB.'); return }
     const objectUrl = URL.createObjectURL(file)
     photoObjectUrl.current = objectUrl
-    setPhotoPreview(objectUrl); setPhotoBusy(true); setError(null); setNotice(null)
+    setPhotoPreview(objectUrl); setPhotoBusy(true); setError(null)
     try {
       const path = await uploadManagerLogo(getSupabaseClient(), file)
       setProfile((current) => current ? { ...current, logoPath: path } : current)
       setDraft((current) => current ? { ...current, logoPath: path } : current)
-      setNotice('Profile photo updated.')
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Photo upload failed. Try again.') }
+      toast.success('Profile photo updated.')
+    } catch (cause) { const message = cause instanceof Error ? cause.message : 'Photo upload failed. Try again.'; setError(message); toast.error('Photo upload failed.', { description: message }) }
     finally {
       setPhotoPreview(''); setPhotoBusy(false)
       URL.revokeObjectURL(objectUrl)
@@ -71,17 +72,20 @@ export default function EventManagerProfile({ onSignOut, initialData }: { onSign
   async function save(event: FormEvent) {
     event.preventDefault()
     if (!draft || busy || photoBusy) return
-    if (editing === 'organizationName' && draft.organizationName.trim().length < 3) { setError('Enter an organization name with at least 3 characters.'); return }
-    if (editing && ['barangay', 'city', 'zipCode'].includes(editing) && !profile?.street.trim()) { setError('Add the street address first, then update the rest of the office address.'); return }
-    setBusy(true); setError(null); setNotice(null)
+    if (editing === 'organizationName' && draft.organizationName.trim().length < 3) { setError('Enter an organization name with at least 3 characters.'); toast.error('Enter an organization name with at least 3 characters.'); return }
+    if (!draft.firstName.trim() || !draft.lastName.trim()) { setError('Add the Event Manager’s first and last name before saving.'); toast.error('Add the Event Manager’s first and last name.'); return }
+    if (!/^[+()0-9 -]+$/.test(draft.managerContactNumber.trim()) || draft.managerContactNumber.replace(/\D/g, '').length < 7 || draft.managerContactNumber.replace(/\D/g, '').length > 15) { setError('Enter a valid Event Manager contact number before saving.'); toast.error('Enter a valid Event Manager contact number.'); return }
+    if (editing && ['barangay', 'city', 'zipCode'].includes(editing) && !profile?.street.trim()) { setError('Add the street address first, then update the rest of the office address.'); toast.error('Add the street address first.'); return }
+    setBusy(true); setError(null)
     try {
       const updated = await saveManagerProfile(getSupabaseClient(), draft)
       if (editing && editing !== 'municipalityKey' && String(updated[editing] ?? '').trim() !== String(draft[editing] ?? '').trim()) {
         setError('That change was not saved. Check the value and try again.')
+        toast.error('That change was not saved. Check the value and try again.')
         return
       }
-      setProfile(updated); setDraft(updated); setEditing(null); setNotice('Profile changes saved.')
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Profile changes could not be saved.') }
+      setProfile(updated); setDraft(updated); setEditing(null); toast.success('Profile changes saved.')
+    } catch (cause) { const message = cause instanceof Error ? cause.message : 'Profile changes could not be saved.'; setError(message); toast.error('Profile changes could not be saved.', { description: message }) }
     finally { setBusy(false) }
   }
 
@@ -89,9 +93,9 @@ export default function EventManagerProfile({ onSignOut, initialData }: { onSign
   const photoUrl = photoPreview || (profile?.logoPath ? getSupabaseClient().storage.from('event-manager-media').getPublicUrl(profile.logoPath).data.publicUrl : '')
   const kind = profile?.organizationType === 'lgu' ? 'Local government unit' : 'Organization'
 
-  return <div className="em-shell em-market-profile"><EventManagerSidebar active="profile" organizationName={profile?.organizationName} onSignOut={onSignOut} /><main className="em-main"><EventManagerTopbar current="Profile" /><div className="em-content em-workspace-page">
-    <div className="em-workspace-heading"><div><h1>Organization profile</h1><p>Keep your organization and contact details current for event coordination.</p></div><button className="em-button-secondary" type="button" disabled={loading || busy || photoBusy} onClick={() => { if (!changed || window.confirm('Discard unsaved changes and reload the profile?')) void refresh() }}>{loading ? 'Refreshing…' : 'Refresh'}</button></div>
-    {error && <div className="em-operation-error" role="alert">{error}</div>}{notice && <div className="em-operation-notice" role="status">{notice}</div>}
+  return <div className="em-shell em-market-profile"><EventManagerSidebar active="profile" profile={profile} onSignOut={onSignOut} /><main className="em-main"><EventManagerTopbar current="Profile" /><div className="em-content em-workspace-page">
+    <div className="em-workspace-heading"><div><h1>Organization profile</h1><p>Keep your organization and contact details current for event coordination.</p></div><button className="em-button-secondary" type="button" disabled={loading || busy || photoBusy} onClick={() => { if (!changed || window.confirm('Discard unsaved changes and reload the profile?')) void refresh(true) }}>{loading ? 'Refreshing…' : 'Refresh'}</button></div>
+    {error && <div className="em-operation-error" role="alert">{error}</div>}
     {loading && !draft ? <div className="em-workspace-loading" role="status">Loading profile…</div> : !draft || !profile ? <div className="em-workspace-empty"><strong>Profile unavailable</strong><p>Try refreshing to load your organization details.</p></div> : <>
       <section className="em-profile-identity" aria-label="Organization identity">
         <input ref={photoInput} className="em-profile-photo-input" type="file" accept="image/jpeg,image/png" aria-hidden="true" tabIndex={-1} onChange={(event) => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ''; void changePhoto(file) }} />
@@ -105,12 +109,13 @@ export default function EventManagerProfile({ onSignOut, initialData }: { onSign
       <div className="em-profile-sections">{([
         { id: 'organization', title: 'Organization', fields: [['organizationName', 'Organization name'], ['organizationType', 'Organization type'], ['municipalityKey', 'Service municipality']] },
         { id: 'contact', title: 'Contact information', fields: [['contactName', 'Point of contact'], ['officialEmail', 'Official email'], ['officePhone', 'Office contact number']] },
+        { id: 'manager', title: 'Event Manager', fields: [['firstName', 'First name'], ['middleName', 'Middle name'], ['lastName', 'Last name'], ['managerContactNumber', 'Manager contact number']] },
         { id: 'address', title: 'Office address', fields: [['street', 'Street address'], ['barangay', 'Barangay'], ['city', 'City / municipality'], ['zipCode', 'ZIP code']] },
       ] as const).map((section) => <section className={'em-profile-section-panel em-profile-panel-' + section.id} key={section.id}>
         <div className="em-profile-panel-heading"><h3>{section.title}</h3></div>
         <dl>{section.fields.map(([key, label]) => <div className="em-profile-detail" key={key}>
           <dt className="em-profile-field-label"><span>{label}</span>{editing !== key && <button type="button" className="em-profile-field-edit" disabled={busy || photoBusy} onClick={() => beginEditing(key)} aria-label={'Edit ' + label.toLowerCase()}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m16 3 5 5-12 12-6 1 1-6L16 3Zm-2 2 5 5" /></svg>Edit</button>}</dt>
-          <dd>{editing === key ? <form className="em-profile-field-form" onSubmit={(event) => void save(event)}><label className="em-sr-only" htmlFor={'profile-' + key}>{label}</label>{key === 'organizationType' ? <select id={'profile-' + key} ref={(node) => { nameInput.current = node }} disabled={busy} value={draft[key]} onChange={(event) => update(key, event.target.value as ManagerProfile['organizationType'])}><option value="organization">Organization</option><option value="lgu">Local government unit</option></select> : <input id={'profile-' + key} ref={(node) => { nameInput.current = node }} type={key === 'officialEmail' ? 'email' : key === 'officePhone' ? 'tel' : 'text'} required={key === 'organizationName'} minLength={key === 'organizationName' ? 3 : undefined} disabled={busy} value={draft[key]} onChange={(event) => update(key, event.target.value)} />}<div className="em-profile-field-actions"><button className="em-button-secondary" type="button" disabled={busy} onClick={cancelEditing}>Cancel</button><button className="em-button-primary" type="submit" disabled={!changed || busy || photoBusy}>{busy ? 'Saving…' : 'Save'}</button></div></form> : (key === 'organizationType' ? kind : profile[key]) || <span className="is-empty">Not provided</span>}</dd>
+          <dd>{editing === key ? <form className="em-profile-field-form" onSubmit={(event) => void save(event)}><label className="em-sr-only" htmlFor={'profile-' + key}>{label}</label>{key === 'organizationType' ? <select id={'profile-' + key} ref={(node) => { nameInput.current = node }} disabled={busy} value={draft[key]} onChange={(event) => update(key, event.target.value as ManagerProfile['organizationType'])}><option value="organization">Organization</option><option value="lgu">Local government unit</option></select> : <input id={'profile-' + key} ref={(node) => { nameInput.current = node }} type={key === 'officialEmail' ? 'email' : key === 'officePhone' || key === 'managerContactNumber' ? 'tel' : 'text'} required={['organizationName', 'firstName', 'lastName', 'managerContactNumber'].includes(key)} minLength={key === 'organizationName' ? 3 : undefined} disabled={busy} value={draft[key]} onChange={(event) => update(key, event.target.value)} />}<div className="em-profile-field-actions"><button className="em-button-secondary" type="button" disabled={busy} onClick={cancelEditing}>Cancel</button><button className="em-button-primary" type="submit" disabled={!changed || busy || photoBusy}>{busy ? 'Saving…' : 'Save'}</button></div></form> : (key === 'organizationType' ? kind : profile[key]) || <span className="is-empty">Not provided</span>}</dd>
         </div>)}</dl>
       </section>)}</div>
       <section className="em-profile-account"><div><h3>Account</h3><p>Sign-in information for this workspace.</p></div><dl><Detail label="Signed in as" value={profile.accountName} /><Detail label="Login email" value={profile.accountEmail} /></dl></section>

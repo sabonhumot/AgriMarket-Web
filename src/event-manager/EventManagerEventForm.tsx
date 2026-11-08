@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { toast } from 'sonner'
 import { getSupabaseClient } from '../admin/supabase'
 import { navigateWeb } from '../auth/web-navigation'
 import EventManagerSidebar from './EventManagerSidebar'
@@ -7,6 +8,7 @@ import { createManagedEvent, loadManagedEvent, publishManagedEvent, updateManage
 import { invalidateManagedEventsCache } from './EventManagerEvents'
 import './EventManagerOperations.css'
 import './EventManagerEventForm.css'
+import { uploadEventManagerMedia } from './upload-media'
 
 type Field = keyof ManagerEventInput
 type Errors = Partial<Record<Field, string>>
@@ -100,7 +102,7 @@ export default function EventManagerEventForm({ eventId, onSignOut }: { eventId?
       })
       if (event.coverPhotoPath) setCoverPreview(getSupabaseClient().storage.from('event-manager-media').getPublicUrl(event.coverPhotoPath).data.publicUrl)
       if (!canEdit(event.databaseStatus, event.date, event.startTime)) setBlockedReason('This event can no longer be edited.')
-    }).catch((cause) => { if (active) setBlockedReason(cause instanceof Error ? cause.message : 'This event could not be loaded for editing.') })
+    }).catch((cause) => { if (active) { const message = cause instanceof Error ? cause.message : 'This event could not be loaded for editing.'; setBlockedReason(message); toast.error('Event could not be loaded.', { description: message }) } })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [eventId])
@@ -117,8 +119,8 @@ export default function EventManagerEventForm({ eventId, onSignOut }: { eventId?
   function chooseCover(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
     if (!file) return
-    if (!['image/jpeg', 'image/png'].includes(file.type)) { setError('Use a JPG or PNG cover image.'); event.target.value = ''; return }
-    if (file.size > 8 * 1024 * 1024) { setError('Event covers must be 8 MB or smaller.'); event.target.value = ''; return }
+    if (!['image/jpeg', 'image/png'].includes(file.type)) { setError('Use a JPG or PNG cover image.'); toast.error('Use a JPG or PNG cover image.'); event.target.value = ''; return }
+    if (file.size > 8 * 1024 * 1024) { setError('Event covers must be 8 MB or smaller.'); toast.error('Event covers must be 8 MB or smaller.'); event.target.value = ''; return }
     setError(null)
     if (coverObjectUrl.current) URL.revokeObjectURL(coverObjectUrl.current)
     coverObjectUrl.current = URL.createObjectURL(file)
@@ -131,6 +133,7 @@ export default function EventManagerEventForm({ eventId, onSignOut }: { eventId?
     const first = Object.keys(next)[0] as Field | undefined
     if (first) {
       setError('Review the highlighted fields before saving.')
+      toast.error('Review the highlighted fields before saving.')
       if (first === 'mapLatitude' || first === 'mapLongitude') {
         const coordinates = formRef.current?.querySelector<HTMLDetailsElement>('.em-coordinate-group')
         if (coordinates) coordinates.open = true
@@ -147,9 +150,7 @@ export default function EventManagerEventForm({ eventId, onSignOut }: { eventId?
     if (!data.user) throw new Error('Sign in again to upload the event cover.')
     const extension = file.type === 'image/png' ? 'png' : 'jpg'
     const path = data.user.id + '/events/' + Number(id) + '/cover-' + Date.now() + '.' + extension
-    const { error: uploadError } = await client.storage.from('event-manager-media').upload(path, file, { contentType: file.type, upsert: false })
-    if (uploadError) throw uploadError
-    return path
+    return uploadEventManagerMedia(client, path, file)
   }
   async function save(mode: 'draft' | 'publish' | 'changes') {
     if (busy || !checkFields()) return
@@ -180,11 +181,14 @@ export default function EventManagerEventForm({ eventId, onSignOut }: { eventId?
       if (mode === 'publish' && saved.databaseStatus === 'draft') saved = await publishManagedEvent(client, saved.id)
       invalidateManagedEventsCache()
       window.dispatchEvent(new CustomEvent('event-manager-events-changed'))
+      toast.success(mode === 'draft' ? 'Event draft saved.' : mode === 'changes' ? 'Event changes saved.' : 'Event published.')
       window.history.pushState({}, '', '/event-manager/events/' + saved.id)
       window.dispatchEvent(new PopStateEvent('popstate'))
     } catch (cause) {
       const detail = cause instanceof Error ? cause.message : 'Please try again.'
-      setError(savedId ? 'Event details were saved, but the remaining step failed: ' + detail : 'The event could not be saved: ' + detail)
+      const message = savedId ? 'Event details were saved, but the remaining step failed: ' + detail : 'The event could not be saved: ' + detail
+      setError(message)
+      toast.error(savedId ? 'Event only partially saved.' : 'Event could not be saved.', { description: message })
       if (savedId) {
         invalidateManagedEventsCache()
         window.dispatchEvent(new CustomEvent('event-manager-events-changed'))

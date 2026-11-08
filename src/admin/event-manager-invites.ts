@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-export type InviteHandoff = { userId: number; url: string; expiresAt: string }
+export type InviteHandoff = { userId: number; url: string; expiresAt: string; recipient: string; emailSent: boolean; emailError?: string }
 export type CreateManagerInput = {
   firstName: string; lastName: string; email: string; organizationName: string
   organizationType: 'organization' | 'lgu'; pointOfContact: string

@@ -12,17 +12,17 @@ colors:
   coral: "#e97851"
 typography:
   display:
-    fontFamily: "ui-rounded, Avenir Next, Trebuchet MS, system-ui, sans-serif"
+    fontFamily: "Nunito Sans, system-ui, sans-serif"
     fontSize: "clamp(3.45rem, 6vw, 6rem)"
     fontWeight: 760
     lineHeight: 0.91
     letterSpacing: "-.067em"
   body:
-    fontFamily: "ui-rounded, Avenir Next, Trebuchet MS, system-ui, sans-serif"
+    fontFamily: "Nunito Sans, system-ui, sans-serif"
     fontSize: "1rem"
     lineHeight: 1.53
   label:
-    fontFamily: "ui-rounded, Avenir Next, Trebuchet MS, system-ui, sans-serif"
+    fontFamily: "Nunito Sans, system-ui, sans-serif"
     fontSize: ".74rem"
     fontWeight: 730
 rounded:
@@ -82,7 +82,7 @@ Green anchors trust and direct action; cream and mist leave the product feeling 
 
 ## Typography
 
-**Display Font:** ui-rounded / Avenir Next / Trebuchet MS / system UI, with Iowan Old Style, Baskerville, or Georgia for selective italic emphasis.
+**Display Font:** Nunito Sans with a system sans-serif fallback, with Iowan Old Style, Baskerville, or Georgia for selective italic emphasis.
 
 **Character:** Rounded sans-serif headlines make the experience clear and neighborly, while restrained serif italics add a human, harvest-note inflection.
 

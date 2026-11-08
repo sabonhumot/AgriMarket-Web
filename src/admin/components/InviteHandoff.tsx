@@ -12,7 +12,8 @@ export default function InviteHandoff({ invite }: { invite: Handoff }) {
     catch { setCopied(false) }
   }
   return <div className="manager-invite-handoff">
-    <p>Share this link with the intended Event Manager. Anyone with it can claim the account before it expires.</p>
+    {invite.emailSent ? <p role="status">Invitation link and QR code emailed to <strong>{invite.recipient}</strong>.</p> : <p role="alert">{invite.emailError || 'The invitation email was not sent.'} Share the link or QR code with <strong>{invite.recipient}</strong>.</p>}
+    <p>Anyone with this link or QR code can claim the account before it expires.</p>
     <label htmlFor="manager-invite-url">Invitation link</label>
     <input id="manager-invite-url" readOnly value={invite.url} onFocus={event => event.currentTarget.select()} />
     <p className="manager-invite-expiry">Expires {expiry} (Philippine time). The link will not be shown again after this panel closes.</p>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import { getSupabaseClient } from '../admin/supabase'
 import EventManagerSidebar from './EventManagerSidebar'
 import EventManagerTopbar from './EventManagerTopbar'
@@ -25,7 +26,7 @@ export default function EventManagerFarmers({ onSignOut, initialData }: { onSign
       const results = await loadManagerFarmers(getSupabaseClient(), text)
       if (currentRequest === requestId.current) { setFarmers(results); setSubmittedQuery(text) }
     } catch (cause) {
-      if (currentRequest === requestId.current) setError(cause instanceof Error ? cause.message : 'Farmer directory could not be loaded.')
+      if (currentRequest === requestId.current) { const message = cause instanceof Error ? cause.message : 'Farmer directory could not be loaded.'; setError(message); toast.error('Farmer directory could not be loaded.', { description: message }) }
     } finally {
       if (currentRequest === requestId.current) setLoading(false)
     }

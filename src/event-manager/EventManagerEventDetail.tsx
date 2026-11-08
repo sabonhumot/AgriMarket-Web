@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import { getSupabaseClient } from '../admin/supabase'
 import { navigateWeb } from '../auth/web-navigation'
 import EventManagerSidebar from './EventManagerSidebar'
@@ -79,10 +80,10 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
   const farmerSearchRequest = useRef(0)
   const invitedDirectoryRef = useRef<Record<string, Pick<ManagerFarmer, 'name' | 'farmName'>>>({})
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (notify = false) => {
     setLoading(true); setError(null)
-    try { setData(await loadManagedEvent(getSupabaseClient(), eventId)) }
-    catch (cause) { setError(cause instanceof Error ? cause.message : 'Event details could not be loaded.') }
+    try { setData(await loadManagedEvent(getSupabaseClient(), eventId)); if (notify) toast.success('Event details refreshed.') }
+    catch (cause) { const message = cause instanceof Error ? cause.message : 'Event details could not be loaded.'; setError(message); toast.error('Event details could not be loaded.', { description: message }) }
     finally { setLoading(false) }
   }, [eventId])
   useEffect(() => {
@@ -124,19 +125,21 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
     setBusy(true); setError(null); setNotice(null)
     let result: T
     try { result = await action() }
-    catch (cause) { setError(cause instanceof Error ? cause.message : 'The action could not be completed.'); setBusy(false); return null }
+    catch (cause) { const message = cause instanceof Error ? cause.message : 'The action could not be completed.'; setError(message); toast.error('Action could not be completed.', { description: message }); setBusy(false); return null }
     invalidateManagedEventsCache()
     window.dispatchEvent(new CustomEvent('event-manager-events-changed'))
-    setNotice(success(result))
+    const message = success(result)
+    setNotice(message)
+    toast.success(message)
     try { setData(await loadManagedEvent(getSupabaseClient(), eventId)) }
-    catch { setError('The action succeeded, but the latest event details could not be loaded. Use Refresh to try again.') }
+    catch { const message = 'The action succeeded, but the latest event details could not be loaded. Use Refresh to try again.'; setError(message); toast.error('Event details could not be refreshed.', { description: message }) }
     setBusy(false)
     return result
   }
   async function review(row: Row, decision: 'approved' | 'rejected') {
     const id = num(row.application_id)
     if (decision === 'rejected') {
-      if (rejectionReason.trim().length < 3) { setError('Add a short reason before rejecting this application.'); return }
+      if (rejectionReason.trim().length < 3) { setError('Add a short reason before rejecting this application.'); toast.error('Add a short reason before rejecting this application.'); return }
       if (!window.confirm('Reject ' + str(row.farmer_name) + "'s application?")) return
     }
     const result = await runAction(() => reviewApplication(getSupabaseClient(), id, decision, decision === 'approved' ? undefined : rejectionReason.trim()), () => decision === 'approved' ? 'Application approved.' : 'Application rejected.')
@@ -149,7 +152,7 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
       const results = await loadEligibleFarmers(getSupabaseClient(), eventId, query)
       if (currentRequest === farmerSearchRequest.current) { setFarmers(results); setSearchedFarmers(true) }
     } catch (cause) {
-      if (currentRequest === farmerSearchRequest.current) setError(cause instanceof Error ? cause.message : 'Eligible farmers could not be loaded.')
+      if (currentRequest === farmerSearchRequest.current) { const message = cause instanceof Error ? cause.message : 'Eligible farmers could not be loaded.'; setError(message); toast.error('Eligible farmers could not be loaded.', { description: message }) }
     } finally {
       if (currentRequest === farmerSearchRequest.current) setFarmerSearchLoading(false)
     }
@@ -165,7 +168,7 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
     return () => { clearTimeout(timer); farmerSearchRequest.current += 1 }
   }, [data, farmerQuery, searchFarmers])
   async function sendInvitations() {
-    if (!selectedFarmers.length) { setError('Select at least one eligible farmer.'); return }
+    if (!selectedFarmers.length) { setError('Select at least one eligible farmer.'); toast.error('Select at least one eligible farmer.'); return }
     if (!window.confirm('Send invitations to ' + selectedFarmers.length + ' selected farmer' + (selectedFarmers.length === 1 ? '' : 's') + '?')) return
     const selectedNames = Object.fromEntries(farmers.filter((farmer) => selectedFarmers.includes(num(farmer.id))).map((farmer) => [str(farmer.id), { name: str(farmer.name), farmName: str(farmer.farm_name) }]))
     const result = await runAction(() => inviteFarmers(getSupabaseClient(), eventId, selectedFarmers), (value) => value.sent + ' invitation' + (value.sent === 1 ? '' : 's') + ' sent' + (value.skipped ? '; ' + value.skipped + ' skipped' : '') + '.')
@@ -188,7 +191,7 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
     if (result) setInviteLink(result.url)
   }
   async function checkIn(payload: string) {
-    if (!payload.trim()) { setError('Paste the complete farmer Virtual ID QR payload.'); return }
+    if (!payload.trim()) { setError('Paste the complete farmer Virtual ID QR payload.'); toast.error('Paste the complete farmer Virtual ID QR payload.'); return }
     if (streamRef.current) { stopCamera(); setCameraState('idle') }
     const result = await runAction(() => checkInFarmer(getSupabaseClient(), eventId, payload.trim()), (value) => str(value.farmer_name || 'Farmer') + ' checked in successfully.')
     if (result) { setCheckInResult(result); setQrPayload('') }
@@ -196,16 +199,17 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
   async function startCamera() {
     if (cameraState === 'starting' || cameraState === 'scanning') return
     const DetectorType = (window as Window & { BarcodeDetector?: DetectorClass }).BarcodeDetector
-    if (!DetectorType || !navigator.mediaDevices?.getUserMedia) { setCameraState('unsupported'); return }
+    if (!DetectorType || !navigator.mediaDevices?.getUserMedia) { setCameraState('unsupported'); toast.error('Camera QR scanning is unavailable in this browser.'); return }
     setCameraState('starting'); setError(null)
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
       streamRef.current = stream
-      if (!videoRef.current) { stopCamera(); setCameraState('error'); return }
+      if (!videoRef.current) { stopCamera(); setCameraState('error'); toast.error('Camera could not be started.'); return }
       videoRef.current.srcObject = stream
       await videoRef.current.play()
       const detector = new DetectorType({ formats: ['qr_code'] })
       setCameraState('scanning')
+      toast.success('Camera ready to scan QR codes.')
       const scan = async () => {
         if (!streamRef.current || !videoRef.current) return
         if (!detectingRef.current && videoRef.current.readyState >= 2) {
@@ -213,7 +217,7 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
           try {
             const codes = await detector.detect(videoRef.current)
             if (codes[0]?.rawValue) { stopCamera(); setCameraState('idle'); await checkIn(codes[0].rawValue); return }
-          } catch { stopCamera(); setCameraState('error'); return }
+          } catch { stopCamera(); setCameraState('error'); toast.error('The camera could not scan a QR code.'); return }
           finally { detectingRef.current = false }
         }
         if (streamRef.current) frameRef.current = requestAnimationFrame(() => { void scan() })
@@ -221,7 +225,9 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
       frameRef.current = requestAnimationFrame(() => { void scan() })
     } catch (cause) {
       stopCamera()
-      setCameraState(cause instanceof DOMException && cause.name === 'NotAllowedError' ? 'denied' : 'error')
+      const denied = cause instanceof DOMException && cause.name === 'NotAllowedError'
+      setCameraState(denied ? 'denied' : 'error')
+      toast.error(denied ? 'Camera access was denied.' : 'Camera could not be started.')
     }
   }
   async function sendMessage(kind: 'broadcast' | 'promotion') {
@@ -233,8 +239,8 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
     if (result !== null) setMessage('')
   }
   async function cancel() {
-    if (!cancelReason) { setError('Choose a cancellation reason.'); return }
-    if (cancelReason === 'Other' && cancelNotes.trim().length < 3) { setError('Add a short explanation for Other.'); return }
+    if (!cancelReason) { setError('Choose a cancellation reason.'); toast.error('Choose a cancellation reason.'); return }
+    if (cancelReason === 'Other' && cancelNotes.trim().length < 3) { setError('Add a short explanation for Other.'); toast.error('Add a short explanation for Other.'); return }
     if (!window.confirm('Cancel this event? Farmers and buyers will be notified.')) return
     await runAction(() => cancelEvent(getSupabaseClient(), eventId, cancelReason, cancelNotes.trim()), () => 'Event cancelled. Participants were notified.')
   }
@@ -244,13 +250,14 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
     try {
       const rows = kind === 'attendance' ? await loadAttendance(getSupabaseClient(), eventId) : await loadSalesSummary(getSupabaseClient(), eventId)
       downloadCsv('event-' + eventId + '-' + kind + '.csv', rows)
-      setNotice((kind === 'attendance' ? 'Attendance' : 'Sales summary') + ' CSV downloaded.')
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'The report could not be exported.') }
+      const message = (kind === 'attendance' ? 'Attendance' : 'Sales summary') + ' CSV downloaded.'
+      setNotice(message); toast.success(message)
+    } catch (cause) { const message = cause instanceof Error ? cause.message : 'The report could not be exported.'; setError(message); toast.error('Report could not be exported.', { description: message }) }
     finally { setBusy(false) }
   }
 
   if (loading && !data) return <div className="em-shell"><EventManagerSidebar active="events" onSignOut={onSignOut} /><main className="em-main"><div className="em-content"><BackLink /><div className="em-operation-loading" role="status">Loading event details…</div></div></main></div>
-  if (!data) return <div className="em-shell"><EventManagerSidebar active="events" onSignOut={onSignOut} /><main className="em-main"><div className="em-content"><BackLink /><div className="em-detail-load-error" role="alert"><h1>Event details unavailable</h1><p>{error || 'This event could not be loaded.'}</p><button className="em-button-secondary" onClick={() => void refresh()}>Try again</button></div></div></main></div>
+  if (!data) return <div className="em-shell"><EventManagerSidebar active="events" onSignOut={onSignOut} /><main className="em-main"><div className="em-content"><BackLink /><div className="em-detail-load-error" role="alert"><h1>Event details unavailable</h1><p>{error || 'This event could not be loaded.'}</p><button className="em-button-secondary" onClick={() => void refresh(true)}>Try again</button></div></div></main></div>
 
   const event = data.event
   const cancelled = event.databaseStatus === 'cancelled'
@@ -265,7 +272,7 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
   return <div className="em-shell em-detail-page"><EventManagerSidebar active="events" onSignOut={onSignOut} /><main className="em-main">
     <EventManagerTopbar current="Event details" parent="Events" parentHref="/event-manager/events" />
     <div className="em-content">
-      <div className="em-detail-toolbar"><BackLink /><div className="em-operation-buttons"><button className="em-button-secondary" type="button" disabled={busy || loading} onClick={() => void refresh()}>{loading ? 'Refreshing…' : 'Refresh'}</button>{canEdit(event, now) && <a className="em-button-primary" href={'/event-manager/events/' + eventId + '/edit'} onClick={(click) => navigateWeb(click, '/event-manager/events/' + eventId + '/edit')}>Edit event</a>}</div></div>
+      <div className="em-detail-toolbar"><BackLink /><div className="em-operation-buttons"><button className="em-button-secondary" type="button" disabled={busy || loading} onClick={() => void refresh(true)}>{loading ? 'Refreshing…' : 'Refresh'}</button>{canEdit(event, now) && <a className="em-button-primary" href={'/event-manager/events/' + eventId + '/edit'} onClick={(click) => navigateWeb(click, '/event-manager/events/' + eventId + '/edit')}>Edit event</a>}</div></div>
       <section className={'em-detail-hero-card' + (coverUrl ? ' has-cover' : '')} style={coverUrl ? { backgroundImage: 'linear-gradient(90deg,rgba(15,54,30,.93),rgba(15,54,30,.58)),url("' + coverUrl + '")' } : undefined} aria-labelledby="em-detail-title">
         <div className="em-detail-hero-top"><span className="em-detail-hero-id">Event #{event.id}</span><span className={'em-detail-status em-detail-status-' + (cancelled ? 'cancelled' : completed ? 'completed' : draft ? 'draft' : 'active')}>{statusLabel(event.status)}</span></div>
         <h1 id="em-detail-title">{event.name}</h1><p className="em-detail-hero-type">{event.type}</p>
@@ -284,7 +291,7 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
           <div className="em-detail-list-heading em-detail-approved-heading"><h3>Approved farmers</h3><span>{approved.length}</span></div>
           {approved.length === 0 ? <div className="em-detail-empty"><strong>No approved farmers yet</strong><p>Approved applicants will appear here for check-in.</p></div> : approved.map((row) => <article className="em-detail-person" key={num(row.application_id)}><div className="em-person-avatar">{str(row.farmer_name || 'F').charAt(0)}</div><div className="em-detail-person-main"><strong>{str(row.farmer_name || 'Farmer')}</strong><span>{str(row.farm_name || 'Approved farmer')}</span></div><span className={'em-detail-person-status ' + (row.status === 'checked_in' ? 'is-checked' : '')}>{statusLabel(str(row.status))}</span>{completed && row.status === 'approved' && <button className="em-button-secondary" type="button" disabled={busy} onClick={() => { if (window.confirm('Mark ' + str(row.farmer_name) + ' as a no-show?')) void runAction(() => markNoShow(getSupabaseClient(), num(row.application_id)), () => 'Farmer marked as a no-show.') }}>Mark no-show</button>}</article>)}
           <div className="em-invite-tracking" id="event-invited-farmers">
-            <div className="em-invite-tracking-head"><div><h3>Invited farmers</h3><p>{awaitingReply > 0 ? `${awaitingReply} awaiting a response` : invitations.length > 0 ? 'Invitation responses are up to date' : 'Sent invitations will appear here.'}</p></div><button className="em-invite-refresh" type="button" disabled={loading || busy} onClick={() => void refresh()}>{loading ? 'Refreshing…' : 'Refresh status'}</button><span>{invitations.length}</span></div>
+            <div className="em-invite-tracking-head"><div><h3>Invited farmers</h3><p>{awaitingReply > 0 ? `${awaitingReply} awaiting a response` : invitations.length > 0 ? 'Invitation responses are up to date' : 'Sent invitations will appear here.'}</p></div><button className="em-invite-refresh" type="button" disabled={loading || busy} onClick={() => void refresh(true)}>{loading ? 'Refreshing…' : 'Refresh status'}</button><span>{invitations.length}</span></div>
             {invitations.length > 0 && <div className="em-invite-tracking-list">{invitations.map((invitation) => {
               const status = str(invitation.status)
               const expired = status === 'pending' && new Date(str(invitation.expires_at)).getTime() <= now
@@ -323,7 +330,7 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
               </label>
             })}</div>}
             <button className="em-button-primary em-invite-submit" type="button" disabled={busy || farmerSearchLoading || selectedFarmers.length === 0} onClick={() => void sendInvitations()}>Send invitations <span>{selectedFarmers.length}</span></button>
-            {event.joinMode !== 'invite_only' && <div className="em-invite-share"><span>Or share an application link</span><button className="em-button-secondary" type="button" disabled={busy} onClick={() => void makeLink()}>Create application link</button>{inviteLink && <div className="em-created-link"><strong>Application link</strong><code>{inviteLink}</code><button type="button" onClick={() => { void navigator.clipboard.writeText(inviteLink).then(() => setNotice('Link copied.')).catch(() => setError('Clipboard access is unavailable. Select and copy the link above.')) }}>Copy link</button></div>}</div>}
+            {event.joinMode !== 'invite_only' && <div className="em-invite-share"><span>Or share an application link</span><button className="em-button-secondary" type="button" disabled={busy} onClick={() => void makeLink()}>Create application link</button>{inviteLink && <div className="em-created-link"><strong>Application link</strong><code>{inviteLink}</code><button type="button" onClick={() => { void navigator.clipboard.writeText(inviteLink).then(() => { setNotice('Link copied.'); toast.success('Link copied.') }).catch(() => { const message = 'Clipboard access is unavailable. Select and copy the link above.'; setError(message); toast.error('Link could not be copied.', { description: message }) }) }}>Copy link</button></div>}</div>}
           </> : <div className="em-detail-empty"><strong>Invitations are closed</strong><p>{draft ? 'Publish this draft to invite farmers.' : 'The application window has ended for this event.'}</p></div>}
         </section>
         <section className="em-operation-card em-detail-attendance" id="event-checkin"><div className="em-operation-card-head"><div><span className="em-detail-section-label">EVENT DAY</span><h2>Farmer check-in</h2></div></div>{checkInOpen ? <><p className="em-operation-copy">Scan a farmer Virtual ID QR code or paste its complete payload.</p><div className="em-detail-camera-actions"><button className="em-button-secondary" type="button" disabled={busy || cameraState === 'starting'} onClick={() => cameraState === 'scanning' ? (stopCamera(), setCameraState('idle')) : void startCamera()}>{cameraState === 'scanning' ? 'Stop camera' : cameraState === 'starting' ? 'Starting camera…' : 'Scan QR with camera'}</button></div><video ref={videoRef} className="em-detail-video" hidden={cameraState !== 'starting' && cameraState !== 'scanning'} playsInline muted aria-label="Camera preview for QR scanning" />{cameraState === 'scanning' && <p className="em-detail-camera-note" role="status">Point the camera at the farmer’s Virtual ID QR code.</p>}{cameraState === 'denied' && <p className="em-detail-camera-note" role="alert">Camera access was denied. Allow access in your browser or use manual entry below.</p>}{cameraState === 'unsupported' && <p className="em-detail-camera-note" role="status">Camera QR scanning is unavailable in this browser. Use manual entry below.</p>}{cameraState === 'error' && <p className="em-detail-camera-note" role="alert">The camera could not scan a QR code. Try again or use manual entry.</p>}<div className="em-inline-form"><input aria-label="Farmer Virtual ID QR code data" value={qrPayload} onChange={(change) => setQrPayload(change.target.value)} placeholder="Paste complete Virtual ID QR payload" /><button className="em-button-primary" type="button" disabled={busy || !qrPayload.trim()} onClick={() => void checkIn(qrPayload)}>Check in</button></div>{checkInResult && <div className="em-detail-checkin-result" role="status"><strong>{str(checkInResult.farmer_name || 'Farmer')} checked in</strong><span>Application #{str(checkInResult.application_id)} · Attendance recorded</span></div>}</> : <div className="em-detail-empty"><strong>Check-in is unavailable</strong><p>{draft ? 'Publish the event first.' : cancelled ? 'This event was cancelled.' : completed ? 'This event has ended.' : 'Check-in opens when the event starts.'}</p></div>}</section>

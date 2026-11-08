@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { getSupabaseClient } from '../admin/supabase'
 import EventManagerSidebar from './EventManagerSidebar'
 import EventManagerTopbar from './EventManagerTopbar'
@@ -69,15 +70,18 @@ export default function EventManagerOverview({ onSignOut, initialData }: { onSig
   const [error, setError] = useState<string | null>(null)
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null)
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (notify = false) => {
     setLoading(true)
     setError(null)
     try {
       const next = await loadEventManagerDashboard(getSupabaseClient())
       setData(next)
       setUpdatedAt(new Date())
+      if (notify) toast.success('Overview refreshed.')
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Your event overview could not be loaded.')
+      const message = cause instanceof Error ? cause.message : 'Your event overview could not be loaded.'
+      setError(message)
+      toast.error('Overview could not be loaded.', { description: message })
       setData(null)
     } finally {
       setLoading(false)
@@ -100,9 +104,9 @@ export default function EventManagerOverview({ onSignOut, initialData }: { onSig
     <main className="em-main">
       <EventManagerTopbar current="Overview" />
       <div className="em-content">
-        <section className="em-heading" aria-labelledby="em-title"><div><h1 id="em-title">Overview</h1><p className="em-intro">Market activity and the next items that need your attention.</p></div><div className="em-heading-actions">{updatedAt && <span>Updated {updatedAt.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Manila' })}</span>}<button type="button" onClick={() => void refresh()} disabled={loading}><Icon name="refresh" size={17} />{loading ? 'Refreshing…' : 'Refresh overview'}</button></div></section>
+        <section className="em-heading" aria-labelledby="em-title"><div><h1 id="em-title">Overview</h1><p className="em-intro">Market activity and the next items that need your attention.</p></div><div className="em-heading-actions">{updatedAt && <span>Updated {updatedAt.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Manila' })}</span>}<button type="button" onClick={() => void refresh(true)} disabled={loading}><Icon name="refresh" size={17} />{loading ? 'Refreshing…' : 'Refresh overview'}</button></div></section>
 
-        {error && <section className="em-error" role="alert"><div><strong>Overview unavailable</strong><p>{error}</p></div><button type="button" onClick={() => void refresh()}>Try again <Icon name="arrow" size={16} /></button></section>}
+        {error && <section className="em-error" role="alert"><div><strong>Overview unavailable</strong><p>{error}</p></div><button type="button" onClick={() => void refresh(true)}>Try again <Icon name="arrow" size={16} /></button></section>}
         {loading && !data && <div className="em-loading" role="status"><div className="em-loading-metrics">{[0, 1, 2, 3].map(n => <span key={n} />)}</div><div className="em-loading-panel" /><span className="em-sr-only">Loading event overview</span></div>}
 
         {data && <>

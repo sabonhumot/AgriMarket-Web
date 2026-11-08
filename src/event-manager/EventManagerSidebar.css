@@ -44,7 +44,8 @@
 .em-shell .em-sidebar nav a.em-nav-active { color:#fff; background:#185a37; font-weight:600; }
 .em-shell .em-sidebar-bottom { display:flex; flex-direction:column; gap:14px; margin-top:auto; padding:32px 0 0; border:0; }
 .em-shell .em-sidebar-user { display:flex; align-items:center; gap:11px; min-width:0; padding:20px 4px 0; border-top:1px solid #e8f0ea; }
-.em-shell .em-user-avatar { width:36px; height:36px; border-radius:10px; background:#e7f4ec; color:#185a37; }
+.em-shell .em-user-avatar { width:36px; height:36px; border-radius:50%; overflow:hidden; background:#e7f4ec; color:#185a37; }
+.em-shell .em-user-avatar img { display:block; width:100%; height:100%; border-radius:inherit; object-fit:cover; }
 .em-shell .em-sidebar-user>div:last-child { gap:4px; line-height:1.4; }
 .em-shell .em-sidebar-user strong { font-size:14px; font-weight:600; }
 .em-shell .em-sidebar-user span { font-size:13px; }

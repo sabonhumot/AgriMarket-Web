@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, type MouseEvent } from 'react'
+import { toast } from 'sonner'
 import { getWebAccount } from '../auth/web-role'
 import { getSupabaseClient } from '../admin/supabase'
 import brandLogo from '../assets/AgriMarket.svg'
 import { navigateWeb } from '../auth/web-navigation'
+import { loadManagerProfile, type ManagerProfile } from './manager-service'
 import './EventManagerOverview.css'
 import './EventManagerWorkspace.css'
 import './EventManagerSidebar.css'
@@ -24,22 +26,30 @@ function Icon({ name, size = 19 }: { name: IconName; size?: number }) {
 type Props = {
   active: 'overview' | 'events' | 'notifications' | 'farmers' | 'profile'
   organizationName?: string
+  profile?: ManagerProfile | null
   onSignOut?: () => void | Promise<void>
 }
 
-export default function EventManagerSidebar({ active, onSignOut }: Props) {
+export default function EventManagerSidebar({ active, profile, onSignOut }: Props) {
   const [isOpen, setIsOpen] = useState(false)
   const menuButton = useRef<HTMLButtonElement>(null)
   const [signingOut, setSigningOut] = useState(false)
   const [signOutError, setSignOutError] = useState<string | null>(null)
-  const [account, setAccount] = useState<{ name: string; email: string } | null>(null)
-  const name = account?.name || 'Event Manager'
+  const [account, setAccount] = useState<{ name: string; email: string; logoPath: string | null } | null>(null)
+  const name = profile?.accountName || account?.name || 'Event Manager'
+  const email = profile?.accountEmail || account?.email || 'Event Coordinator'
+  const logoPath = profile ? profile.logoPath : account?.logoPath
+  const photoUrl = logoPath ? getSupabaseClient().storage.from('event-manager-media').getPublicUrl(logoPath).data.publicUrl : ''
 
   useEffect(() => {
     let active = true
-    void getWebAccount(getSupabaseClient()).then((value) => {
-      if (active && value?.role === 'event_manager') setAccount(value)
-    }).catch(() => {})
+    void loadManagerProfile(getSupabaseClient()).then((value) => {
+      if (active) setAccount({ name: value.accountName, email: value.accountEmail, logoPath: value.logoPath })
+    }).catch(() => {
+      void getWebAccount(getSupabaseClient()).then((value) => {
+        if (active && value?.role === 'event_manager') setAccount({ ...value, logoPath: null })
+      }).catch(() => {})
+    })
     return () => { active = false }
   }, [])
 
@@ -62,7 +72,7 @@ export default function EventManagerSidebar({ active, onSignOut }: Props) {
     setSigningOut(true)
     setSignOutError(null)
     try { await onSignOut() }
-    catch (cause) { setSignOutError(cause instanceof Error ? cause.message : 'Sign-out failed. Please try again.') }
+    catch (cause) { const message = cause instanceof Error ? cause.message : 'Sign-out failed. Please try again.'; setSignOutError(message); toast.error('Sign-out failed.', { description: message }) }
     finally { setSigningOut(false) }
   }
 
@@ -79,7 +89,7 @@ export default function EventManagerSidebar({ active, onSignOut }: Props) {
         <div className="em-nav-divider"><a className={active === 'profile' ? 'em-nav-active' : 'em-nav-link'} href="/event-manager/profile" onClick={(event) => openPage(event, '/event-manager/profile')} aria-current={active === 'profile' ? 'page' : undefined}><Icon name="person" /><span>Profile</span></a></div>
       </nav>
       <div className="em-sidebar-bottom">
-        <div className="em-sidebar-user"><div className="em-user-avatar" aria-hidden="true"><Icon name="person" size={20} /></div><div><strong>{name}</strong><span>{account?.email || 'Event Coordinator'}</span></div></div>
+        <div className="em-sidebar-user"><div className="em-user-avatar" aria-hidden="true">{photoUrl ? <img src={photoUrl} alt="" /> : <Icon name="person" size={20} />}</div><div><strong>{name}</strong><span>{email}</span></div></div>
         {onSignOut && <button type="button" onClick={() => void signOut()} disabled={signingOut}><Icon name="logout" size={18} />{signingOut ? 'Signing out…' : 'Sign out'}</button>}
         {signOutError && <p role="alert">{signOutError}</p>}
       </div>

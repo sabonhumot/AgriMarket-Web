@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react'
+import { toast } from 'sonner'
 import { getSupabaseClient } from '../admin/supabase'
 import EventManagerSidebar from './EventManagerSidebar'
 import EventManagerTopbar from './EventManagerTopbar'
@@ -17,10 +18,10 @@ export default function EventManagerNotifications({ onSignOut, initialData }: { 
   const [error, setError] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<number | 'all' | null>(null)
   const [filter, setFilter] = useState<'all' | 'unread'>('all')
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (notify = false) => {
     setLoading(true); setError(null)
-    try { setItems(await loadManagerNotifications(getSupabaseClient())) }
-    catch (cause) { setError(cause instanceof Error ? cause.message : 'Notifications could not be loaded.') }
+    try { setItems(await loadManagerNotifications(getSupabaseClient())); if (notify) toast.success('Notifications refreshed.') }
+    catch (cause) { const message = cause instanceof Error ? cause.message : 'Notifications could not be loaded.'; setError(message); toast.error('Notifications could not be loaded.', { description: message }) }
     finally { setLoading(false) }
   }, [])
   useEffect(() => { if (initialData) return; const timer = setTimeout(() => { void refresh() }, 0); return () => clearTimeout(timer) }, [initialData, refresh])
@@ -29,15 +30,15 @@ export default function EventManagerNotifications({ onSignOut, initialData }: { 
   async function markOne(id: number) {
     if (busyId !== null) return false
     setBusyId(id); setError(null)
-    try { await markManagerNotificationRead(getSupabaseClient(), id); setItems((current) => current.map((item) => item.id === id ? { ...item, isRead: true } : item)); return true }
-    catch (cause) { setError(cause instanceof Error ? cause.message : 'The notification could not be marked read.'); return false }
+    try { await markManagerNotificationRead(getSupabaseClient(), id); setItems((current) => current.map((item) => item.id === id ? { ...item, isRead: true } : item)); toast.success('Notification marked as read.'); return true }
+    catch (cause) { const message = cause instanceof Error ? cause.message : 'The notification could not be marked read.'; setError(message); toast.error('Could not mark notification as read.', { description: message }); return false }
     finally { setBusyId(null) }
   }
   async function markAll() {
     if (busyId !== null || unread === 0) return
     setBusyId('all'); setError(null)
-    try { await markAllManagerNotificationsRead(getSupabaseClient()); setItems((current) => current.map((item) => ({ ...item, isRead: true }))) }
-    catch (cause) { setError(cause instanceof Error ? cause.message : 'Notifications could not be marked read.') }
+    try { await markAllManagerNotificationsRead(getSupabaseClient()); setItems((current) => current.map((item) => ({ ...item, isRead: true }))); toast.success('All notifications marked as read.') }
+    catch (cause) { const message = cause instanceof Error ? cause.message : 'Notifications could not be marked read.'; setError(message); toast.error('Could not mark notifications as read.', { description: message }) }
     finally { setBusyId(null) }
   }
   async function openEvent(click: MouseEvent<HTMLAnchorElement>, item: ManagerNotification, path: string) {
@@ -47,9 +48,9 @@ export default function EventManagerNotifications({ onSignOut, initialData }: { 
     window.dispatchEvent(new PopStateEvent('popstate'))
   }
   return <div className="em-shell em-notifications-shell"><EventManagerSidebar active="notifications" onSignOut={onSignOut} /><main className="em-main"><EventManagerTopbar current="Notifications" /><div className="em-content em-workspace-page">
-    <div className="em-workspace-heading"><div><h1>Notifications</h1><p>Updates about your market events and farmer participation.</p></div><button className="em-button-secondary" type="button" disabled={loading || busyId !== null} onClick={() => void refresh()}>{loading ? 'Refreshing…' : 'Refresh'}</button></div>
+    <div className="em-workspace-heading"><div><h1>Notifications</h1><p>Updates about your market events and farmer participation.</p></div><button className="em-button-secondary" type="button" disabled={loading || busyId !== null} onClick={() => void refresh(true)}>{loading ? 'Refreshing…' : 'Refresh'}</button></div>
     <div className="em-notification-toolbar"><div className="em-workspace-tabs" aria-label="Filter notifications"><button type="button" aria-pressed={filter === 'all'} className={filter === 'all' ? 'is-active' : ''} onClick={() => setFilter('all')}>All <span>{items.length}</span></button><button type="button" aria-pressed={filter === 'unread'} className={filter === 'unread' ? 'is-active' : ''} onClick={() => setFilter('unread')}>Unread <span>{unread}</span></button></div><button className="em-button-secondary" type="button" disabled={busyId !== null || unread === 0} onClick={() => void markAll()}>{busyId === 'all' ? 'Marking…' : 'Mark all as read'}</button></div>
-    {error && <div className="em-operation-error" role="alert">{error} <button type="button" onClick={() => void refresh()}>Try again</button></div>}
+    {error && <div className="em-operation-error" role="alert">{error} <button type="button" onClick={() => void refresh(true)}>Try again</button></div>}
     {loading && items.length === 0 && !error ? <div className="em-workspace-loading" role="status">Loading notifications…</div> : visible.length === 0 && !error ? <div className="em-workspace-empty"><strong>{filter === 'unread' ? 'All caught up' : 'No notifications yet'}</strong><p>{filter === 'unread' ? 'You have no unread updates.' : 'Event updates will appear here when they arrive.'}</p></div> :
       <div className="em-notification-list">{visible.map((item) => {
         const path = eventPath(item)

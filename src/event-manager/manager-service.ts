@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { uploadEventManagerMedia } from './upload-media'
 
 export type ManagerNotification = {
   id: number
@@ -15,6 +16,10 @@ export type ManagerProfile = {
   organizationType: 'organization' | 'lgu'
   logoPath: string | null
   contactName: string
+  firstName: string
+  middleName: string
+  lastName: string
+  managerContactNumber: string
   officialEmail: string
   officePhone: string
   municipalityKey: string
@@ -79,6 +84,10 @@ export function mapManagerProfile(value: unknown): ManagerProfile {
     organizationType: profile.organization_type === 'lgu' ? 'lgu' : 'organization',
     logoPath: profile.organization_logo_path == null ? null : string(profile.organization_logo_path),
     contactName: string(profile.point_of_contact_name),
+    firstName: string(user.first_name),
+    middleName: string(user.middle_name),
+    lastName: string(user.last_name),
+    managerContactNumber: string(profile.manager_contact_number),
     officialEmail: string(profile.official_email),
     officePhone: string(profile.office_contact_number),
     municipalityKey: string(profile.municipality_key),
@@ -99,6 +108,10 @@ export async function saveManagerProfile(client: SupabaseClient, input: ManagerP
     organization_type: input.organizationType,
     organization_logo_path: input.logoPath,
     point_of_contact_name: input.contactName.trim(),
+    first_name: input.firstName.trim(),
+    middle_name: input.middleName.trim(),
+    last_name: input.lastName.trim(),
+    manager_contact_number: input.managerContactNumber.trim(),
     official_email: input.officialEmail.trim(),
     office_contact_number: input.officePhone.trim(),
     municipality_key: input.municipalityKey.trim(),
@@ -116,11 +129,10 @@ export async function uploadManagerLogo(client: SupabaseClient, file: File) {
   if (!data.user) throw new Error('Sign in again to upload the logo.')
   const path = data.user.id + '/organization/logo-' + Date.now() + '.' + (file.type === 'image/png' ? 'png' : 'jpg')
   const bucket = client.storage.from('event-manager-media')
-  const { error: uploadError } = await bucket.upload(path, file, { contentType: file.type, upsert: false })
-  if (uploadError) throw uploadError
-  try { await rpc(client, 'set_my_event_manager_logo', { p_logo_path: path }) }
-  catch (cause) { await bucket.remove([path]); throw cause }
-  return path
+  const uploadedPath = await uploadEventManagerMedia(client, path, file)
+  try { await rpc(client, 'set_my_event_manager_logo', { p_logo_path: uploadedPath }) }
+  catch (cause) { await bucket.remove([uploadedPath]); throw cause }
+  return uploadedPath
 }
 export function mapManagerFarmer(value: unknown): ManagerFarmer {
   const row = record(value)

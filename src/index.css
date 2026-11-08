@@ -1,5 +1,5 @@
 :root {
-  --font-ui: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-ui: "Nunito Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --ink: #15372a;
   --ink-muted: #587167;
   --leaf: #1b6b43;
@@ -10,7 +10,7 @@
   --coral: #e97851;
   --line: rgba(21, 55, 42, .14);
   --ease: cubic-bezier(.2,.8,.2,1);
-  font-family: ui-rounded, "Avenir Next", "Trebuchet MS", system-ui, sans-serif;
+  font-family: var(--font-ui);
   color: var(--ink);
   background: var(--cream);
   font-synthesis: none;
