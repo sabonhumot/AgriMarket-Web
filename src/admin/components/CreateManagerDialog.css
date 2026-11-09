@@ -6,19 +6,49 @@
 .manager-create-header button { width: 38px; height: 38px; border: 0; border-radius: 7px; background: var(--admin-panel-subtle); color: var(--admin-ink); font-size: 24px; cursor: pointer; }
 .manager-create-body { display: grid; gap: 16px; padding: 26px 28px 28px; }
 .manager-create-body label { display: grid; gap: 6px; color: var(--admin-ink); font-size: var(--admin-type-meta); font-weight: 600; }
+.manager-create-select-field { display:grid; gap:6px; color:var(--admin-ink); font-size:var(--admin-type-meta); font-weight:600; }
+.manager-create-dialog .app-select-trigger { display:flex; justify-content:space-between; width:100%; min-height:42px; padding:9px 11px; border:1px solid var(--admin-line); background:#fff; color:var(--admin-ink); font-weight:450; }
+.manager-create-dialog .app-select-menu button { display:flex; justify-content:space-between; width:100%; min-height:36px; padding:7px 9px; border:0; background:transparent; color:var(--admin-ink); font-size:12px; text-align:left; }
+.manager-create-dialog .app-select-menu button:hover,.manager-create-dialog .app-select-menu button:focus-visible { background:#e9f4ec; }
 .manager-create-body label span { color: var(--admin-muted); font-weight: 400; }
 .manager-create-body input,.manager-create-body select { width: 100%; min-width: 0; min-height: 42px; padding: 9px 11px; border: 1px solid var(--admin-line); border-radius: 7px; background: #fff; color: var(--admin-ink); font: inherit; }
 .manager-create-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
 .manager-create-note,.manager-invite-handoff p { margin: 0; color: var(--admin-muted); font-size: var(--admin-type-meta); line-height: 1.5; }
 .manager-create-error { margin: 0; color: #9e3e20; }
-.manager-create-footer,.manager-invite-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+.manager-create-footer { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
 .manager-create-dialog button { min-height: 40px; padding: 8px 14px; border: 1px solid var(--admin-line); border-radius: 7px; background: #fff; color: var(--admin-primary); font: inherit; font-weight: 600; cursor: pointer; }
 .manager-create-dialog .manager-create-primary { border-color: var(--admin-primary); background: var(--admin-primary); color: #fff; }
 .manager-create-dialog button:disabled { opacity: .55; cursor: default; }
 .manager-create-dialog :is(button,input,select):focus-visible { outline: 2px solid var(--admin-primary); outline-offset: 2px; }
-.manager-invite-handoff { display: grid; gap: 12px; min-width: 0; }
-.manager-invite-handoff label { font-size: var(--admin-type-meta); font-weight: 600; }
-.manager-invite-handoff input { font-size: var(--admin-type-meta); }
-.manager-invite-qr { display: grid; justify-items: center; gap: 8px; padding: 18px; background: #fff; }
+.manager-invite-handoff { display: grid; gap: 22px; min-width: 0; }
+.manager-invite-message { display: flex; align-items: flex-start; gap: 12px; padding: 15px 16px; border: 1px solid #cce5d4; border-radius: 10px; background: #f1f8f3; color: var(--admin-ink); }
+.manager-invite-message.is-unsent { border-color: #ead9b4; background: #fff9ed; }
+.manager-invite-message-icon { display: grid; place-items: center; flex: 0 0 27px; width: 27px; height: 27px; border-radius: 50%; background: #dcefe2; color: var(--admin-primary); }
+.manager-invite-message.is-unsent .manager-invite-message-icon { background: #f8e8c8; color: #88500e; }
+.manager-invite-message-icon svg { width: 16px; height: 16px; }
+.manager-invite-message strong { display: block; font-size: .8125rem; font-weight: 750; }
+.manager-invite-handoff .manager-invite-message p { margin-top: 3px; color: #3d634c; }
+.manager-invite-handoff .manager-invite-message.is-unsent p { color: #765e36; }
+.manager-invite-message p strong { display: inline; font-weight: 750; }
+.manager-invite-share { display: grid; gap: 10px; min-width: 0; }
+.manager-invite-share h4 { margin: 0; color: var(--admin-ink); font-size: .9375rem; font-weight: 750; letter-spacing: -.015em; }
+.manager-invite-share > p:first-of-type { margin: -2px 0 4px; }
+.manager-invite-handoff label { color: var(--admin-ink-soft); font-size: .8125rem; font-weight: 700; }
+.manager-invite-link-row { display: flex; gap: 8px; min-width: 0; }
+.manager-invite-handoff .manager-invite-link-row input { box-sizing: border-box; flex: 1 1 auto; width: 100%; min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid #cadccf; border-radius: 8px; background: #f9fbf9; color: var(--admin-ink); font: 500 .8125rem/1.4 var(--font-admin); text-overflow: ellipsis; }
+.manager-invite-link-row input:focus-visible { outline: 2px solid var(--admin-primary); outline-offset: 2px; }
+.manager-invite-handoff button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 9px 14px; border: 1px solid var(--admin-line); border-radius: 8px; background: #fff; color: var(--admin-primary); font: 750 .8125rem/1.4 var(--font-admin); cursor: pointer; white-space: nowrap; transition: background-color 140ms ease, border-color 140ms ease; }
+.manager-invite-handoff .manager-invite-copy { flex: 0 0 auto; border-color: var(--admin-primary); background: var(--admin-primary); color: #fff; }
+.manager-invite-handoff .manager-invite-copy:hover { background: var(--admin-primary-hover); }
+.manager-invite-handoff .manager-invite-qr-toggle { justify-self: start; margin-top: 5px; }
+.manager-invite-handoff .manager-invite-qr-toggle:hover { background: var(--admin-primary-subtle); border-color: #b7d2c0; }
+.manager-invite-handoff .manager-invite-expiry { display: flex; align-items: center; gap: 8px; margin-top: 5px; color: var(--admin-ink-soft); font-weight: 650; }
+.manager-invite-expiry svg { flex: 0 0 16px; color: var(--admin-primary); }
+.manager-invite-handoff .manager-invite-once { color: #765e36; }
+.manager-invite-handoff .manager-invite-copy-error { color: #9e3e20; }
+.manager-invite-qr { display: grid; justify-items: center; gap: 12px; padding: 20px; border: 1px solid var(--admin-line); border-radius: 10px; background: #fbfdfb; }
+.manager-invite-qr svg { max-width: 100%; height: auto; }
 .manager-invite-qr span { color: var(--admin-muted); font-size: var(--admin-type-meta); text-align: center; }
+@media (max-width: 420px) { .manager-invite-link-row { flex-direction: column; } .manager-invite-handoff .manager-invite-copy { width: 100%; } }
+@media (prefers-reduced-motion: reduce) { .manager-invite-handoff button { transition: none; } }
 @media(max-width:600px) { .manager-create-header,.manager-create-body { padding-inline: 20px; } .manager-create-grid { grid-template-columns: 1fr; } }

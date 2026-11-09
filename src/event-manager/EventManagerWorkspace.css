@@ -163,26 +163,33 @@
 .em-farmer-card-stats { display:flex; }
 .em-farmer-card-open { display:flex; align-items:center; justify-content:space-between; margin:14px 0 0 54px; color:#185a37; font-size:11px; font-weight:700; }
 .em-farmer-card-open>span { font-size:17px; line-height:1; }
-.em-farmer-modal { position:fixed; inset:0; width:min(560px,calc(100vw - 32px)); max-width:none; max-height:min(760px,calc(100dvh - 32px)); margin:auto; padding:0; border:1px solid #dce8de; border-radius:16px; background:#fff; color:#143628; font:inherit; box-shadow:0 24px 70px rgba(10,38,20,.2); overflow:hidden; }
-.em-farmer-modal::backdrop { background:rgba(10,30,19,.52); }
-.em-farmer-modal-content { max-height:inherit; overflow-y:auto; }
-.em-farmer-modal-header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding:26px 28px 23px; border-bottom:1px solid #e5ede6; }
-.em-farmer-modal-person { display:flex; align-items:center; gap:15px; min-width:0; }
+.em-farmer-modal { position:fixed; inset:0; width:min(760px,calc(100vw - 32px)); max-width:none; max-height:calc(100dvh - 32px); margin:auto; padding:0; border:0; border-radius:16px; background:#fff; color:#143628; font:inherit; box-shadow:0 28px 76px rgba(10,38,20,.24); overflow:hidden; }
+.em-farmer-modal::backdrop { background:rgba(10,30,19,.58); }
+.em-farmer-modal-content { max-height:calc(100dvh - 32px); overflow-y:auto; }
+.em-farmer-modal-header { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; padding:32px 34px 30px; background:#f0f6f1; }
+.em-farmer-modal-person { display:flex; align-items:center; gap:21px; min-width:0; }
 .em-farmer-modal-person>div { min-width:0; }
-.em-farmer-modal-avatar { display:grid; place-items:center; flex:none; width:56px; height:56px; border-radius:14px; background:#e9f4ec; color:#1b6339; font-size:22px; font-weight:800; }
-.em-farmer-modal-header h2 { margin:0 0 3px; color:#143628; font-size:23px; line-height:1.25; letter-spacing:-.025em; overflow-wrap:anywhere; }
-.em-farmer-modal-header p { margin:0; color:#557264; font-size:13px; overflow-wrap:anywhere; }
-.em-farmer-modal-close { display:grid; place-items:center; flex:none; width:36px; height:36px; border:0; border-radius:10px; background:#f1f6f2; color:#315d43; cursor:pointer; }
-.em-farmer-modal-close:hover { background:#e4f0e7; }
+.em-farmer-modal-avatar { display:grid; place-items:center; flex:none; width:80px; height:80px; border-radius:50%; background:#dcece0; color:#1b6339; font-size:30px; font-weight:800; }
+.em-farmer-modal-header h2 { margin:0 0 3px; color:#143628; font-size:28px; line-height:1.16; letter-spacing:-.03em; overflow-wrap:anywhere; }
+.em-farmer-modal-header p { margin:0; color:#526c59; font-size:14px; overflow-wrap:anywhere; }
+.em-farmer-modal-status { display:inline-flex; align-items:center; gap:5px; margin-top:11px; padding:4px 9px; border-radius:999px; background:#dceee1; color:#185a37; font-size:11px; font-weight:750; }
+.em-farmer-modal-status svg { width:14px; height:14px; }
+.em-farmer-modal-close { display:grid; place-items:center; flex:none; width:40px; height:40px; border:1px solid #d6e4d9; border-radius:50%; background:#fff; color:#315d43; cursor:pointer; transition:background-color 150ms ease,transform 150ms cubic-bezier(.23,1,.32,1); }
+.em-farmer-modal-close:active { transform:scale(.97); }
+.em-farmer-modal-close:hover { background:#e7f1e9; }
 .em-farmer-modal-close:focus-visible { outline:3px solid #3b8757; outline-offset:2px; }
 .em-farmer-modal-close svg { width:18px; height:18px; }
-.em-farmer-modal-body { padding:23px 28px 28px; }
-.em-farmer-modal-status { display:inline-flex; padding:6px 11px; border-radius:999px; background:#e6f5e9; color:#205f39; font-size:11px; font-weight:750; }
-.em-farmer-modal-body section { margin-top:27px; }
-.em-farmer-modal-body h3 { margin:0 0 13px; color:#244632; font-size:15px; }
-.em-farmer-modal-body dl { display:grid; gap:0; margin:0; }
-.em-farmer-modal-body dl>div { display:grid; grid-template-columns:160px minmax(0,1fr); gap:14px; padding:11px 0; border-top:1px solid #e9efea; }
-.em-farmer-modal-body dt { color:#557264; font-size:12px; }
-.em-farmer-modal-body dd { margin:0; color:#173b29; font-size:13px; font-weight:650; overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
-.em-farmer-modal-note { margin:27px 0 0; padding-top:17px; border-top:1px solid #e9efea; color:#557264; font-size:12px; line-height:1.5; }
-@media(max-width:640px) { .em-farmer-card-open { margin-left:0; }.em-farmer-modal-header { padding:20px; }.em-farmer-modal-body { padding:20px; }.em-farmer-modal-body dl>div { grid-template-columns:1fr; gap:3px; }.em-farmer-modal-header h2 { font-size:20px; } }
+.em-farmer-modal-body { padding:30px 34px 32px; }
+.em-farmer-modal-columns { display:grid; grid-template-columns:1fr 1fr; gap:38px; }
+.em-farmer-modal-columns section+section { padding-left:38px; border-left:1px solid #e2ebe4; }
+.em-farmer-modal-body h3 { margin:0 0 18px; color:#173b29; font-size:15px; font-weight:760; letter-spacing:-.01em; }
+.em-farmer-modal-body dl { display:grid; gap:16px; margin:0; }
+.em-farmer-modal-body dl>div { min-width:0; }
+.em-farmer-modal-body dt { margin-bottom:4px; color:#607568; font-size:11px; font-weight:650; }
+.em-farmer-modal-body dd { margin:0; color:#173b29; font-size:15px; font-weight:700; line-height:1.35; overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
+.em-farmer-modal-activity { grid-template-columns:minmax(0,1fr) max-content; gap:12px; }
+.em-farmer-modal-activity dt { white-space:nowrap; }
+.em-farmer-modal-activity dd { font-size:29px; font-weight:760; letter-spacing:-.035em; }
+.em-farmer-modal-note { margin:31px 0 0; padding-top:19px; border-top:1px solid #e2ebe4; color:#526c59; font-size:12px; line-height:1.5; }
+@media(max-width:640px) { .em-farmer-card-open { margin-left:0; }.em-farmer-modal-header { gap:12px; padding:23px 20px; }.em-farmer-modal-person { gap:14px; }.em-farmer-modal-avatar { width:62px; height:62px; font-size:24px; }.em-farmer-modal-header h2 { font-size:21px; }.em-farmer-modal-header p { font-size:12px; }.em-farmer-modal-close { width:36px; height:36px; }.em-farmer-modal-body { padding:24px 20px; }.em-farmer-modal-columns { grid-template-columns:1fr; gap:24px; }.em-farmer-modal-columns section+section { padding:23px 0 0; border-left:0; border-top:1px solid #e2ebe4; }.em-farmer-modal-note { margin-top:25px; } }
+@media(prefers-reduced-motion:reduce) { .em-farmer-modal-close { transition:none; } }

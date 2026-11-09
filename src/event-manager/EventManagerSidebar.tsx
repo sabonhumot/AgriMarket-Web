@@ -4,7 +4,8 @@ import { getWebAccount } from '../auth/web-role'
 import { getSupabaseClient } from '../admin/supabase'
 import brandLogo from '../assets/AgriMarket.svg'
 import { navigateWeb } from '../auth/web-navigation'
-import { loadManagerProfile, type ManagerProfile } from './manager-service'
+import { loadManagerProfile, loadManagerProfileCompletion, type ManagerProfile } from './manager-service'
+import SignOutConfirmation from '../components/SignOutConfirmation'
 import './EventManagerOverview.css'
 import './EventManagerWorkspace.css'
 import './EventManagerSidebar.css'
@@ -30,37 +31,64 @@ type Props = {
   onSignOut?: () => void | Promise<void>
 }
 
+type SidebarAccount = { name: string; email: string; logoPath: string | null }
+let cachedSidebarAccount: SidebarAccount | null = null
+
 export default function EventManagerSidebar({ active, profile, onSignOut }: Props) {
   const [isOpen, setIsOpen] = useState(false)
   const menuButton = useRef<HTMLButtonElement>(null)
   const [signingOut, setSigningOut] = useState(false)
+  const [confirmSignOut, setConfirmSignOut] = useState(false)
   const [signOutError, setSignOutError] = useState<string | null>(null)
-  const [account, setAccount] = useState<{ name: string; email: string; logoPath: string | null } | null>(null)
-  const name = profile?.accountName || account?.name || 'Event Manager'
-  const email = profile?.accountEmail || account?.email || 'Event Coordinator'
+  const [account, setAccount] = useState<SidebarAccount | null>(cachedSidebarAccount)
+  const [accountLoading, setAccountLoading] = useState(!cachedSidebarAccount)
+  const [profileComplete, setProfileComplete] = useState<boolean | null>(null)
+  const email = profile?.accountEmail || account?.email || ''
+  const name = profile?.accountName || account?.name || email.split('@')[0] || 'Account unavailable'
+  const showAccountSkeleton = !profile?.accountEmail && accountLoading
+  const initials = name.trim().split(/\s+/).slice(0, 2).map((part) => part.charAt(0).toUpperCase()).join('')
   const logoPath = profile ? profile.logoPath : account?.logoPath
   const photoUrl = logoPath ? getSupabaseClient().storage.from('event-manager-media').getPublicUrl(logoPath).data.publicUrl : ''
 
   useEffect(() => {
     let active = true
-    void loadManagerProfile(getSupabaseClient()).then((value) => {
-      if (active) setAccount({ name: value.accountName, email: value.accountEmail, logoPath: value.logoPath })
-    }).catch(() => {
-      void getWebAccount(getSupabaseClient()).then((value) => {
-        if (active && value?.role === 'event_manager') setAccount({ ...value, logoPath: null })
-      }).catch(() => {})
-    })
-    return () => { active = false }
+    const checkCompletion = () => {
+      void loadManagerProfileCompletion(getSupabaseClient()).then((complete) => {
+        if (active) setProfileComplete(complete)
+      }).catch(() => { if (active) setProfileComplete(null) })
+    }
+    checkCompletion()
+    window.addEventListener('event-manager-profile-changed', checkCompletion)
+    const loadAccount = async () => {
+      try {
+        const value = await loadManagerProfile(getSupabaseClient())
+        if (active) {
+          cachedSidebarAccount = { name: value.accountName, email: value.accountEmail, logoPath: value.logoPath }
+          setAccount(cachedSidebarAccount)
+        }
+      } catch {
+        try {
+          const value = await getWebAccount(getSupabaseClient())
+          if (active && value?.role === 'event_manager') {
+            cachedSidebarAccount = { ...value, logoPath: null }
+            setAccount(cachedSidebarAccount)
+          }
+        } catch { /* Keep the account area available without blocking navigation. */ }
+      } finally { if (active) setAccountLoading(false) }
+    }
+    void loadAccount()
+    window.addEventListener('event-manager-profile-changed', loadAccount)
+    return () => { active = false; window.removeEventListener('event-manager-profile-changed', checkCompletion); window.removeEventListener('event-manager-profile-changed', loadAccount) }
   }, [])
 
   useEffect(() => {
     if (!isOpen) return
     function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') { setIsOpen(false); menuButton.current?.focus() }
+      if (event.key === 'Escape' && !confirmSignOut) { setIsOpen(false); menuButton.current?.focus() }
     }
     window.addEventListener('keydown', closeOnEscape)
     return () => window.removeEventListener('keydown', closeOnEscape)
-  }, [isOpen])
+  }, [isOpen, confirmSignOut])
 
   function openPage(event: MouseEvent<HTMLAnchorElement>, path: string) {
     setIsOpen(false)
@@ -71,7 +99,7 @@ export default function EventManagerSidebar({ active, profile, onSignOut }: Prop
     if (!onSignOut || signingOut) return
     setSigningOut(true)
     setSignOutError(null)
-    try { await onSignOut() }
+    try { await onSignOut(); cachedSidebarAccount = null; setConfirmSignOut(false) }
     catch (cause) { const message = cause instanceof Error ? cause.message : 'Sign-out failed. Please try again.'; setSignOutError(message); toast.error('Sign-out failed.', { description: message }) }
     finally { setSigningOut(false) }
   }
@@ -80,19 +108,20 @@ export default function EventManagerSidebar({ active, profile, onSignOut }: Prop
     <button ref={menuButton} className="em-menu-button" type="button" aria-expanded={isOpen} aria-controls="event-manager-navigation" onClick={() => setIsOpen((open) => !open)}><span aria-hidden="true" /><span>{isOpen ? 'Close' : 'Menu'}</span></button>
     <button className="em-sidebar-scrim" type="button" aria-label="Close Event Manager navigation" aria-hidden={!isOpen} tabIndex={isOpen ? 0 : -1} inert={!isOpen} data-open={isOpen} onClick={() => setIsOpen(false)} />
     <aside className={'em-sidebar' + (isOpen ? ' is-open' : '')}>
-      <div className="em-sidebar-brand"><a className="em-brand" href="/" aria-label="Return to AgriMarket public site"><img src={brandLogo} alt="AgriMarket" /></a><p className="em-sidebar-label">Event Manager workspace</p></div>
+      <div className="em-sidebar-brand"><a className="em-brand" href="/" aria-label="Return to AgriMarket public site"><img src={brandLogo} alt="AgriMarket" /></a></div>
       <nav id="event-manager-navigation" aria-label="Event Manager navigation">
-        <a className={active === 'overview' ? 'em-nav-active' : 'em-nav-link'} href="/event-manager" onClick={(event) => openPage(event, '/event-manager')} aria-current={active === 'overview' ? 'page' : undefined}><Icon name="grid" /><span>Overview</span></a>
+        <span className="em-nav-group-label">Workspace</span>
+        <a className={active === 'overview' ? 'em-nav-active' : 'em-nav-link'} href="/event-manager" onClick={(event) => openPage(event, '/event-manager')} aria-current={active === 'overview' ? 'page' : undefined}><Icon name="grid" /><span>Dashboard</span></a>
         <a className={active === 'events' ? 'em-nav-active' : 'em-nav-link'} href="/event-manager/events" onClick={(event) => openPage(event, '/event-manager/events')} aria-current={active === 'events' ? 'page' : undefined}><Icon name="calendar" /><span>Events</span></a>
         <a className={active === 'notifications' ? 'em-nav-active' : 'em-nav-link'} href="/event-manager/notifications" onClick={(event) => openPage(event, '/event-manager/notifications')} aria-current={active === 'notifications' ? 'page' : undefined}><Icon name="bell" /><span>Notifications</span></a>
         <a className={active === 'farmers' ? 'em-nav-active' : 'em-nav-link'} href="/event-manager/farmers" onClick={(event) => openPage(event, '/event-manager/farmers')} aria-current={active === 'farmers' ? 'page' : undefined}><Icon name="people" /><span>Farmers</span></a>
-        <div className="em-nav-divider"><a className={active === 'profile' ? 'em-nav-active' : 'em-nav-link'} href="/event-manager/profile" onClick={(event) => openPage(event, '/event-manager/profile')} aria-current={active === 'profile' ? 'page' : undefined}><Icon name="person" /><span>Profile</span></a></div>
+        <div className="em-nav-divider"><span className="em-nav-group-label">Account</span><a className={active === 'profile' ? 'em-nav-active' : 'em-nav-link'} href="/event-manager/profile" onClick={(event) => openPage(event, '/event-manager/profile')} aria-current={active === 'profile' ? 'page' : undefined}><Icon name="person" /><span>Profile</span>{profileComplete === false && <span className="em-profile-incomplete-badge">Incomplete</span>}</a></div>
       </nav>
       <div className="em-sidebar-bottom">
-        <div className="em-sidebar-user"><div className="em-user-avatar" aria-hidden="true">{photoUrl ? <img src={photoUrl} alt="" /> : <Icon name="person" size={20} />}</div><div><strong>{name}</strong><span>{email}</span></div></div>
-        {onSignOut && <button type="button" onClick={() => void signOut()} disabled={signingOut}><Icon name="logout" size={18} />{signingOut ? 'Signing out…' : 'Sign out'}</button>}
-        {signOutError && <p role="alert">{signOutError}</p>}
+        <div className="em-sidebar-user" aria-busy={showAccountSkeleton}>{showAccountSkeleton ? <><div className="em-user-avatar em-sidebar-skeleton-avatar" aria-hidden="true" /><div className="em-sidebar-skeleton-lines" aria-hidden="true"><span /><span /></div><span className="em-sr-only">Loading account details</span></> : <><div className="em-user-avatar" aria-hidden="true">{photoUrl ? <img src={photoUrl} alt="" /> : initials}</div><div><strong title={name}>{name}</strong><span title={email}>{email || 'Profile details unavailable'}</span></div></>}</div>
+        {onSignOut && <button type="button" onClick={() => { setSignOutError(null); setConfirmSignOut(true) }} disabled={signingOut}><Icon name="logout" size={18} />Sign out</button>}
       </div>
     </aside>
+    {confirmSignOut && <SignOutConfirmation busy={signingOut} error={signOutError} onCancel={() => { setConfirmSignOut(false); setSignOutError(null) }} onConfirm={() => { void signOut() }} />}
   </>
 }

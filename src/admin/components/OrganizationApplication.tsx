@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import AppSelect from '../../components/AppSelect'
 import type { OrganizationDecision, OrganizationRecord } from '../types'
 
 type Props = {
@@ -47,15 +48,7 @@ export default function OrganizationApplication({ organization, decisions, onDec
         <h4>Record a decision</h4>
         <p>This local demo records the decision here and in the activity log.</p>
         <label htmlFor="organization-decision">Decision</label>
-        <select
-          id="organization-decision"
-          value={decision}
-          onChange={(event) => setDecision(event.target.value as OrganizationDecision['decision'])}
-        >
-          <option value="approve">Approve</option>
-          <option value="request-details">Request more details</option>
-          <option value="reject">Reject</option>
-        </select>
+        <AppSelect id="organization-decision" label="Decision" value={decision} onChange={(value) => setDecision(value as OrganizationDecision['decision'])} options={[{ value: 'approve', label: 'Approve' }, { value: 'request-details', label: 'Request more details' }, { value: 'reject', label: 'Reject' }]} />
         <label htmlFor="organization-decision-reason">Reason for decision</label>
         <textarea
           id="organization-decision-reason"

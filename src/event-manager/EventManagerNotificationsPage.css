@@ -1,0 +1,34 @@
+.em-notifications-page .em-dashboard-content { max-width: 1380px; }
+.em-notifications-panel { overflow: hidden; border: 1px solid #dfe8e0; border-radius: 15px; background: #fff; }
+.em-notifications-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 24px 28px 20px; }
+.em-notifications-panel-head h2 { margin: 0; color: #17372b; font-size: 1.125rem; font-weight: 760; letter-spacing: -.02em; }
+.em-notifications-panel-head p { margin: 5px 0 0; color: #526b5a; font-size: .8125rem; }
+.em-notifications-mark-all { flex: none; min-height: 38px; padding: 0 15px; border: 1px solid #cfddd1; border-radius: 999px; background: #fff; color: #185a37; font: inherit; font-size: .75rem; font-weight: 750; cursor: pointer; }
+.em-notifications-mark-all:disabled { opacity: .5; cursor: not-allowed; }
+.em-notifications-panel .em-notification-toolbar { margin: 0; padding: 0 28px 17px; border-bottom: 1px solid #e7eee8; }
+.em-notifications-panel .em-workspace-tabs { gap: 4px; padding: 3px; border: 1px solid #dfe8e0; border-radius: 10px; background: #f7faf7; }
+.em-notifications-panel .em-workspace-tabs button { min-height: 37px; padding: 0 15px; border-radius: 8px; font-size: .8125rem; }
+.em-notifications-panel .em-workspace-tabs button.is-active { background: #fff; color: #185a37; box-shadow: 0 1px 4px rgba(19, 59, 35, .1); }
+.em-notifications-panel .em-notification-list { overflow: visible; border: 0; border-radius: 0; }
+.em-notifications-panel .em-notification-row { gap: 18px; padding: 22px 28px; border-color: #e7eee8; }
+.em-notifications-panel .em-notification-row.is-unread { background: #f6fbf7; }
+.em-notifications-panel .em-notification-dot { width: 9px; height: 9px; margin-top: 6px; background: #cbd9cf; }
+.em-notifications-panel .em-notification-row.is-unread .em-notification-dot { background: #25864b; }
+.em-notifications-panel .em-notification-content > div:first-child { gap: 7px 22px; }
+.em-notifications-panel .em-notification-content strong { color: #17372b; font-size: .9375rem; font-weight: 760; }
+.em-notifications-panel .em-notification-content time { color: #617a69; font-size: .75rem; }
+.em-notifications-panel .em-notification-content p { max-width: 72ch; margin: 7px 0 12px; color: #526b5a; font-size: .8125rem; line-height: 1.55; }
+.em-notifications-panel .em-notification-actions { gap: 20px; }
+.em-notifications-panel .em-notification-actions :is(a, button) { min-height: 27px; color: #185a37; font-size: .75rem; }
+.em-notifications-panel .em-notification-unread-label { padding: 3px 8px; font-size: .6875rem; }
+.em-notifications-empty { display: grid; justify-items: center; padding: 56px 22px 62px; text-align: center; }
+.em-notifications-empty-icon { display: grid; place-items: center; width: 54px; height: 54px; margin-bottom: 17px; border-radius: 15px; background: #eaf4ec; color: #185a37; }
+.em-notifications-empty strong { color: #17372b; font-size: 1.125rem; }
+.em-notifications-empty p { margin: 6px 0 0; color: #526b5a; font-size: .8125rem; }
+.em-notifications-loading { display: grid; gap: 1px; background: #e7eee8; }
+.em-notifications-loading span { display: block; height: 106px; background: #f0f5f0; animation: em-dashboard-pulse 1.3s cubic-bezier(.23,1,.32,1) infinite alternate; }
+.em-notifications-panel .em-operation-error { margin: 16px 28px; }
+.em-notifications-page :is(button, a):focus-visible { outline: 3px solid #e97851; outline-offset: 3px; }
+@media (hover: hover) and (pointer: fine) { .em-notifications-mark-all:hover:not(:disabled) { background: #eef5ee; } }
+@media (max-width: 620px) { .em-notifications-panel-head { align-items: flex-start; flex-direction: column; padding: 21px 18px 16px; }.em-notifications-panel .em-notification-toolbar { padding: 0 18px 15px; }.em-notifications-panel .em-notification-row { gap: 12px; padding: 18px; }.em-notifications-panel .em-notification-content > div:first-child { display: grid; gap: 4px; }.em-notifications-panel .em-notification-content time { padding: 0; }.em-notifications-panel .em-operation-error { margin: 14px 18px; } }
+@media (prefers-reduced-motion: reduce) { .em-notifications-loading span { animation: none; } }

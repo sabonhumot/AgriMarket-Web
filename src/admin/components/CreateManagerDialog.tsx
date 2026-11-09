@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import AppSelect from '../../components/AppSelect'
 import { createManagerInvite, type CreateManagerInput, type InviteHandoff as Handoff } from '../event-manager-invites'
 import { getSupabaseClient } from '../supabase'
 import InviteHandoff from './InviteHandoff'
@@ -31,7 +32,7 @@ export default function CreateManagerDialog({ onClose, onCreated }: { onClose: (
       <div className="manager-create-grid"><label>First name<input value={form.firstName} onChange={event => update('firstName', event.target.value)} maxLength={80} required /></label><label>Last name<input value={form.lastName} onChange={event => update('lastName', event.target.value)} maxLength={80} required /></label></div>
       <label>Sign-in email<input type="email" value={form.email} onChange={event => update('email', event.target.value)} required autoCapitalize="none" /></label>
       <label>Organization name<input value={form.organizationName} onChange={event => update('organizationName', event.target.value)} maxLength={160} required /></label>
-      <label>Organization type<select value={form.organizationType} onChange={event => update('organizationType', event.target.value as CreateManagerInput['organizationType'])}><option value="organization">Organization</option><option value="lgu">LGU</option></select></label>
+      <div className="manager-create-select-field"><span>Organization type</span><AppSelect label="Organization type" value={form.organizationType} onChange={value => update('organizationType', value as CreateManagerInput['organizationType'])} options={[{ value: 'organization', label: 'Organization' }, { value: 'lgu', label: 'LGU' }]} /></div>
       <div className="manager-create-grid"><label>Point of contact <span>(optional)</span><input value={form.pointOfContact} onChange={event => update('pointOfContact', event.target.value)} /></label><label>Municipality <span>(optional)</span><input value={form.municipality} onChange={event => update('municipality', event.target.value)} /></label></div>
       <label>Official email <span>(optional)</span><input type="email" value={form.officialEmail} onChange={event => update('officialEmail', event.target.value)} /></label>
       <label>Office contact number <span>(optional)</span><input value={form.officeContact} onChange={event => update('officeContact', event.target.value)} /></label>

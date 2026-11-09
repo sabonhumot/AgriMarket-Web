@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import AppSelect from '../../components/AppSelect'
 import type { ListingCase, ListingCaseAction, ReviewItem } from '../types'
 
 type Props = {
@@ -153,10 +154,7 @@ export default function GeneralReviewCaseDetail({ item, reviewCase, onAction, on
               {reviewCase.status === 'investigating' && (
                 <div className="form-field-group">
                   <label htmlFor="general-review-decision">Action</label>
-                  <select id="general-review-decision" value={decision} onChange={(event) => setDecision(event.target.value as typeof decision)}>
-                    <option value="request-correction">{copy.requestLabel}</option>
-                    <option value="keep">{copy.closeLabel}</option>
-                  </select>
+                  <AppSelect id="general-review-decision" label="Action" value={decision} onChange={(value) => setDecision(value as typeof decision)} options={[{ value: 'request-correction', label: copy.requestLabel }, { value: 'keep', label: copy.closeLabel }]} />
                 </div>
               )}
               <div className="form-field-group">

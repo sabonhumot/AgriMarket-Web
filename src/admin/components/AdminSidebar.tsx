@@ -4,6 +4,7 @@ import brandLogo from '../../assets/AgriMarket.svg'
 import type { AdminView } from '../types'
 import { getWebAccount } from '../../auth/web-role'
 import { getSupabaseClient } from '../supabase'
+import SignOutConfirmation from '../../components/SignOutConfirmation'
 
 const navigation: Array<{ id: AdminView; label: string; badge?: string; badgeVariant?: 'warning' | 'alert' | 'neutral' }> = [
   { id: 'overview', label: 'Dashboard' },
@@ -19,6 +20,9 @@ type AdminSidebarProps = {
   reportCount?: number
   onSignOut?: () => void | Promise<void>
 }
+
+type AdminAccount = { name: string; email: string }
+let cachedAdminAccount: AdminAccount | null = null
 
 function NavigationIcon({ view }: { view: AdminView }) {
   const paths: Record<AdminView, string> = {
@@ -49,29 +53,53 @@ export default function AdminSidebar({ activeView, onViewChange, reportCount, on
   const [isOpen, setIsOpen] = useState(false)
   const menuButton = useRef<HTMLButtonElement>(null)
   const [signingOut, setSigningOut] = useState(false)
+  const [confirmSignOut, setConfirmSignOut] = useState(false)
   const [signOutError, setSignOutError] = useState<string | null>(null)
-  const [account, setAccount] = useState<{ name: string; email: string } | null>(null)
+  const [account, setAccount] = useState<AdminAccount | null>(cachedAdminAccount)
+  const [accountLoading, setAccountLoading] = useState(!cachedAdminAccount)
+  const accountName = account?.name || account?.email.split('@')[0] || 'Account unavailable'
+  const initials = accountName.trim().split(/\s+/).slice(0, 2).map((part) => part.charAt(0).toUpperCase()).join('')
 
   useEffect(() => {
     let active = true
     void getWebAccount(getSupabaseClient()).then((value) => {
-      if (active && value?.role === 'admin') setAccount(value)
-    }).catch(() => {})
+      if (active && value?.role === 'admin') {
+        cachedAdminAccount = value
+        setAccount(value)
+      }
+    }).catch(() => {}).finally(() => { if (active) setAccountLoading(false) })
     return () => { active = false }
   }, [])
 
   useEffect(() => {
     if (!isOpen) return
     function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') { setIsOpen(false); menuButton.current?.focus() }
+      if (event.key === 'Escape' && !confirmSignOut) { setIsOpen(false); menuButton.current?.focus() }
     }
     window.addEventListener('keydown', closeOnEscape)
     return () => window.removeEventListener('keydown', closeOnEscape)
-  }, [isOpen])
+  }, [isOpen, confirmSignOut])
 
   function selectView(view: AdminView) {
     onViewChange(view)
     setIsOpen(false)
+  }
+
+  async function signOut() {
+    if (!onSignOut || signingOut) return
+    setSigningOut(true)
+    setSignOutError(null)
+    try {
+      await onSignOut()
+      cachedAdminAccount = null
+      setConfirmSignOut(false)
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : 'Sign-out failed. Please try again.'
+      setSignOutError(message)
+      toast.error(message)
+    } finally {
+      setSigningOut(false)
+    }
   }
 
   return (
@@ -104,15 +132,16 @@ export default function AdminSidebar({ activeView, onViewChange, reportCount, on
           <a href="/" className="admin-brand-link" aria-label="Return to AgriMarket public site">
             <img src={brandLogo} alt="AgriMarket" className="admin-sidebar-logo" width="666" height="375" />
           </a>
-          <p className="admin-workspace-label">Administrator workspace</p>
         </div>
 
         <nav id="administrator-navigation" aria-label="Administrator navigation">
           <ul className="admin-nav-list">
+            <li className="admin-nav-group-label">Workspace</li>
             {navigation.map((item) => {
               const isActive = item.id === activeView
               return (
                 <li key={item.id} className={item.id === 'activity' ? 'admin-nav-divider' : undefined}>
+                  {item.id === 'activity' && <span className="admin-nav-group-label">Audit</span>}
                   <button
                     className={`admin-nav-item${isActive ? ' is-active' : ''}`}
                     type="button"
@@ -134,27 +163,16 @@ export default function AdminSidebar({ activeView, onViewChange, reportCount, on
         </nav>
 
         <div className="admin-sidebar-footer">
-          <div className="admin-sidebar-profile">
-            <div className="admin-profile-avatar-wrap">
-              <span className="admin-profile-avatar" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="12" cy="8" r="3.5" /><path d="M5 21v-2a7 7 0 0 1 14 0v2" /></svg></span>
-            </div>
-            <div className="admin-profile-info">
-              <strong>{account?.name || 'Administrator'}</strong>
-              <small>{account?.email || 'Administrator account'}</small>
-            </div>
+          <div className="admin-sidebar-profile" aria-busy={accountLoading}>
+            {accountLoading ? <><span className="admin-profile-avatar admin-profile-skeleton" aria-hidden="true" /><span className="admin-profile-skeleton-lines" aria-hidden="true"><span /><span /></span><span className="admin-sr-only">Loading account details</span></> : <>
+              <span className="admin-profile-avatar" aria-hidden="true">{initials}</span>
+              <span className="admin-profile-info"><strong title={accountName}>{accountName}</strong><small title={account?.email || ''}>{account?.email || 'Profile details unavailable'}</small></span>
+            </>}
           </div>
-          {onSignOut && <button className="admin-signout-button" type="button" disabled={signingOut} onClick={() => {
-            setSigningOut(true)
-            setSignOutError(null)
-            Promise.resolve().then(onSignOut).catch((cause: unknown) => {
-              const message = cause instanceof Error ? cause.message : 'Sign-out failed. Please try again.'
-              setSignOutError(message)
-              toast.error(message)
-            }).finally(() => setSigningOut(false))
-          }}><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M9 4H4v16h5m6-12 4 4-4 4m-6-4h10" /></svg>{signingOut ? 'Signing out…' : 'Sign out'}</button>}
-          {signOutError && <p className="admin-sidebar-error" role="alert">{signOutError}</p>}
+          {onSignOut && <button className="admin-signout-button" type="button" disabled={signingOut} onClick={() => { setSignOutError(null); setConfirmSignOut(true) }}><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M9 4H4v16h5m6-12 4 4-4 4m-6-4h10" /></svg>Sign out</button>}
         </div>
       </aside>
+      {confirmSignOut && <SignOutConfirmation busy={signingOut} error={signOutError} onCancel={() => { setConfirmSignOut(false); setSignOutError(null) }} onConfirm={() => { void signOut() }} />}
     </>
   )
 }

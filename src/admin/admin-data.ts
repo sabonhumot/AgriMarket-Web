@@ -4,6 +4,7 @@ export type AdminUser = {
   id: number
   name: string
   email: string
+  photoUrl?: string | null
   role: string
   status: string
   createdAt: string
@@ -55,6 +56,8 @@ export type AdminReportDecision = {
 export type AdminActivity = {
   id: number
   actor: string
+  actorRole?: string | null
+  actorPhotoUrl?: string | null
   action: string
   entityType: string
   entityId: number | null
@@ -85,12 +88,25 @@ export async function loadAdminData(client: SupabaseClient): Promise<AdminData> 
     client.rpc('get_admin_buyer_warning_counts'),
     client.rpc('get_admin_user_suspensions'),
     client.from('system_logs').select('system_log_id, actor_id, action, entity_type, entity_id, created_at, metadata'),
+    client.from('buyer_profiles').select('user_id, profile_photo_path').not('profile_photo_path', 'is', null),
+    client.from('farmer_profiles').select('user_id, profile_photo_path').not('profile_photo_path', 'is', null),
+    client.rpc('get_admin_event_manager_logos'),
   ])
-  for (const response of responses) if (response.error) throw response.error
+  for (const response of responses.slice(0, 5)) if (response.error) throw response.error
 
-  const [users, reports, warningRows, suspensionRows, activity] = responses.map((response) => response.data ?? []) as unknown as [
+  const [users, reports, warningRows, suspensionRows, activity] = responses.slice(0, 5).map((response) => response.data ?? []) as unknown as [
     UserRow[], ReportRow[], BuyerWarningCountRow[], UserSuspensionRow[], ActivityRow[],
   ]
+  const photoUrls = new Map<string, string>()
+  for (const [index, role, bucket, field] of [[5, 'buyer', 'profile-images', 'profile_photo_path'], [6, 'farmer', 'profile-images', 'profile_photo_path'], [7, 'coordinator', 'event-manager-media', 'organization_logo_path']] as const) {
+    if (responses[index].error) continue
+    for (const row of (responses[index].data ?? []) as unknown as Record<string, unknown>[]) {
+      const path = row[field]
+      if (typeof row.user_id === 'number' && typeof path === 'string' && path) {
+        photoUrls.set(`${role}:${row.user_id}`, client.storage.from(bucket).getPublicUrl(path).data.publicUrl)
+      }
+    }
+  }
   const people = new Map(users.map((user) => [user.user_id, user]))
   const warningCounts = new Map(warningRows.map(row => [row.buyer_id, Number(row.warning_count)]))
   const suspensions = new Map(suspensionRows.map(row => [row.user_id, row]))
@@ -100,6 +116,7 @@ export async function loadAdminData(client: SupabaseClient): Promise<AdminData> 
       id: row.user_id,
       name: nameOf(row),
       email: row.email ?? '',
+      photoUrl: photoUrls.get(`${row.role.toLowerCase()}:${row.user_id}`) ?? null,
       role: row.role,
       status: row.user_status,
       createdAt: row.created_at,
@@ -125,14 +142,19 @@ export async function loadAdminData(client: SupabaseClient): Promise<AdminData> 
       createdAt: row.created_at,
       buyerWarningCount: row.reported_user_id === row.buyer_id ? warningCounts.get(row.buyer_id ?? -1) ?? 0 : 0,
     })).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
-    activity: activity.map((row) => ({
-      id: row.system_log_id,
-      actor: nameOf(people.get(row.actor_id ?? -1)),
-      action: row.action,
-      entityType: row.entity_type,
-      entityId: row.entity_id,
-      createdAt: row.created_at,
-    })).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    activity: activity.map((row) => {
+      const actor = people.get(row.actor_id ?? -1)
+      return {
+        id: row.system_log_id,
+        actor: row.actor_id == null ? 'System' : nameOf(actor),
+        actorRole: actor?.role ?? 'system',
+        actorPhotoUrl: actor ? photoUrls.get(`${actor.role.toLowerCase()}:${actor.user_id}`) ?? null : null,
+        action: row.action,
+        entityType: row.entity_type,
+        entityId: row.entity_id,
+        createdAt: row.created_at,
+      }
+    }).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
   }
 }
 

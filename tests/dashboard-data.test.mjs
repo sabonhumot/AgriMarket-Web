@@ -28,18 +28,23 @@ test('active events exclude drafts and ended events; multi-day dates take preced
 
 test('dashboard statistics page past row caps and use an exact report count', async () => {
   const source = Array.from({ length: 1201 }, (_, user_id) => ({ user_id, role: 'buyer', user_status: 'active', created_at: '2026-10-01T00:00:00Z' }))
+  const event = { market_event_id: 42, event_name: 'Harvest Day', cover_photo_path: 'manager-8/events/42/cover.jpg' }
   const pages = []
   const client = { from(table) { return { select() { return {
     order() { return { async range(start, end) {
-      const rows = table === 'users' ? source : []
+      const rows = table === 'users' ? source : table === 'market_events' ? [event] : []
       if (table === 'users') pages.push(start)
       return { data: rows.slice(start, end + 1), count: rows.length, error: null }
     } } },
     async not() { return { count: 1502, error: null } },
-  } } } } }
+  } } } }, storage: { from(bucket) {
+    assert.equal(bucket, 'event-manager-media')
+    return { getPublicUrl: path => ({ data: { publicUrl: `https://example.test/${path}` } }) }
+  } } }
   const result = await loadDashboardData(client)
   assert.deepEqual(pages, [0, 500, 1000])
   assert.equal(result.totalUsers, 1201)
   assert.equal(result.users.length, 1201)
+  assert.equal(result.events[0].coverPhotoUrl, 'https://example.test/manager-8/events/42/cover.jpg')
   assert.equal(result.openReports, 1502)
 })

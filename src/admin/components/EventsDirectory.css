@@ -24,3 +24,60 @@
 .events-directory button:focus-visible { outline: 2px solid var(--admin-primary); outline-offset: 2px; }
 @media (hover:hover) and (pointer:fine) { .events-table tbody tr:hover { background: var(--admin-primary-subtle); } .events-directory .users-view:hover { background: var(--admin-primary-light); } }
 @media (max-width:600px) { .events-pagination { padding: 16px; } .events-directory .users-view,.events-pagination button { min-height: 44px; } }
+
+/* Event directory */
+.events-directory { border-radius: 12px; }
+.events-table { min-width: 870px; table-layout: fixed; }
+.events-table th:nth-child(1) { width: 9%; }
+.events-table th:nth-child(2) { width: 24%; }
+.events-table th:nth-child(3) { width: 15%; }
+.events-table th:nth-child(4) { width: 14%; }
+.events-table th:nth-child(5) { width: 13%; }
+.events-table th:nth-child(6) { width: 11%; }
+.events-table th:nth-child(7) { width: 14%; }
+.events-table th { background: #f6f9f6; color: #4d6b58; font-size: .6875rem; font-weight: 800; letter-spacing: .065em; text-transform: uppercase; }
+.events-table td { padding-block: 16px; }
+.events-table :is(th,td):first-child { padding-left: 26px; min-width: 0; }
+.events-table :is(th,td):last-child { padding-right: 26px; }
+.events-table td strong { color: var(--admin-ink); font-weight: 750; line-height: 1.4; }
+.events-table .events-id { color: var(--admin-muted); font-size: .8125rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.events-table td p { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; max-width: 32ch; }
+.events-table time { color: var(--admin-ink-soft); font-weight: 700; font-variant-numeric: tabular-nums; }
+.events-status { align-items: center; gap: 6px; font-weight: 750; }
+.events-status i { width: 5px; height: 5px; flex: none; border-radius: 50%; background: currentColor; }
+.events-pagination { padding-inline: 26px; }
+.events-pagination button:not(:disabled) { font-weight: 700; }
+.events-table-scroll:focus-visible { outline: 2px solid var(--admin-primary); outline-offset: -2px; }
+@media (max-width: 700px) {
+  .events-table-scroll { overflow: visible; }
+  .events-table { display: block; min-width: 0; }
+  .events-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+  .events-table tbody { display: grid; gap: 10px; padding: 0 12px 14px; background: #f6f9f6; }
+  .events-table tr { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 10px 12px; padding: 16px; border: 1px solid var(--admin-line); border-radius: 10px; background: #fff; }
+  .events-table td,
+  .events-table :is(th,td):first-child,
+  .events-table :is(th,td):last-child { display: block; min-width: 0; width: auto; padding: 0; border: 0; }
+  .events-table td:nth-child(2) { grid-column: 1 / -1; grid-row: 1; }
+  .events-table td:nth-child(2) p { max-width: none; margin-bottom: 0; }
+  .events-table td:nth-child(1),
+  .events-table td:nth-child(3),
+  .events-table td:nth-child(4),
+  .events-table td:nth-child(5),
+  .events-table td:nth-child(6) { display: grid; grid-template-columns: 94px minmax(0,1fr); align-items: start; gap: 10px; grid-column: 1 / -1; }
+  .events-table td:nth-child(1) { grid-row: 2; padding-top: 12px; border-top: 1px solid var(--admin-line-subtle); }
+  .events-table td:nth-child(1)::before,
+  .events-table td:nth-child(3)::before,
+  .events-table td:nth-child(4)::before,
+  .events-table td:nth-child(5)::before,
+  .events-table td:nth-child(6)::before { content: attr(data-label); color: var(--admin-muted); font-size: .75rem; }
+  .events-table td:nth-child(3) small,
+  .events-table td:nth-child(4) small { grid-column: 2; margin-top: -6px; }
+  .events-table td:nth-child(6) .events-status { justify-self: start; }
+  .events-table td.events-row-action { grid-column: 1 / -1; padding-top: 7px; }
+  .events-table .users-view { width: 100%; justify-content: space-between; padding-inline: 11px; border-color: var(--admin-line); }
+  .events-pagination { padding-inline: 18px; }
+}
+@media (max-width: 420px) {
+  .events-pagination > div { width: 100%; justify-content: space-between; gap: 8px; }
+}
+@media (prefers-reduced-motion: reduce) { .events-directory * { transition: none !important; } }

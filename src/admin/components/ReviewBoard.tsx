@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import CustomDropdown from './CustomDropdown'
+import AppSelect from '../../components/AppSelect'
 import GeneralReviewCaseDetail from './GeneralReviewCaseDetail'
 import ListingCaseDetail from './ListingCaseDetail'
 import type { ListingCase, ListingCaseAction, ReviewItem, ReviewStatus } from '../types'
@@ -175,19 +176,10 @@ export default function ReviewBoard({
         </div>
       )}
 
-      <label className="review-mobile-tabs">
+      <div className="review-mobile-tabs">
         <span>Show review status</span>
-        <select
-          value={mobileStatus}
-          onChange={(event) => setMobileStatus(event.target.value as ReviewStatus)}
-        >
-          {columns.map((column) => (
-            <option key={column.status} value={column.status}>
-              {column.label}
-            </option>
-          ))}
-        </select>
-      </label>
+        <AppSelect label="Show review status" value={mobileStatus} onChange={(value) => setMobileStatus(value as ReviewStatus)} options={columns.map((column) => ({ value: column.status, label: column.label }))} />
+      </div>
 
       {categoryFilteredItems.length === 0 ? (
         <div className="admin-empty-state">
@@ -305,21 +297,6 @@ export default function ReviewBoard({
                                   options={statusDropdownOptions}
                                   onChange={(val) => changeStatus(item.id, val as ReviewStatus)}
                                 />
-                                <select
-                                  className="sr-only"
-                                  value={item.status}
-                                  onChange={(event) =>
-                                    changeStatus(item.id, event.target.value as ReviewStatus)
-                                  }
-                                  tabIndex={-1}
-                                  aria-hidden="true"
-                                >
-                                  {columns.map((option) => (
-                                    <option key={option.status} value={option.status}>
-                                      {option.label}
-                                    </option>
-                                  ))}
-                                </select>
                               </div>
                             </div>
                           </footer>

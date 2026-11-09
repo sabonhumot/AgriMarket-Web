@@ -11,6 +11,8 @@ import EventManagerNotifications from '../event-manager/EventManagerNotification
 import EventManagerProfile from '../event-manager/EventManagerProfile'
 import EventManagerFarmers from '../event-manager/EventManagerFarmers'
 import { getWebRole, webRolePath, type WebRole } from './web-role'
+import brandLogo from '../assets/AgriMarket.svg'
+import './WebAccessScreen.css'
 
 type Access = 'checking' | 'guest' | 'error' | WebRole
 
@@ -98,7 +100,13 @@ export default function WebRoute({ path }: { path: WebPath }) {
 
   const allowedManagerPath = access === 'event_manager' && path.startsWith('/event-manager')
   if (access === 'checking' || (access === 'guest' && path !== '/login') || (access === 'admin' && path !== '/admin') || (access === 'event_manager' && !allowedManagerPath)) {
-    return <main className="admin-access-check" role="status">{path === '/admin' ? 'Checking administrator access…' : 'Checking web access…'}</main>
+    return <main className="web-access-screen" role="status" aria-live="polite">
+      <div className="web-access-content">
+        <img className="web-access-logo" src={brandLogo} alt="AgriMarket" width="666" height="375" />
+        <div className="web-access-progress" aria-hidden="true"><span /></div>
+        <span className="web-access-sr-only">Opening AgriMarket…</span>
+      </div>
+    </main>
   }
   if (access === 'admin') return <AdminWorkspace onSignOut={signOut} />
   if (access === 'event_manager') {

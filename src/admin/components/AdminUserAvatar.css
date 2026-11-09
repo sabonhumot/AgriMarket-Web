@@ -1,0 +1,8 @@
+.admin-user-avatar { display: grid; place-items: center; flex: 0 0 40px; width: 40px; height: 40px; overflow: hidden; border-radius: 50%; background: #e1f0e7; color: #185a37; font-size: .8125rem; font-weight: 800; letter-spacing: .01em; }
+.admin-user-avatar.is-large { flex-basis: 54px; width: 54px; height: 54px; font-size: 1rem; }
+.admin-user-avatar-farmer { background: #f5ecdc; color: #835a1b; }
+.admin-user-avatar-coordinator { background: #e4edf5; color: #2b5878; }
+.admin-user-avatar-admin { background: #e9e8f3; color: #514b79; }
+.admin-user-avatar-cooperative { background: #e1f2f0; color: #1e6860; }
+.admin-user-avatar-system { background: #e9eee9; color: #506859; }
+.admin-user-avatar img { display: block; width: 100%; height: 100%; object-fit: cover; }

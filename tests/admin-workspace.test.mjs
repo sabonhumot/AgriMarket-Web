@@ -56,7 +56,8 @@ test('keeps the public landing page at the root path', async () => {
 test('gates the administrator workspace at /admin', async () => {
   const html = await renderApp('/admin')
 
-  assert.match(html, /Checking administrator access/)
+  assert.match(html, /web-access-logo/)
+  assert.match(html, /web-access-progress/)
   assert.doesNotMatch(html, /Platform overview/)
   assert.doesNotMatch(html, /Find local harvests\./)
 })
@@ -80,12 +81,13 @@ test('events page shows every status and has no event actions', async () => {
   const events = [
     { ...base, market_event_id: 1, event_name: 'Harvest Day', event_date: '2026-10-20', status: 'published' },
     { ...base, market_event_id: 2, event_name: 'Community Market', event_date: '2026-10-22', status: 'draft' },
-    { ...base, market_event_id: 3, event_name: 'Cancelled Market', event_date: '2026-10-23', status: 'cancelled' },
+    { ...base, market_event_id: 3, event_name: 'Cancelled Market', event_date: '2026-10-18', status: 'cancelled' },
   ]
     const html = renderToStaticMarkup(createElement(EventsDirectory, { events, users: [{ id: 8, name: 'Event Manager' }], onOpen: () => {} }))
   assert.match(html, /Harvest Day/)
   assert.match(html, /Community Market/)
   assert.match(html, /Cancelled Market/)
+  assert.ok(html.indexOf('Cancelled Market') < html.indexOf('Community Market'))
   assert.match(html, /Town Plaza/)
   assert.match(html, /Event Manager/)
     assert.match(html, /View Harvest Day details/)
@@ -108,6 +110,10 @@ test('events page shows every status and has no event actions', async () => {
     assert.match(html, /Cebu City/)
     assert.match(html, /Event Manager/)
     assert.match(html, /Local harvests and growers/)
+    assert.doesNotMatch(html, /record-event-cover/)
+    const withCover = renderToStaticMarkup(createElement(DetailDrawer, { target: { type: 'event', data: { ...event, coverPhotoUrl: 'https://example.test/cover.jpg' }, managerName: 'Event Manager' }, reports: [], onClose: () => {}, onReportResolved: async () => {}, onUserUpdated: async () => {}, onOpenReport: () => {} }))
+    assert.match(withCover, /alt="Cover photo for Harvest Day"/)
+    assert.match(withCover, /https:\/\/example\.test\/cover\.jpg/)
     assert.doesNotMatch(html, /Edit event|Delete event|Approve event/)
   })
 
@@ -120,11 +126,26 @@ test('report details show when screenshot evidence is attached', async () => {
   }
   const html = renderToStaticMarkup(createElement(DetailDrawer, { target: { type: 'report', data: report }, onClose: () => {}, onReportResolved: async () => {} }))
   assert.match(html, /Screenshot evidence/)
+  assert.match(html, /record-report-hero/)
+  assert.match(html, /Reported by/)
+  assert.match(html, /Reported account/)
   assert.match(html, /Loading screenshot/)
   assert.doesNotMatch(html, /farmer-1\/report-3.png/)
   assert.match(html, /Resolve case/)
   assert.match(html, /Issue a warning to this buyer/)
   assert.match(html, /Suspension review needed/)
+})
+
+test('activity details show the actor photo and linked record', async () => {
+  const { default: DetailDrawer } = await server.ssrLoadModule('/src/admin/components/DetailDrawer.tsx')
+  const activity = { id: 17, actor: 'Ana Reyes', actorRole: 'farmer', actorPhotoUrl: 'https://example.test/ana.jpg', action: 'reservation_updated', entityType: 'reservation', entityId: 44, createdAt: '2026-10-01T07:00:00Z' }
+  const html = renderToStaticMarkup(createElement(DetailDrawer, { target: { type: 'activity', data: activity }, reports: [], onClose: () => {}, onReportResolved: async () => {}, onUserUpdated: async () => {}, onOpenReport: () => {} }))
+  assert.match(html, /record-activity-hero/)
+  assert.match(html, /Reservation Updated/)
+  assert.match(html, /Ana Reyes/)
+  assert.match(html, /https:\/\/example\.test\/ana\.jpg/)
+  assert.match(html, /Farmer/)
+  assert.match(html, /#44/)
 })
 
 test('buyer details show report history and the appropriate account action', async () => {
@@ -134,8 +155,15 @@ test('buyer details show report history and the appropriate account action', asy
   const props = { reports: [report], onClose: () => {}, onReportResolved: async () => {}, onUserUpdated: async () => {}, onOpenReport: () => {} }
   const active = renderToStaticMarkup(createElement(DetailDrawer, { ...props, target: { type: 'user', data: buyer } }))
   assert.match(active, /Reports about this user/)
-  assert.match(active, /Case #3: Missed pickup/)
+  assert.match(active, /Case #3/)
+  assert.match(active, /Missed pickup/)
   assert.match(active, /Suspend buyer/)
+  assert.match(active, /Joined Sep 30, 2026/)
+  assert.match(active, /4 buyer warnings/)
+  assert.doesNotMatch(active, /Account information|Contact details|Full name|Email address|Buyer warnings/)
+  const noReports = renderToStaticMarkup(createElement(DetailDrawer, { ...props, reports: [], target: { type: 'user', data: buyer } }))
+  assert.match(noReports, /No reports about this user\./)
+  assert.doesNotMatch(noReports, /No cases connected to this account/)
   const belowThreshold = renderToStaticMarkup(createElement(DetailDrawer, { ...props, target: { type: 'user', data: { ...buyer, buyerWarningCount: 1 } } }))
   assert.match(belowThreshold, /Suspend buyer/)
   assert.match(belowThreshold, /Reason for suspension/)
@@ -146,6 +174,9 @@ test('buyer details show report history and the appropriate account action', asy
   const farmer = renderToStaticMarkup(createElement(DetailDrawer, { ...props, target: { type: 'user', data: { ...buyer, id: 75, name: 'Farmer Test', role: 'farmer', buyerWarningCount: 0 } } }))
   assert.match(farmer, /Suspend farmer/)
   assert.match(farmer, /Reason for suspension/)
+  const suspendedFarmer = renderToStaticMarkup(createElement(DetailDrawer, { ...props, target: { type: 'user', data: { ...buyer, id: 75, name: 'Farmer Test', role: 'farmer', status: 'suspended', buyerWarningCount: 0, manuallySuspendedAt: '2026-10-02T07:00:00Z', manualSuspensionReason: 'Account review' } } }))
+  assert.match(suspendedFarmer, /Reactivate farmer/)
+  assert.match(suspendedFarmer, /Reason for reactivation/)
   const admin = renderToStaticMarkup(createElement(DetailDrawer, { ...props, target: { type: 'user', data: { ...buyer, role: 'admin' } } }))
   assert.doesNotMatch(admin, /Suspend admin/)
 })

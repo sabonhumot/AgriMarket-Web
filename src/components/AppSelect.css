@@ -1,0 +1,19 @@
+.app-select { position:relative; width:100%; min-width:0; color:#17372b; font-size:13px; font-weight:450; }
+.app-select-trigger { display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; min-width:0; min-height:43px; padding:10px 12px; border:1px solid #d4e0d6; border-radius:8px; background:#fff; color:inherit; font:inherit; text-align:left; cursor:pointer; }
+.app-select-trigger>span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.app-select-trigger svg { flex:none; color:#5b8067; transition:transform 140ms ease; }
+.app-select.is-open .app-select-trigger svg { transform:rotate(180deg); }
+.app-select-trigger:hover:not(:disabled) { border-color:#a9c7ae; }
+.app-select-trigger:focus-visible,.app-select-menu button:focus-visible { outline:2px solid #1b6b43; outline-offset:2px; }
+.app-select-trigger:disabled { opacity:.58; cursor:not-allowed; }
+.app-select-trigger[aria-invalid="true"] { border-color:#d48e7b; background:#fffaf8; }
+.app-select-placeholder { color:#6c806f; }
+.app-select-menu { position:absolute; z-index:50; top:calc(100% + 5px); left:0; min-width:100%; width:max-content; max-width:min(360px, calc(100vw - 36px)); max-height:260px; overflow:auto; padding:5px; border:1px solid #d7e4d9; border-radius:9px; background:#fff; box-shadow:0 12px 32px rgba(16,55,35,.16); }
+.app-select-menu button { display:flex; align-items:center; justify-content:space-between; gap:14px; width:100%; min-height:36px; padding:7px 9px; border:0; border-radius:6px; background:transparent; color:#17372b; font:inherit; font-size:12px; text-align:left; cursor:pointer; }
+.app-select-menu button:hover,.app-select-menu button:focus-visible { background:#e9f4ec; }
+.app-select-menu button.is-selected { color:#1b6b43; font-weight:750; }
+.app-select-menu button span { font-weight:750; }
+.app-select-compact { width:auto; min-width:0; }
+.app-select-compact .app-select-trigger { min-height:38px; padding:6px 3px; border:0; background:transparent; font-size:12px; }
+.app-select-compact .app-select-menu { left:auto; right:0; }
+@media(prefers-reduced-motion:reduce) { .app-select-trigger svg { transition:none; } }

@@ -18,7 +18,7 @@ const viewCopy: Record<AdminView, { title: string; description: string; badgeLab
   users: { title: 'Users', description: 'Find accounts, review their status, and open user details.' },
   events: { title: 'Events', description: 'View every market event, including drafts, published events, and past events.' },
   moderation: { title: 'Reports', description: 'Review reservation issues, the people involved, and each case’s status.' },
-  activity: { title: 'Activity audit log', description: 'Chronological timeline of all administrative and system events.' },
+  activity: { title: 'Activity log', description: 'Trace account, event, and system changes in chronological order.' },
 }
 
 function SkeletonTable() {
@@ -87,9 +87,6 @@ export default function AdminWorkspace({ onSignOut }: { onSignOut?: () => void |
 
   const openReports = data?.reports.filter((item) => !['resolved', 'closed', 'dismissed'].includes(item.status)).length ?? 0
 
-  const search = query.trim().toLocaleLowerCase()
-  const matches = (...values: Array<string | null>) => !search || values.some((value) => value?.toLocaleLowerCase().includes(search))
-
   function changeView(view: AdminView) {
     setActiveView(view)
     setQuery('')
@@ -97,10 +94,6 @@ export default function AdminWorkspace({ onSignOut }: { onSignOut?: () => void |
     setStatusFilter('all')
     requestAnimationFrame(() => pageTitleRef.current?.focus())
   }
-
-  // Filtered Activity
-  const filteredActivity = data?.activity.filter((item) => matches(item.action, item.actor, item.entityType)) ?? []
-
 
   return (
     <div className="admin-shell">
@@ -111,7 +104,7 @@ export default function AdminWorkspace({ onSignOut }: { onSignOut?: () => void |
         onSignOut={onSignOut}
       />
 
-      <main className="admin-main" aria-labelledby="admin-page-title">
+      <main className="admin-main" data-view={activeView} aria-labelledby="admin-page-title">
         {/* Top Header Bar */}
         <div className="admin-topbar-wrapper">
           <div className="admin-breadcrumb-bar">
@@ -183,32 +176,6 @@ export default function AdminWorkspace({ onSignOut }: { onSignOut?: () => void |
         )}
 
         <div className="admin-view-content">
-        {/* Search & Filter Bar (Views other than Overview) */}
-        {activeView === 'activity' && (
-          <div className="admin-toolbar-card">
-            <div className="admin-search-wrapper">
-              <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8" />
-                <path d="M21 21l-4.35-4.35" />
-              </svg>
-              <input
-                className="admin-search-input"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={`Search ${viewCopy[activeView].title.toLowerCase()}…`}
-                aria-label={`Search ${viewCopy[activeView].title}`}
-              />
-              {query && (
-                <button className="search-clear-btn" onClick={() => setQuery('')} aria-label="Clear search">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18 M6 6l12 12" /></svg>
-                </button>
-              )}
-            </div>
-
-
-          </div>
-        )}
-
         {data && dashboard && activeView === 'overview' && (
           <DashboardOverview
             data={dashboard} reports={data.reports} activity={data.activity}
@@ -239,7 +206,7 @@ export default function AdminWorkspace({ onSignOut }: { onSignOut?: () => void |
         )}
 
         {data && activeView === 'activity' && (
-          <ActivityLog entries={filteredActivity}
+          <ActivityLog entries={data.activity}
             onOpen={(entry) => setDetailTarget({ type: 'activity', data: entry })} />
         )}
         </div>

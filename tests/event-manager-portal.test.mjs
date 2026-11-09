@@ -48,10 +48,11 @@ test('farmer directory queries the existing RPC and maps verified summary', asyn
   const client = { rpc: async (name, args) => {
     assert.equal(name, 'get_event_manager_farmer_directory')
     assert.deepEqual(args, { p_query: 'Ana' })
-    return { data: [{ id: 5, name: 'Ana Cruz', farm_name: 'Cruz Greens', verified: true, active_listings: 3, total_transactions: 12 }], error: null }
+    return { data: [{ id: 5, name: 'Ana Cruz', farm_name: 'Cruz Greens', profile_photo_path: 'farmer/profile/photo.jpg', verified: true, active_listings: 3, total_transactions: 12 }], error: null }
   } }
   const farmers = await service.loadManagerFarmers(client, ' Ana ')
   assert.deepEqual(farmers.map(({ name, verified, activeListings, totalTransactions }) => ({ name, verified, activeListings, totalTransactions })), [{ name: 'Ana Cruz', verified: true, activeListings: 3, totalTransactions: 12 }])
+  assert.equal(farmers[0].profilePhotoPath, 'farmer/profile/photo.jpg')
 })
 
 test('notification view exposes unread actions and the referenced event', async () => {

@@ -20,7 +20,7 @@ function clientFor(row, id = 'auth-1') {
     from(table) {
       assert.equal(table, 'users')
       return { select(columns) {
-        assert.equal(columns, 'role,user_status')
+        assert.equal(columns, 'first_name,last_name,email,role,user_status')
         return { eq(column, value) {
           assert.equal(column, 'auth_id')
           assert.equal(value, id)
@@ -46,7 +46,7 @@ test('shared login and manager overview routes withhold protected data before au
   const { default: App } = await server.ssrLoadModule('/src/App.tsx')
   const login = renderToStaticMarkup(createElement(App, { initialPath: '/login' }))
   const overview = renderToStaticMarkup(createElement(App, { initialPath: '/event-manager' }))
-  assert.match(login, /Checking web access|AgriMarket sign in/)
-  assert.match(overview, /Checking web access/)
+  assert.match(login, /Opening AgriMarket|AgriMarket sign in/)
+  assert.match(overview, /Opening AgriMarket/)
   assert.doesNotMatch(overview, /Market Day Overview/)
 })

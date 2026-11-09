@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import AppSelect from '../../components/AppSelect'
 import type { ListingCase, ListingCaseAction } from '../types'
 
 type Props = {
@@ -325,16 +326,7 @@ export default function ListingCaseDetail({ listingCase, onAction, onClose }: Pr
                 <div className="form-field-group">
                   <label htmlFor="listing-case-action">Action</label>
                   <div className="custom-select-wrapper">
-                    <select
-                      id="listing-case-action"
-                      value={action}
-                      onChange={(event) => setAction(event.target.value as ListingCaseAction)}
-                    >
-                      <option value="keep">Keep listing</option>
-                      <option value="request-correction">Request correction</option>
-                      <option value="hide">Hide listing</option>
-                      <option value="remove">Remove listing</option>
-                    </select>
+                    <AppSelect id="listing-case-action" label="Action" value={action} onChange={(value) => setAction(value as ListingCaseAction)} options={[{ value: 'keep', label: 'Keep listing' }, { value: 'request-correction', label: 'Request correction' }, { value: 'hide', label: 'Hide listing' }, { value: 'remove', label: 'Remove listing' }]} />
                   </div>
                 </div>
 

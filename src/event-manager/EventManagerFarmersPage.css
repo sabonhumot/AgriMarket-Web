@@ -1,0 +1,36 @@
+.em-farmers-page .em-dashboard-content { max-width: 1380px; }
+.em-farmers-directory { min-width: 0; }
+.em-farmers-total { margin-left: auto; color: #526b5a; font-size: .75rem; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.em-farmers-page .em-farmer-search { justify-content: flex-start; gap: 12px; margin-bottom: 27px; }
+.em-farmers-page .em-farmer-search label { display: flex; align-items: center; gap: 10px; flex: 0 1 520px; min-height: 44px; padding: 0 14px; border: 1px solid #dfe8e0; border-radius: 9px; background: #fbfdfb; color: #617a69; }
+.em-farmers-page .em-farmer-search label:focus-within { border-color: #679b77; box-shadow: 0 0 0 3px #e8f3ea; }
+.em-farmers-page .em-farmer-search label svg { flex: none; }
+.em-farmers-page .em-farmer-search input { width: 100%; min-height: 40px; padding: 0; border: 0; outline: none; background: transparent; font-size: .8125rem; }
+.em-farmers-page .em-farmer-search input:focus { box-shadow: none; }
+.em-farmer-clear { min-height: 38px; padding: 0 15px; border: 1px solid #cfddd1; border-radius: 999px; background: #fff; color: #185a37; font: inherit; font-size: .75rem; font-weight: 750; cursor: pointer; }
+.em-farmers-page .em-farmer-results-head { align-items: center; margin: 0 0 14px; }
+.em-farmers-page .em-farmer-results-head h2 { color: #17372b; font-size: 1rem; font-weight: 760; }
+.em-farmers-page .em-farmer-results-head > span { font-size: .75rem; }
+.em-farmers-page .em-farmer-directory { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.em-farmers-page .em-farmer-card { padding: 22px; border-color: #dfe8e0; border-radius: 14px; box-shadow: none; }
+.em-farmers-page .em-farmer-avatar { position: relative; overflow: hidden; width: 48px; height: 48px; border-radius: 50%; background: #e5f2e8; color: #185a37; font-size: 1.125rem; }
+.em-farmers-page :is(.em-farmer-avatar,.em-farmer-modal-avatar) img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.em-farmers-page .em-farmer-modal-avatar { position: relative; overflow: hidden; border-radius: 50%; }
+.em-farmers-page .em-farmer-identity > strong { color: #17372b; font-size: .9375rem; font-weight: 760; }
+.em-farmers-page .em-farmer-identity > span { color: #526b5a; font-size: .75rem; }
+.em-farmers-page .em-farmer-verified { background: #e8f4eb; color: #185a37; font-size: .6875rem; }
+.em-farmers-page .em-farmer-location { margin: 17px 0 0 60px; color: #526b5a; font-size: .75rem; }
+.em-farmers-page .em-farmer-card-stats { gap: 12px 24px; margin: 15px 0 0 60px; padding-top: 14px; font-size: .75rem; }
+.em-farmers-page .em-farmer-card-stats strong { color: #17372b; font-weight: 800; }
+.em-farmers-page .em-farmer-card-open { margin: 17px 0 0 60px; color: #185a37; font-size: .75rem; }
+.em-farmers-page .em-farmer-directory-note { max-width: 68ch; margin: 22px 0 0; color: #526b5a; font-size: .75rem; }
+.em-farmers-empty { padding: 55px 20px; border: 1px dashed #d4e2d7; border-radius: 13px; text-align: center; }
+.em-farmers-empty strong { color: #17372b; font-size: 1rem; }
+.em-farmers-empty p { margin: 7px 0 0; color: #526b5a; font-size: .8125rem; }
+.em-farmers-loading { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.em-farmers-loading span { height: 208px; border-radius: 14px; background: #eaf1eb; animation: em-dashboard-pulse 1.3s cubic-bezier(.23,1,.32,1) infinite alternate; }
+.em-farmers-page :is(button, input):focus-visible { outline: 3px solid #e97851; outline-offset: 3px; }
+@media (hover: hover) and (pointer: fine) { .em-farmers-page .em-farmer-card:hover { border-color: #91b49a; background: #fbfdfb; box-shadow: 0 8px 24px rgba(18,59,35,.07); }.em-farmer-clear:hover { background: #eef5ee; } }
+@media (max-width: 900px) { .em-farmers-page .em-farmer-directory, .em-farmers-loading { grid-template-columns: 1fr; } }
+@media (max-width: 620px) { .em-farmers-page .em-farmer-search { flex-wrap: wrap; }.em-farmers-page .em-farmer-search label { flex-basis: 100%; }.em-farmers-page .em-farmer-card { padding: 18px; }.em-farmers-page .em-farmer-location, .em-farmers-page .em-farmer-card-stats, .em-farmers-page .em-farmer-card-open { margin-left: 0; }.em-farmers-page .em-farmer-verified { align-self: flex-start; } }
+@media (prefers-reduced-motion: reduce) { .em-farmers-loading span { animation: none; } }

@@ -8,7 +8,7 @@
 /* Connect avatar centers; shared dimensions also cover wrapped rows and mobile. */
 .activity-day li:not(:last-child)::before { content: ""; position: absolute; top: calc(var(--activity-row-block) + var(--activity-avatar-size) / 2); bottom: calc(-1 * (var(--activity-row-block) + var(--activity-avatar-size) / 2)); left: calc(var(--activity-row-inline) + var(--activity-avatar-size) / 2); width: 1px; transform: translateX(-50%); background: var(--admin-line); pointer-events: none; }
 .activity-entry { position: relative; z-index: 1; display: flex; align-items: flex-start; gap: 14px; padding: var(--activity-row-block) var(--activity-row-inline); min-height: 78px; border-radius: 9px; transition: background-color 150ms ease; }
-.activity-actor-avatar { display: grid; place-items: center; width: var(--activity-avatar-size); height: var(--activity-avatar-size); box-sizing: border-box; flex-shrink: 0; border: 3px solid var(--admin-panel); border-radius: 50%; background: var(--admin-primary-light); color: var(--admin-primary); font-size: var(--admin-type-badge); font-weight: 600; }
+.activity-actor-avatar.admin-user-avatar { flex-basis: var(--activity-avatar-size); width: var(--activity-avatar-size); height: var(--activity-avatar-size); box-sizing: border-box; border: 3px solid var(--admin-panel); font-size: var(--admin-type-badge); font-weight: 600; }
 .activity-entry-content { flex: 1; min-width: 0; }
 .activity-action { display: flex; align-items: baseline; flex-wrap: wrap; gap: 5px; margin: 0; font-size: var(--admin-type-data); line-height: 1.5; }
 .activity-action strong { font-weight: 600; color: var(--admin-ink); overflow-wrap: anywhere; }
@@ -31,3 +31,45 @@
 @media (max-width:700px) { .activity-log-groups { padding: 0 16px 16px; } .activity-day { grid-template-columns: minmax(0,1fr); gap: 8px; padding-top: 20px; } .activity-day { --activity-row-inline: 4px; } .activity-day > h3 { position: static; margin-top: 0; } .activity-entry { gap: 9px; } .activity-inspect { width: 40px; justify-content: center; } .activity-inspect > span { display: none; } .activity-pagination { padding-inline: 16px; } }
 @media (max-width:400px) { .activity-day { --activity-avatar-size: 30px; } .activity-entry { gap: 7px; } .activity-entry-meta { gap: 4px 8px; } .activity-inspect { min-width: 40px; } }
 @media (prefers-reduced-motion:reduce) { .activity-log * { transition: none !important; } }
+
+/* Page controls and framing; the timeline rules above remain unchanged. */
+.activity-log-tools { padding: 24px 28px 22px; border-bottom: 1px solid var(--admin-line); background: #fbfdfa; }
+.activity-log-context { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px 24px; margin-bottom: 22px; }
+.activity-log-context > div { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; }
+.activity-log-context strong { color: var(--admin-ink); font-size: 1.125rem; font-weight: 750; letter-spacing: -.025em; font-variant-numeric: tabular-nums; }
+.activity-log-context span,.activity-log-context p { color: var(--admin-muted); font-size: var(--admin-type-meta); }
+.activity-log-context p { margin: 0; }
+.activity-log-context time { color: var(--admin-ink-soft); font-weight: 650; font-variant-numeric: tabular-nums; }
+.activity-log-controls { display: grid; grid-template-columns: minmax(0, 1fr) minmax(190px, 240px); align-items: end; gap: 14px; }
+.activity-log-search-field,.activity-log-type-field { min-width: 0; }
+.activity-log-search-field > label,.activity-log-type-field > label { display: block; margin-bottom: 7px; color: var(--admin-ink-soft); font-size: var(--admin-type-meta); font-weight: 700; }
+.activity-log-search { position: relative; display: flex; align-items: center; min-height: 44px; border: 1px solid #d3e2d6; border-radius: 9px; background: #fff; transition: border-color 160ms var(--admin-ease-out), box-shadow 160ms var(--admin-ease-out); }
+.activity-log-search:focus-within { border-color: var(--admin-primary); box-shadow: 0 0 0 3px rgba(24,90,55,.12); }
+.activity-log-search > svg { flex: none; margin-left: 13px; color: var(--admin-muted); }
+.activity-log-search input { box-sizing: border-box; width: 100%; min-width: 0; height: 42px; padding: 0 12px; border: 0; outline: 0; background: transparent; color: var(--admin-ink); font: inherit; font-size: var(--admin-type-data); }
+.activity-log-search input::placeholder { color: #647d6c; opacity: 1; }
+.activity-log-search input::-webkit-search-cancel-button { display: none; }
+.activity-log-search button { flex: none; min-height: 34px; margin-right: 5px; padding: 5px 10px; border: 0; border-radius: 6px; background: #edf5ee; color: var(--admin-primary); font: 700 var(--admin-type-badge)/1.4 var(--font-admin); cursor: pointer; }
+.activity-log-type-field .app-select-trigger { min-height: 44px; border-color: #d3e2d6; border-radius: 9px; font-size: var(--admin-type-data); }
+.activity-log-type-field .app-select-trigger:focus-visible { outline-offset: 2px; }
+.activity-log .activity-pagination { padding: 18px 28px; background: #fbfdfa; }
+.activity-log .activity-pagination button { min-height: 40px; padding-inline: 14px; border-radius: 8px; font-weight: 650; transition: background-color 160ms var(--admin-ease-out), border-color 160ms var(--admin-ease-out), transform 140ms var(--admin-ease-out); }
+.activity-log .activity-pagination button:active:not(:disabled),.activity-clear-filters:active { transform: scale(.97); }
+.activity-clear-filters { min-height: 40px; margin-top: 20px; padding: 8px 16px; border: 1px solid #bed8c4; border-radius: 8px; background: #eef6ef; color: var(--admin-primary); font: 700 var(--admin-type-meta)/1.4 var(--font-admin); cursor: pointer; transition: background-color 160ms var(--admin-ease-out), transform 140ms var(--admin-ease-out); }
+@media (hover: hover) and (pointer: fine) {
+  .activity-log-search button:hover,.activity-clear-filters:hover { background: #e1f0e5; }
+  .activity-log .activity-pagination button:not(:disabled):hover { border-color: #bdd7c4; }
+}
+@media (max-width: 700px) {
+  .activity-log-tools { padding: 20px 18px; }
+  .activity-log-context { display: block; margin-bottom: 20px; }
+  .activity-log-context p { margin-top: 5px; }
+  .activity-log-controls { grid-template-columns: 1fr; gap: 15px; }
+  .activity-log .activity-pagination { padding: 16px 18px; }
+}
+@media (max-width: 420px) {
+  .activity-log-context > div { display: block; }
+  .activity-log-context span { display: block; margin-top: 2px; }
+  .activity-log .activity-pagination { justify-content: center; text-align: center; }
+  .activity-log .activity-pagination > div { width: 100%; justify-content: space-between; gap: 5px; }
+}

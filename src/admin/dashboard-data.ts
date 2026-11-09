@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 export type DashboardUser = { user_id: number; role: string; user_status: string; created_at: string }
-export type DashboardEvent = { market_event_id: number; event_name: string; status: string; event_date: string; end_date: string | null; start_time: string | null; end_time: string | null; coordinator_user_id: number | null; location: string | null; venue_name: string | null; event_type: string | null; description: string | null }
+export type DashboardEvent = { market_event_id: number; event_name: string; status: string; event_date: string; end_date: string | null; start_time: string | null; end_time: string | null; coordinator_user_id: number | null; location: string | null; venue_name: string | null; event_type: string | null; description: string | null; cover_photo_path?: string | null; coverPhotoUrl?: string | null }
 export type DashboardInvitation = { invitation_id: number; account_user_id: number; expires_at: string; used_at: string | null; revoked_at: string | null }
 export type DashboardData = { users: DashboardUser[]; totalUsers: number; events: DashboardEvent[]; invitations: DashboardInvitation[]; openReports: number; refreshedAt: string }
 
@@ -22,12 +22,12 @@ async function readAll<T>(client: SupabaseClient, table: string, columns: string
 export async function loadDashboardData(client: SupabaseClient): Promise<DashboardData> {
   const [users, events, invitations, reports] = await Promise.all([
     readAll<DashboardUser>(client, 'users', 'user_id,role,user_status,created_at', 'user_id'),
-    readAll<DashboardEvent>(client, 'market_events', 'market_event_id,event_name,status,event_date,end_date,start_time,end_time,coordinator_user_id,location,venue_name,event_type,description', 'market_event_id'),
+    readAll<DashboardEvent>(client, 'market_events', 'market_event_id,event_name,status,event_date,end_date,start_time,end_time,coordinator_user_id,location,venue_name,event_type,description,cover_photo_path', 'market_event_id'),
     readAll<DashboardInvitation>(client, 'event_manager_account_invitations', 'invitation_id,account_user_id,expires_at,used_at,revoked_at', 'invitation_id'),
     client.from('reservation_reports').select('report_id', { count: 'exact', head: true }).not('status', 'in', '(resolved,closed,dismissed)'),
   ])
   if (reports.error) throw reports.error
-  return { users: users.rows, totalUsers: users.total, events: events.rows, invitations: invitations.rows.filter(invitation => !invitation.used_at && !invitation.revoked_at && new Date(invitation.expires_at).getTime() < Date.now()), openReports: reports.count ?? 0, refreshedAt: new Date().toISOString() }
+  return { users: users.rows, totalUsers: users.total, events: events.rows.map(event => ({ ...event, coverPhotoUrl: event.cover_photo_path ? client.storage.from('event-manager-media').getPublicUrl(event.cover_photo_path).data.publicUrl : null })), invitations: invitations.rows.filter(invitation => !invitation.used_at && !invitation.revoked_at && new Date(invitation.expires_at).getTime() < Date.now()), openReports: reports.count ?? 0, refreshedAt: new Date().toISOString() }
 }
 
 export function activeEvents(events: DashboardEvent[], now: number) {

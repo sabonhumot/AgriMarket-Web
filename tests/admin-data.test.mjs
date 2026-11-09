@@ -7,6 +7,12 @@ const root = fileURLToPath(new URL('..', import.meta.url))
 const server = await createServer({ root, appType: 'custom', server: { middlewareMode: true } })
 after(() => server.close())
 
+function queryResult(result) {
+  const query = Promise.resolve(result)
+  query.not = () => query
+  return query
+}
+
 test('admin data comes from the shared tables and maps real statuses', async () => {
   const { loadAdminData } = await server.ssrLoadModule('/src/admin/admin-data.ts')
   const rows = {
@@ -15,6 +21,9 @@ test('admin data comes from the shared tables and maps real statuses', async () 
     get_admin_buyer_warning_counts: [{ buyer_id: 1, warning_count: 4 }],
     get_admin_user_suspensions: [{ user_id: 1, reason: 'Account review', suspended_at: '2026-10-02T07:00:00Z' }],
     system_logs: [{ system_log_id: 5, actor_id: 1, action: 'event.published', entity_type: 'market_event', entity_id: 4, created_at: '2026-10-01T06:00:00Z' }],
+    buyer_profiles: [],
+    farmer_profiles: [{ user_id: 1, profile_photo_path: 'farmer-1/avatar.png' }],
+    get_admin_event_manager_logos: [],
   }
   const requested = []
   const client = { rpc(name) {
@@ -22,8 +31,10 @@ test('admin data comes from the shared tables and maps real statuses', async () 
     return Promise.resolve({ data: rows[name], error: null })
   }, from(table) {
     requested.push(table)
-    return { select: async () => ({ data: rows[table], error: null }) }
-  } }
+    return { select: () => queryResult({ data: rows[table], error: null }) }
+  }, storage: { from(bucket) {
+    return { getPublicUrl: path => ({ data: { publicUrl: `https://example.test/${bucket}/${path}` } }) }
+  } } }
 
   const result = await loadAdminData(client)
   assert.deepEqual(requested.sort(), Object.keys(rows).sort())
@@ -37,6 +48,8 @@ test('admin data comes from the shared tables and maps real statuses', async () 
   assert.equal(result.users[0].manualSuspensionReason, 'Account review')
   assert.equal(result.users[0].manuallySuspendedAt, '2026-10-02T07:00:00Z')
   assert.equal(result.activity[0].action, 'event.published')
+  assert.equal(result.activity[0].actorRole, 'farmer')
+  assert.equal(result.activity[0].actorPhotoUrl, 'https://example.test/profile-images/farmer-1/avatar.png')
 })
 
 test('user suspension requires a reason and sends one admin action', async () => {
@@ -56,7 +69,7 @@ test('report title falls back to a readable category when no reason was supplied
   const { loadAdminData } = await server.ssrLoadModule('/src/admin/admin-data.ts')
   const client = {
     rpc: async (name) => ({ data: name === 'get_admin_transaction_reports' ? [{ report_id: 4, reporter_id: null, reported_user_id: null, buyer_id: null, reason: '', report_category: 'participant_no_show', reporter_description: null, evidence_path: null, status: 'open', resolution_outcome: null, case_decision: null, decision_reason: null, decision_severity: null, created_at: '2026-10-01T07:00:00Z' }] : [], error: null }),
-    from: () => ({ select: async () => ({ data: [], error: null }) }),
+    from: () => ({ select: () => queryResult({ data: [], error: null }) }),
   }
   const result = await loadAdminData(client)
   assert.equal(result.reports[0].reason, 'Participant No Show')
@@ -96,9 +109,9 @@ test('signs report evidence only through its private storage bucket', async () =
 test('admin data fails closed when any protected query fails', async () => {
   const { loadAdminData } = await server.ssrLoadModule('/src/admin/admin-data.ts')
   const client = { from(table) {
-    return { select: async () => table === 'system_logs'
+    return { select: () => queryResult(table === 'system_logs'
       ? { data: null, error: new Error('permission denied') }
-      : { data: [], error: null } }
+      : { data: [], error: null }) }
   }, rpc: async () => ({ data: [], error: null }) }
   await assert.rejects(loadAdminData(client), /permission denied/)
 })

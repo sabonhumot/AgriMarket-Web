@@ -195,6 +195,11 @@
 .em-list-description { margin:10px 0 0; color:#718277; font-size:12px; line-height:1.55; }
 .em-list-footer { display:flex; align-items:center; flex-wrap:wrap; gap:10px 16px; margin-top:16px; padding-top:12px; border-top:1px solid var(--em-line); color:#6a7e72; font-size:11px; }
 .em-list-footer strong { color:#1f6a43; }
+.em-list-card.is-draft { border-style:dashed; border-color:#dfc992; background:#fffdf7; }
+.em-list-card.is-draft .em-list-footer { color:#725a2e; }
+.em-list-card.is-draft .em-list-footer a { margin-left:auto; color:#7b5617; font-weight:750; text-decoration:none; }
+.em-list-card.is-draft .em-list-footer a:hover { text-decoration:underline; }
+.em-list-card.is-draft .em-list-footer a:focus-visible { outline:2px solid currentColor; outline-offset:3px; }
 .em-events-empty { display:grid; justify-items:center; padding:54px 24px; border:1px dashed #d8e3da; border-radius:14px; background:#fff; text-align:center; }
 .em-empty-calendar { display:grid; place-items:center; width:48px; height:48px; border-radius:14px; background:#e9f4ec; color:#277449; font-size:24px; }
 .em-events-empty h2 { margin:15px 0 6px; font-size:17px; }

@@ -39,10 +39,10 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 34px;
-  padding: 0 11px;
+  min-height: 36px;
+  padding: 0 14px;
   border: 1px solid var(--em-line);
-  border-radius: var(--em-compact-control-radius);
+  border-radius: 999px;
   background: #fff;
   color: var(--em-ink);
   font-size: 12px;
@@ -128,6 +128,7 @@
 .em-shell :is(.em-panel,.em-workspace-card) { padding: 24px; }
 .em-shell :is(input,select,textarea) { font-family: inherit; }
 .em-shell :is(a,button,input,select,textarea,summary):focus-visible { outline: 2px solid var(--em-green); outline-offset: 2px; }
+.em-shell :is(.em-invite-search,.em-events-search,.em-farmer-search label) input[type="search"]:focus-visible { outline: none; }
 @media (max-width: 960px) {
   .em-shell { display: block; }
   .em-shell .em-main { padding: 80px 24px 60px; }

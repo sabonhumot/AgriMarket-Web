@@ -33,6 +33,7 @@ export type ManagerProfile = {
 export type ManagerFarmer = {
   id: string
   name: string
+  profilePhotoPath: string | null
   farmName: string
   barangay: string
   municipality: string
@@ -102,6 +103,10 @@ export function mapManagerProfile(value: unknown): ManagerProfile {
 export async function loadManagerProfile(client: SupabaseClient) {
   return mapManagerProfile(await rpc(client, 'get_event_manager_profile'))
 }
+
+export async function loadManagerProfileCompletion(client: SupabaseClient): Promise<boolean> {
+  return (await rpc(client, 'is_my_event_manager_profile_complete')) === true
+}
 export async function saveManagerProfile(client: SupabaseClient, input: ManagerProfile) {
   return mapManagerProfile(await rpc(client, 'upsert_event_manager_profile', { p_input: {
     organization_name: input.organizationName.trim(),
@@ -134,10 +139,21 @@ export async function uploadManagerLogo(client: SupabaseClient, file: File) {
   catch (cause) { await bucket.remove([uploadedPath]); throw cause }
   return uploadedPath
 }
+export async function removeManagerLogo(client: SupabaseClient, profile: ManagerProfile) {
+  if (!profile.logoPath) return { profile, storageError: null }
+  const updated = await saveManagerProfile(client, { ...profile, logoPath: null })
+  if (updated.logoPath) throw new Error('The profile photo could not be removed. Try again.')
+  try {
+    const { error } = await client.storage.from('event-manager-media').remove([profile.logoPath])
+    return { profile: updated, storageError: error }
+  } catch (cause) {
+    return { profile: updated, storageError: cause }
+  }
+}
 export function mapManagerFarmer(value: unknown): ManagerFarmer {
   const row = record(value)
   return {
-    id: string(row.id), name: string(row.name) || 'Farmer', farmName: string(row.farm_name),
+    id: string(row.id), name: string(row.name) || 'Farmer', profilePhotoPath: row.profile_photo_path == null ? null : string(row.profile_photo_path), farmName: string(row.farm_name),
     barangay: string(row.barangay), municipality: string(row.municipality),
     verified: row.verified === true, activeListings: count(row.active_listings), totalTransactions: count(row.total_transactions),
   }
