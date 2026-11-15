@@ -3,6 +3,7 @@ import { animate, cubicBezier, stagger } from 'animejs'
 import brandLogo from './assets/AgriMarket.svg'
 import cropDetailsScreen from './assets/crop-details-page.jpg'
 import buyerDashboard from './assets/buyer-dashboard.jpg'
+import eventManagerDashboard from './assets/event-manager-dashboard.jpg'
 import farmerDashboardScreen from './assets/farmer-dashboard.jpg'
 import marketPageScreen from './assets/market-page.jpg'
 import messagesScreen from './assets/messages.jpg'
@@ -78,8 +79,8 @@ const journeyStories = stories.slice(0, 3)
 const guidanceStory = stories[3]
 const heroScreens = [
   { src: buyerDashboard, name: 'Buyer dashboard', alt: 'AgriMarket buyer dashboard showing local produce listings and navigation' },
-  { src: marketPageScreen, name: 'Marketplace', alt: 'AgriMarket marketplace showing crops from local farmers' },
-  { src: cropDetailsScreen, name: 'Crop details', alt: 'AgriMarket crop page showing pricing, availability, and farmer details' },
+  { src: farmerDashboardScreen, name: 'Farmer dashboard', alt: 'AgriMarket farmer dashboard showing crops listings' },
+  { src: eventManagerDashboard, name: 'Event Manager dashboard', alt: 'AgriMarket event manager dashboard showing upcoming events and scheduling' },
 ]
 
 function DownloadIcon() {
