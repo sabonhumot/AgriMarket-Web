@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { animate, cubicBezier } from 'animejs'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { animate, cubicBezier, stagger } from 'animejs'
 import brandLogo from './assets/AgriMarket.svg'
 import cropDetailsScreen from './assets/crop-details-page.jpg'
 import buyerDashboard from './assets/buyer-dashboard.jpg'
@@ -76,6 +76,11 @@ const stories: Story[] = [
 
 const journeyStories = stories.slice(0, 3)
 const guidanceStory = stories[3]
+const heroScreens = [
+  { src: buyerDashboard, name: 'Buyer dashboard', alt: 'AgriMarket buyer dashboard showing local produce listings and navigation' },
+  { src: marketPageScreen, name: 'Marketplace', alt: 'AgriMarket marketplace showing crops from local farmers' },
+  { src: cropDetailsScreen, name: 'Crop details', alt: 'AgriMarket crop page showing pricing, availability, and farmer details' },
+]
 
 function DownloadIcon() {
   return (
@@ -189,17 +194,100 @@ function NavigationLinks({ onNavigate }: { onNavigate?: () => void }) {
 }
 
 function LandingPage() {
+  const pageRef = useRef<HTMLDivElement>(null)
+  const heroRef = useRef<HTMLElement>(null)
+  const [activeHeroScreen, setActiveHeroScreen] = useState(0)
   const [tourIndex, setTourIndex] = useState(0)
   const [tourInstant, setTourInstant] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const downloadAvailable = Boolean(DOWNLOAD_URL)
+
+  useLayoutEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const elements = Array.from(heroRef.current?.querySelectorAll<HTMLElement>(
+      '.hero-context, .hero-headline, .hero-description, .hero-actions, .hero-visual',
+    ) ?? [])
+    if (!elements.length) return
+
+    elements.forEach((element) => {
+      element.style.opacity = '0'
+      element.style.transform = 'translateY(12px)'
+    })
+    const entrance = animate(elements, {
+      opacity: [0, 1],
+      y: [12, 0],
+      delay: stagger(55),
+      duration: 380,
+      ease: cubicBezier(0.2, 0.8, 0.2, 1),
+      onComplete: () => elements.forEach((element) => {
+        element.style.removeProperty('opacity')
+        element.style.removeProperty('transform')
+      }),
+    })
+
+    return () => {
+      entrance.cancel()
+      elements.forEach((element) => {
+        element.style.removeProperty('opacity')
+        element.style.removeProperty('transform')
+      })
+    }
+  }, [])
+
+  useLayoutEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window)) return
+    const elements = Array.from(pageRef.current?.querySelectorAll<HTMLElement>(
+      '.benefits-section .section-heading, .benefits-list li, ' +
+      '.how-it-works-section .walkthrough-heading, .buyer-tour, .buyer-help, ' +
+      '.farmer-device-stage, .farmers-content, .install-intro, .install-steps-list li',
+    ) ?? [])
+    const animations: ReturnType<typeof animate>[] = []
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return
+        const element = entry.target as HTMLElement
+        observer.unobserve(element)
+        const siblingIndex = element.matches('li')
+          ? Array.from(element.parentElement?.children ?? []).indexOf(element)
+          : 0
+        animations.push(animate(element, {
+          opacity: [0, 1],
+          y: [12, 0],
+          delay: siblingIndex * 45,
+          duration: 320,
+          ease: cubicBezier(0.2, 0.8, 0.2, 1),
+          onComplete: () => {
+            element.style.removeProperty('opacity')
+            element.style.removeProperty('transform')
+          },
+        }))
+      })
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.1 })
+
+    elements.forEach((element) => {
+      element.style.opacity = '0'
+      element.style.transform = 'translateY(12px)'
+      observer.observe(element)
+    })
+
+    return () => {
+      observer.disconnect()
+      animations.forEach((animation) => animation.cancel())
+      elements.forEach((element) => {
+        element.style.removeProperty('opacity')
+        element.style.removeProperty('transform')
+      })
+    }
+  }, [])
+
   function selectStory(index: number, animate: boolean) {
     setTourInstant(!animate)
     setTourIndex(index)
   }
 
   return (
-    <div className="site-shell">
+    <div ref={pageRef} className="site-shell">
       <header className="site-header">
         <div className="header-inner">
           <a className="brand-link" href="#top" aria-label="AgriMarket home">
@@ -238,7 +326,7 @@ function LandingPage() {
       </header>
 
       <main id="top">
-        <section className="hero-section" aria-labelledby="hero-title">
+        <section ref={heroRef} className="hero-section" aria-labelledby="hero-title">
           <div className="hero-container">
             <div className="hero-content">
               <p className="hero-context">Made for Cebu’s local produce community</p>
@@ -258,14 +346,26 @@ function LandingPage() {
               )}
             </div>
 
-            <div className="hero-visual" aria-label="AgriMarket app preview">
-              <div className="device-stage">
-                <PhoneFrame
-                  src={buyerDashboard}
-                  alt="AgriMarket buyer dashboard showing local produce listings and navigation"
-                  variant="hero"
-                  priority
-                />
+            <div className="hero-visual">
+              <div className="device-stage" role="group" aria-label="AgriMarket app screen previews">
+                {heroScreens.map((screen, index) => {
+                  const position = index === activeHeroScreen
+                    ? 'front'
+                    : index === (activeHeroScreen + 1) % heroScreens.length ? 'right' : 'left'
+                  return (
+                    <button
+                      key={screen.name}
+                      className="hero-phone-button"
+                      type="button"
+                      data-position={position}
+                      aria-label={`Show ${screen.name} preview`}
+                      aria-pressed={position === 'front'}
+                      onClick={() => setActiveHeroScreen(index)}
+                    >
+                      <PhoneFrame src={screen.src} alt={screen.alt} variant="hero" priority={index === 0} />
+                    </button>
+                  )
+                })}
               </div>
             </div>
           </div>

@@ -31,8 +31,8 @@
 .em-dashboard-event-footer a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .em-dashboard-event.is-featured { min-height: 294px; padding: 28px; border-radius: 16px; background: #164d32; color: #fff; }
 .em-dashboard-event.is-featured.has-cover { position: relative; isolation: isolate; overflow: hidden; }
-.em-dashboard-event-cover { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; object-position: 68% center; }
-.em-dashboard-event.is-featured.has-cover::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, #123f2a 0%, rgba(18,63,42,.98) 29%, rgba(18,63,42,.86) 57%, rgba(18,63,42,.43) 84%, rgba(18,63,42,.32) 100%), linear-gradient(0deg, rgba(9,36,22,.45), transparent 55%); pointer-events: none; }
+.em-dashboard-event-cover { position: absolute; top: 0; right: 0; z-index: -2; width: 50%; height: 100%; object-fit: cover; object-position: center; -webkit-mask-image: linear-gradient(to right, transparent, #000 45%); mask-image: linear-gradient(to right, transparent, #000 45%); }
+.em-dashboard-event.is-featured.has-cover::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, #123f2a 0%, rgba(18,63,42,.98) 43%, rgba(18,63,42,.68) 65%, rgba(18,63,42,.18) 100%), linear-gradient(0deg, rgba(9,36,22,.45), transparent 55%); pointer-events: none; }
 .em-dashboard-event.is-featured .em-dashboard-event-date { width: 80px; height: 88px; background: #f4f8ee; color: #185a37; }
 .em-dashboard-event.is-featured .em-dashboard-event-date strong { font-size: 2rem; }
 .em-dashboard-event.is-featured .em-dashboard-event-meta { color: #b7d6c0; }
@@ -57,6 +57,7 @@
 .em-dashboard-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 0 0 30px; }
 .em-dashboard-metric { position: relative; display: flex; flex-direction: column; gap: 6px; min-width: 0; min-height: 112px; padding: 20px; border: 1px solid #dfe8e0; border-radius: 14px; background: #fff; color: #17372b; text-decoration: none; transition: background-color 170ms cubic-bezier(.23,1,.32,1); }
 .em-dashboard-metric strong { font-size: 1.75rem; font-weight: 780; letter-spacing: -.035em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.em-dashboard-metric.is-status strong { max-width: calc(100% - 18px); font-size: clamp(1.125rem, 1.8vw, 1.5rem); line-height: 1.25; overflow-wrap: anywhere; }
 .em-dashboard-metric span { color: #526b5a; font-size: .75rem; font-weight: 650; }
 .em-dashboard-metric svg { position: absolute; top: 21px; right: 20px; color: #789284; }
 .em-dashboard-schedule { margin-top: 28px; }

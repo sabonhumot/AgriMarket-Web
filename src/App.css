@@ -330,13 +330,65 @@ button:focus-visible,
 }
 
 .device-stage {
-  width: auto;
-  min-height: auto;
-  padding: 10px 0;
+  position: relative;
+  width: min(100%, 440px);
+  height: 610px;
   background: transparent;
   border: 0;
   box-shadow: none;
   perspective: 1200px;
+}
+
+.hero-phone-button {
+  --phone-x: 0px;
+  --phone-rotation: 0deg;
+  --phone-scale: 1;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: block;
+  width: max-content;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  transform: translate(-50%, -50%) translateX(var(--phone-x)) rotate(var(--phone-rotation)) scale(var(--phone-scale));
+  transition: transform 360ms var(--ease);
+}
+
+.hero-phone-button[data-position='front'] {
+  z-index: 3;
+  --phone-rotation: -2deg;
+  cursor: default;
+}
+
+.hero-phone-button[data-position='left'] {
+  z-index: 2;
+  --phone-x: -100px;
+  --phone-rotation: -10deg;
+  --phone-scale: .82;
+}
+
+.hero-phone-button[data-position='right'] {
+  z-index: 1;
+  --phone-x: 100px;
+  --phone-rotation: 8deg;
+  --phone-scale: .82;
+}
+
+.hero-phone-button .phone-shell-hero {
+  transform: none;
+}
+
+.hero-phone-button:focus-visible {
+  z-index: 4;
+  border-radius: 38px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hero-phone-button:not([data-position='front']):hover {
+    --phone-scale: .86;
+  }
 }
 
 /* Device frame */
@@ -1126,13 +1178,28 @@ button:focus-visible,
   }
 
   .device-stage {
-    min-height: auto;
-    padding: 0;
+    height: 480px;
   }
 
   .phone-shell-hero {
     width: 222px;
     height: auto;
+  }
+
+  .hero-phone-button[data-position='front'] {
+    --phone-rotation: 0deg;
+  }
+
+  .hero-phone-button[data-position='left'] {
+    --phone-x: -55px;
+    --phone-rotation: -5deg;
+    --phone-scale: .78;
+  }
+
+  .hero-phone-button[data-position='right'] {
+    --phone-x: 55px;
+    --phone-rotation: 5deg;
+    --phone-scale: .78;
   }
 
   .hero-headline {
@@ -1233,6 +1300,10 @@ button:focus-visible,
   .mobile-nav {
     transform: none;
     transition: opacity 80ms var(--ease), visibility 0s linear 80ms !important;
+  }
+
+  .hero-phone-button {
+    transition: none;
   }
 
   .mobile-nav[data-open='true'] {

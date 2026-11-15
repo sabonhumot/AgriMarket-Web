@@ -118,6 +118,7 @@
 .em-create-page .em-field textarea{min-height:118px;line-height:1.55}
 .em-create-page .em-field-hint{color:#697f6f;font-size:11px}
 .em-create-page .em-field-error{color:#a14836;font-size:11px}
+.em-create-save-error{margin:16px 36px 0;padding:13px 15px;border:1px solid #e9cbbd;border-radius:9px;background:#fff7f2;color:#833b26;font-size:12px;line-height:1.5}
 .em-create-page .em-coordinate-group>.em-form-grid{background:#f7faf7}
 .em-create-page .em-form-actions{bottom:0;justify-content:flex-end;gap:10px;margin:0;padding:17px 36px calc(17px + env(safe-area-inset-bottom));border-top:0;border-radius:0 0 16px 16px;background:#fff}
 .em-create-page .em-form-actions button{min-width:136px;min-height:44px;border-radius:999px;font-size:12px}
@@ -140,6 +141,7 @@
 @media(max-width:1100px){.em-create-layout{grid-template-columns:minmax(0,1fr) 270px;gap:18px}.em-create-page .em-form-section{padding:27px}.em-create-page .em-form-actions{padding-inline:27px}}
 @media(max-width:900px){.em-create-layout{grid-template-columns:1fr}.em-create-aside{position:static;grid-row:1;display:block}.em-create-aside-card{display:none}.em-create-jump{display:flex;flex-wrap:wrap;gap:3px;margin:0}.em-create-jump>span{display:none}.em-create-jump a{min-height:40px}.em-create-page .em-event-form{grid-row:2}}
 @media(max-width:640px){.em-create-page{padding-top:16px;padding-bottom:70px}.em-create-heading{margin-bottom:20px}.em-create-heading h1{font-size:2rem}.em-create-heading p{font-size:12px}.em-create-aside{display:none}.em-create-page .em-event-form{grid-row:1}.em-create-page .em-form-section{padding:24px 20px 27px}.em-create-page .em-form-grid{grid-template-columns:1fr;gap:17px}.em-create-page .em-form-actions{display:grid;grid-template-columns:1fr 1fr;padding:12px 15px calc(12px + env(safe-area-inset-bottom));border-top:1px solid #e4ece5}.em-create-page .em-form-actions button{min-width:0}.em-create-page .em-form-actions button:only-child{grid-column:1/-1}}
+@media(max-width:640px){.em-create-save-error{margin:14px 20px 0}}
 @media(max-width:360px){.em-create-page .em-form-actions{grid-template-columns:1fr}.em-create-page .em-form-actions button:only-child{grid-column:auto}}
 
 .em-create-page .em-form-section[hidden]{display:none}

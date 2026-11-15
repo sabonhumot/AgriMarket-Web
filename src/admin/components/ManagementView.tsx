@@ -6,7 +6,7 @@ import OrganizationApplication from './OrganizationApplication'
 import type { ActivityEntry, AdminView, OrganizationDecision, OrganizationRecord } from '../types'
 
 type ManagementViewProps = {
-  view: Exclude<AdminView, 'overview' | 'moderation' | 'events'> | 'organizations'
+  view: Exclude<AdminView, 'overview' | 'moderation' | 'events' | 'settings'> | 'organizations'
   query: string
   onQueryChange: (query: string) => void
   onReset: () => void

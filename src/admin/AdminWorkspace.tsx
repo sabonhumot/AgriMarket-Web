@@ -10,6 +10,7 @@ import ActivityLog from './components/ActivityLog'
 import { loadDashboardData, type DashboardData } from './dashboard-data'
 import { loadAdminData, type AdminData } from './admin-data'
 import { getSupabaseClient } from './supabase'
+import AccountSettings from '../components/AccountSettings'
 import type { AdminView } from './types'
 import './AdminWorkspace.css'
 
@@ -19,6 +20,7 @@ const viewCopy: Record<AdminView, { title: string; description: string; badgeLab
   events: { title: 'Events', description: 'View every market event, including drafts, published events, and past events.' },
   moderation: { title: 'Reports', description: 'Review reservation issues, the people involved, and each case’s status.' },
   activity: { title: 'Activity log', description: 'Trace account, event, and system changes in chronological order.' },
+  settings: { title: 'Settings', description: 'Review your account and update your password.' },
 }
 
 function SkeletonTable() {
@@ -49,7 +51,6 @@ export default function AdminWorkspace({ onSignOut }: { onSignOut?: () => void |
   const refreshing = useRef(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [updatedAt, setUpdatedAt] = useState<string | null>(null)
   const pageTitleRef = useRef<HTMLHeadingElement>(null)
   const mounted = useRef(true)
 
@@ -63,7 +64,6 @@ export default function AdminWorkspace({ onSignOut }: { onSignOut?: () => void |
       if (mounted.current) {
         setData(next)
         setDashboard(nextDashboard)
-        setUpdatedAt(new Date().toISOString())
         if (notify) toast.success('Admin data refreshed')
       }
     } catch (cause) {
@@ -113,14 +113,6 @@ export default function AdminWorkspace({ onSignOut }: { onSignOut?: () => void |
               <span className="breadcrumb-separator">/</span>
               <span className="breadcrumb-current">{viewCopy[activeView].title}</span>
             </nav>
-            <div className="admin-topbar-actions">
-              <a className="admin-public-link" href="/" target="_blank" rel="noreferrer">
-                <span>Public site</span>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
-                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6 M15 3h6v6 M10 14L21 3" />
-                </svg>
-              </a>
-            </div>
           </div>
 
           <div className="admin-view-header">
@@ -130,34 +122,11 @@ export default function AdminWorkspace({ onSignOut }: { onSignOut?: () => void |
               </h1>
               <p className="admin-page-description">{viewCopy[activeView].description}</p>
             </div>
-            <div className="admin-header-sync">
-              <button
-                type="button"
-                className="admin-btn-refresh"
-                onClick={() => void refresh(true)}
-                disabled={loading}
-                title="Refresh database records"
-              >
-                <svg
-                  className={loading ? 'animate-spin' : ''}
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  width="16"
-                  height="16"
-                >
-                  <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.85.83 6.72 2.24L21 7 M21 3v4h-4" />
-                </svg>
-                <span>{loading ? 'Refreshing…' : 'Refresh'}</span>
-              </button>
-              {updatedAt && <span className="admin-sync-time">Updated {new Date(updatedAt).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Manila' })} · refreshes every minute</span>}
-            </div>
           </div>
         </div>
 
         {/* Global Error Banner */}
-        {error && (
+        {error && activeView !== 'settings' && (
           <div className="admin-error-banner" role="alert">
             <div className="admin-error-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -188,7 +157,9 @@ export default function AdminWorkspace({ onSignOut }: { onSignOut?: () => void |
         )}
 
         {/* Loading Skeleton */}
-        {loading && !data && <SkeletonTable />}
+        {loading && !data && activeView !== 'settings' && <SkeletonTable />}
+
+        {activeView === 'settings' && <AccountSettings role="admin" />}
 
         {data && activeView === 'users' && (
           <UsersDirectory users={data.users} totalUsers={dashboard?.totalUsers}

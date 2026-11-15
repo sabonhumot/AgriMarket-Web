@@ -95,7 +95,6 @@
 .em-workspace-tabs span { font-variant-numeric:tabular-nums; }
 .em-shell .em-workspace-tabs button span { display:inline-grid; place-items:center; min-width:28px; min-height:22px; padding:0 7px; border-radius:999px; background:#eef4ef; color:#315a40; }
 .em-shell .em-workspace-tabs button.is-active span { background:#fff; color:#185a37; }
-.em-shell.em-notifications-shell .em-main { max-width:1580px; }
 .em-notification-list { border-radius:11px; }
 .em-notification-row { gap:15px; padding:20px 24px; }
 .em-notification-row.is-unread { background:#f7fbf7; }

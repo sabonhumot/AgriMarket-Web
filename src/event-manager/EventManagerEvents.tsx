@@ -64,7 +64,6 @@ export default function EventManagerEvents({ onSignOut }: Props) {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(managedEventsCache.current === null)
   const [error, setError] = useState<string | null>(null)
-  const [updatedAt, setUpdatedAt] = useState<Date | null>(null)
   const refresh = useCallback(async (notify = false) => {
     setLoading(true); setError(null)
     try {
@@ -72,7 +71,7 @@ export default function EventManagerEvents({ onSignOut }: Props) {
       if (rpcError) throw rpcError
       const next = (Array.isArray(data) ? data : []).map(mapEvent).sort((a, b) => a.date.localeCompare(b.date))
       managedEventsCache.current = next
-      setEvents(next); setUpdatedAt(new Date())
+      setEvents(next)
       if (notify) toast.success('Events refreshed.')
     } catch (cause) { const message = cause instanceof Error ? cause.message : 'Your event schedule could not be loaded.'; setError(message); setEvents([]); toast.error('Events could not be loaded.', { description: message }) }
     finally { setLoading(false) }
@@ -88,7 +87,7 @@ export default function EventManagerEvents({ onSignOut }: Props) {
     })
   }, [events, search, view])
   return <div className="em-shell"><EventManagerSidebar active="events" onSignOut={onSignOut} /><main className="em-main em-dashboard em-events-page"><EventManagerTopbar current="Events" /><div className="em-content em-dashboard-content">
-    <header className="em-dashboard-heading"><div><h1 id="events-title">Events</h1><p>Plan and manage every market day from one place.</p></div><div className="em-dashboard-actions"><CreateEventLink /><button type="button" onClick={() => void refresh(true)} disabled={loading} aria-label="Refresh events" title={updatedAt ? `Updated ${updatedAt.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Manila' })}` : 'Refresh events'}><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2 6M20 4v7h-7" /></svg></button></div></header>
+    <header className="em-dashboard-heading"><div><h1 id="events-title">Events</h1><p>Plan and manage every market day from one place.</p></div><div className="em-dashboard-actions"><CreateEventLink /></div></header>
     <section className="em-events-controls" aria-label="Filter events"><div className="em-events-filters" role="group" aria-label="Event status">{views.map((item) => <button key={item.id} type="button" aria-pressed={view === item.id} onClick={() => setView(item.id)}>{item.label}<span>{counts[item.id]}</span></button>)}</div><label className="em-events-search"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="10.75" cy="10.75" r="6.75" /><path d="m16 16 4 4" /></svg><span className="em-sr-only">Search events</span><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search events or locations" /></label></section>
     <div className="em-events-list-heading"><h2>{view === 'upcoming' ? 'Upcoming market days' : view === 'past' ? 'Past events' : 'Draft events'}</h2><span>{loading ? 'Loading…' : `${filtered.length} ${filtered.length === 1 ? 'event' : 'events'}`}</span></div>
     {error && <section className="em-dashboard-error" role="alert"><div><strong>Events unavailable</strong><p>{error}</p></div><button type="button" onClick={() => void refresh(true)}>Try again</button></section>}

@@ -12,6 +12,7 @@ const navigation: Array<{ id: AdminView; label: string; badge?: string; badgeVar
   { id: 'events', label: 'Events' },
   { id: 'moderation', label: 'Reports', badgeVariant: 'alert' },
   { id: 'activity', label: 'Activity log' },
+  { id: 'settings', label: 'Settings' },
 ]
 
 type AdminSidebarProps = {
@@ -31,6 +32,7 @@ function NavigationIcon({ view }: { view: AdminView }) {
     events: 'M5 5h14v16H5z M8 3v4 M16 3v4 M5 10h14 M9 14h2 M14 14h2 M9 18h2',
     moderation: 'M12 3.5 20 7v5.2c0 4.1-2.6 7.3-8 9.3-5.4-2-8-5.2-8-9.3V7z M9 12.5l2 2 4-4',
     activity: 'M4 4v5h5 M4.5 9a8 8 0 1 1-.2 6 M12 8v4l3 2',
+    settings: 'M12 3.5v2m0 13v2m8.5-8.5h-2m-13 0h-2m14.5-6.5-1.5 1.5m-9 9-1.5 1.5m12 0-1.5-1.5m-9-9L6 6.5 M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z',
   }
 
   return (
@@ -140,8 +142,9 @@ export default function AdminSidebar({ activeView, onViewChange, reportCount, on
             {navigation.map((item) => {
               const isActive = item.id === activeView
               return (
-                <li key={item.id} className={item.id === 'activity' ? 'admin-nav-divider' : undefined}>
+                <li key={item.id} className={item.id === 'activity' || item.id === 'settings' ? 'admin-nav-divider' : undefined}>
                   {item.id === 'activity' && <span className="admin-nav-group-label">Audit</span>}
+                  {item.id === 'settings' && <span className="admin-nav-group-label">Account</span>}
                   <button
                     className={`admin-nav-item${isActive ? ' is-active' : ''}`}
                     type="button"

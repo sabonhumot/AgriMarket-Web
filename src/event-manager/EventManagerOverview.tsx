@@ -6,10 +6,11 @@ import EventManagerTopbar from './EventManagerTopbar'
 import CreateEventLink from './CreateEventLink'
 import { navigateWeb } from '../auth/web-navigation'
 import { loadEventManagerDashboard, type EventManagerDashboard, type OverviewEvent } from './dashboard-data'
+import { loadManagerProfileCompletion } from './manager-service'
 import './EventManagerOverview.css'
 import './EventManagerDashboard.css'
 
-type IconName = 'grid' | 'calendar' | 'people' | 'check' | 'inbox' | 'bell' | 'refresh' | 'arrow' | 'pin' | 'clock'
+type IconName = 'grid' | 'calendar' | 'people' | 'check' | 'inbox' | 'bell' | 'arrow' | 'pin' | 'clock'
 const paths: Record<IconName, string> = {
   grid: 'M3 3h8v8H3z M13 3h8v8h-8z M3 13h8v8H3z M13 13h8v8h-8z',
   calendar: 'M4 5h16v16H4z M8 3v4 M16 3v4 M4 10h16 M8 14h3 M8 18h6',
@@ -17,7 +18,6 @@ const paths: Record<IconName, string> = {
   check: 'M4 12l5 5L20 6',
   inbox: 'M4 4h16v12l-3 4H7l-3-4z M4 14h5l2 3h2l2-3h5',
   bell: 'M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9z M10 21h4',
-  refresh: 'M20 11a8 8 0 1 0-2 6 M20 4v7h-7',
   arrow: 'M4 12h16m-6-6 6 6-6 6',
   pin: 'M12 21s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z M12 9a2 2 0 1 0 0 4 2 2 0 0 0 0-4',
   clock: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 7v5l3 2',
@@ -61,9 +61,9 @@ function EventCard({ event, prominent = false }: { event: OverviewEvent; promine
   </article>
 }
 
-function OverviewMetric({ label, value, href }: { label: string; value: number; href: string }) {
-  return <a className="em-dashboard-metric" href={href} onClick={(event) => navigateWeb(event, href)}>
-    <strong>{value.toLocaleString('en-PH')}</strong><span>{label}</span><Icon name="arrow" size={16} />
+function OverviewMetric({ label, value, href }: { label: string; value: number | string | null; href: string }) {
+  return <a className={'em-dashboard-metric' + (typeof value === 'string' ? ' is-status' : '')} href={href} onClick={(event) => navigateWeb(event, href)}>
+    <strong>{value === null ? '—' : typeof value === 'number' ? value.toLocaleString('en-PH') : value}</strong><span>{label}</span><Icon name="arrow" size={16} />
   </a>
 }
 
@@ -71,7 +71,8 @@ export default function EventManagerOverview({ onSignOut, initialData }: { onSig
   const [data, setData] = useState<EventManagerDashboard | null>(initialData ?? null)
   const [loading, setLoading] = useState(!initialData)
   const [error, setError] = useState<string | null>(null)
-  const [updatedAt, setUpdatedAt] = useState<Date | null>(null)
+  const [draftCount, setDraftCount] = useState<number | null>(null)
+  const [profileComplete, setProfileComplete] = useState<boolean | null>(null)
 
   const refresh = useCallback(async (notify = false) => {
     setLoading(true)
@@ -79,7 +80,6 @@ export default function EventManagerOverview({ onSignOut, initialData }: { onSig
     try {
       const next = await loadEventManagerDashboard(getSupabaseClient())
       setData(next)
-      setUpdatedAt(new Date())
       if (notify) toast.success('Dashboard refreshed.')
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : 'Your dashboard could not be loaded.'
@@ -97,23 +97,41 @@ export default function EventManagerOverview({ onSignOut, initialData }: { onSig
     return () => clearTimeout(timer)
   }, [initialData, refresh])
 
+  useEffect(() => {
+    let active = true
+    void Promise.resolve(getSupabaseClient().rpc('get_my_managed_events', { p_filter: 'all' })).then(({ data, error }) => {
+      if (error) throw error
+      if (!Array.isArray(data)) throw new Error('Events could not be counted.')
+      if (active) setDraftCount(data.filter((value: unknown) => {
+        if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+        const event = value as Record<string, unknown>
+        return String(event.database_status ?? event.status ?? '').toLowerCase() === 'draft'
+      }).length)
+    }).catch(() => {
+      if (active) setDraftCount(null)
+    })
+    void loadManagerProfileCompletion(getSupabaseClient()).then((complete) => {
+      if (active) setProfileComplete(complete)
+    }).catch(() => { if (active) setProfileComplete(null) })
+    return () => { active = false }
+  }, [])
+
   const today = todayInManila()
   const upcomingEvents = (data?.events ?? []).filter((event) => isCurrentOrUpcoming(event, today)).sort((a, b) => a.date.localeCompare(b.date))
   const nextEvent = upcomingEvents[0]
-  const openFarmerSlots = upcomingEvents.reduce((total, event) => total + Math.max(0, event.farmerCount - event.approvedFarmers), 0)
   return <div className="em-shell">
     <EventManagerSidebar active="overview" organizationName={data?.organizationName} onSignOut={onSignOut} />
 
     <main className="em-main em-dashboard">
       <EventManagerTopbar current="Dashboard" />
       <div className="em-content em-dashboard-content">
-        <header className="em-dashboard-heading"><div><h1>Dashboard</h1><p>Upcoming markets, farmer participation, and what needs your attention.</p></div><div className="em-dashboard-actions"><CreateEventLink /><button type="button" onClick={() => void refresh(true)} disabled={loading} aria-label="Refresh dashboard" title={updatedAt ? `Updated ${updatedAt.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Manila' })}` : 'Refresh dashboard'}><Icon name="refresh" size={17} /></button></div></header>
+        <header className="em-dashboard-heading"><div><h1>Dashboard</h1><p>Upcoming markets, farmer participation, and what needs your attention.</p></div><div className="em-dashboard-actions"><CreateEventLink /></div></header>
 
         {error && <section className="em-dashboard-error" role="alert"><div><strong>Dashboard unavailable</strong><p>{error}</p></div><button type="button" onClick={() => void refresh(true)}>Try again</button></section>}
         {loading && !data && <div className="em-dashboard-loading" role="status"><div className="em-dashboard-loading-metrics">{[0, 1, 2, 3].map(n => <span key={n} />)}</div><div className="em-dashboard-loading-lead"><span /><span /></div><span className="em-sr-only">Loading dashboard</span></div>}
 
         {data && <>
-          <section className="em-dashboard-stats" aria-label="Event statistics"><OverviewMetric label="Active and upcoming" value={data.activeCount} href="/event-manager/events" /><OverviewMetric label="Open farmer slots" value={openFarmerSlots} href="/event-manager/events" /><OverviewMetric label="Approved farmers" value={data.expectedFarmers} href="/event-manager/events" /><OverviewMetric label="Completed events" value={data.completedCount} href="/event-manager/events?view=past" /></section>
+          <section className="em-dashboard-stats" aria-label="Dashboard statistics"><OverviewMetric label="Active and upcoming" value={data.activeCount} href="/event-manager/events" /><OverviewMetric label="Draft events" value={draftCount} href="/event-manager/events?view=drafts" /><OverviewMetric label="Profile readiness" value={profileComplete === null ? null : profileComplete ? 'Complete' : 'Needs attention'} href="/event-manager/profile" /><OverviewMetric label="Completed events" value={data.completedCount} href="/event-manager/events?view=past" /></section>
 
           <div className="em-dashboard-lead">
             <section className="em-dashboard-feature" aria-labelledby="em-next-title"><div className="em-dashboard-section-head"><h2 id="em-next-title">Next market day</h2><span>{upcomingEvents.length} scheduled</span></div>{nextEvent ? <EventCard event={nextEvent} prominent /> : <div className="em-dashboard-empty"><h3>No upcoming events</h3><p>New market days will appear here after you schedule an event.</p><a href="/event-manager/events" onClick={(event) => navigateWeb(event, '/event-manager/events')}>Browse events <Icon name="arrow" size={16} /></a></div>}</section>

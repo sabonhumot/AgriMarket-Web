@@ -14,13 +14,14 @@ import './EventManagerOperations.css'
 import './EventManagerEventForm.css'
 import { uploadEventManagerMedia } from './upload-media'
 import { loadManagerProfileCompletion } from './manager-service'
+import { CEBU_LOCATIONS } from '../data/cebuLocations'
 
 type Field = keyof ManagerEventInput
 type Errors = Partial<Record<Field, string>>
 const eventSteps = [
   { label: 'Event details', next: 'schedule', fields: ['name', 'type', 'description'] },
   { label: 'Date & schedule', next: 'venue', fields: ['date', 'endDate', 'startTime', 'endTime'] },
-  { label: 'Venue & location', next: 'participation', fields: ['venueName', 'location', 'venueBarangay', 'venueCity', 'mapLatitude', 'mapLongitude'] },
+  { label: 'Venue & location', next: 'participation', fields: ['venueName', 'location', 'venueCity', 'venueBarangay', 'mapLatitude', 'mapLongitude'] },
   { label: 'Farmer participation', next: 'cover & review', fields: ['farmerCount', 'applicationDeadline', 'eligibilityScope', 'joinMode', 'farmerInstructions'] },
   { label: 'Cover & review', next: '', fields: [] },
 ] as const
@@ -45,6 +46,10 @@ const manilaInputTime = (value: string) => {
   return new Date(date.getTime() + 8 * 60 * 60 * 1000).toISOString().slice(0, 16)
 }
 const deadlineToIso = (value: string) => value ? new Date(value + ':00+08:00').toISOString() : ''
+const locationKey = (value: string) => value.trim().toLowerCase().replace(/^city of\s+|\s+city$/g, '').replace(/\s+/g, ' ')
+const barangayKey = (value: string) => value.trim().toLowerCase().replace(/\s+\(pob\.\)$|\s+pob\.$/g, '')
+const findMunicipality = (value: string) => CEBU_LOCATIONS.find((location) => locationKey(location.name) === locationKey(value))
+const barangaysFor = (value: string) => findMunicipality(value)?.barangays.map((barangay) => barangay.replace(/\s+\(Pob\.\)$/i, '')) ?? []
 const prettyDate = (value: string) => {
   if (!value) return 'Date to be set'
   const date = new Date(value + 'T12:00:00+08:00')
@@ -70,8 +75,9 @@ const validate = (form: ManagerEventInput): Errors => {
   if (!form.startTime) errors.startTime = 'Choose a start time.'
   if (!form.endTime || form.endTime <= form.startTime) errors.endTime = 'End time must be after start time.'
   if (!form.venueName.trim()) errors.venueName = 'Enter the venue name.'
-  if (!form.venueBarangay.trim()) errors.venueBarangay = 'Enter the barangay.'
-  if (!form.venueCity.trim()) errors.venueCity = 'Enter the Cebu municipality or city.'
+  if (!findMunicipality(form.venueCity)) errors.venueCity = 'Choose a Cebu municipality or city from the list.'
+  if (!form.venueBarangay.trim()) errors.venueBarangay = 'Choose a barangay from the list.'
+  else if (findMunicipality(form.venueCity) && !barangaysFor(form.venueCity).some((barangay) => barangayKey(barangay) === barangayKey(form.venueBarangay))) errors.venueBarangay = 'Choose a barangay in the selected municipality.'
   if (!Number.isInteger(form.farmerCount) || form.farmerCount < 1) errors.farmerCount = 'Enter at least one whole-number slot.'
   if (!form.applicationDeadline) errors.applicationDeadline = 'Choose when applications close.'
   else {
@@ -109,6 +115,7 @@ export default function EventManagerEventForm({ eventId, onSignOut }: { eventId?
   const [busy, setBusy] = useState(false)
   const [errors, setErrors] = useState<Errors>({})
   const [notice, setNotice] = useState<string | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [blockedReason, setBlockedReason] = useState<string | null>(null)
   const [coverFile, setCoverFile] = useState<File | null>(null)
   const [coverToCrop, setCoverToCrop] = useState<File | null>(null)
@@ -126,11 +133,14 @@ export default function EventManagerEventForm({ eventId, onSignOut }: { eventId?
     void loadManagedEvent(getSupabaseClient(), eventId).then(({ event }) => {
       if (!active) return
       setExistingStatus(event.databaseStatus)
+      const municipality = findMunicipality(event.venueCity)
+      const venueCity = municipality?.name ?? event.venueCity
+      const venueBarangay = barangaysFor(venueCity).find((barangay) => barangayKey(barangay) === barangayKey(event.venueBarangay)) ?? event.venueBarangay
       setForm({
         name: event.name, type: event.type, description: event.description, date: event.date.slice(0, 10),
         endDate: event.endDate.slice(0, 10), startTime: event.startTime.slice(0, 5), endTime: event.endTime.slice(0, 5),
-        location: event.location, venueName: event.venueName, venueBarangay: event.venueBarangay,
-        venueCity: event.venueCity, municipalityKey: event.municipalityKey, farmerCount: event.farmerCount,
+        location: event.location, venueName: event.venueName, venueBarangay,
+        venueCity, municipalityKey: event.municipalityKey, farmerCount: event.farmerCount,
         applicationDeadline: manilaInputTime(event.applicationDeadline), eligibilityScope: event.eligibilityScope,
         joinMode: event.joinMode, farmerInstructions: event.farmerInstructions,
         mapLatitude: event.mapLatitude, mapLongitude: event.mapLongitude, coverPhotoPath: event.coverPhotoPath,
@@ -158,6 +168,13 @@ export default function EventManagerEventForm({ eventId, onSignOut }: { eventId?
     setForm((current) => ({ ...current, [key]: value }))
     setErrors((current) => ({ ...current, [key]: undefined }))
     setNotice(null)
+    setSaveError(null)
+  }
+  function chooseMunicipality(value: string) {
+    setForm((current) => ({ ...current, venueCity: value, municipalityKey: value, venueBarangay: '' }))
+    setErrors((current) => ({ ...current, venueCity: undefined, venueBarangay: undefined }))
+    setNotice(null)
+    setSaveError(null)
   }
   function chooseCover(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
@@ -224,7 +241,7 @@ export default function EventManagerEventForm({ eventId, onSignOut }: { eventId?
     if (busy || !checkFields()) return
     if (mode === 'publish' && !publishConfirm) { setPublishConfirm(true); return }
     setPublishConfirm(false)
-    setBusy(true); setNotice(null)
+    setBusy(true); setNotice(null); setSaveError(null)
     const client = getSupabaseClient()
     const status: ManagerEventInput['status'] = mode === 'draft' || existingStatus === 'draft' || !workingId ? 'draft' : 'published'
     let savedId: string | undefined
@@ -255,6 +272,12 @@ export default function EventManagerEventForm({ eventId, onSignOut }: { eventId?
     } catch (cause) {
       const detail = failureMessage(cause)
       const needsProfile = detail.includes('Complete your Event Manager profile')
+      setSaveError(detail)
+      if (detail.includes('valid barangay in the selected Cebu municipality')) {
+        setErrors((current) => ({ ...current, venueBarangay: 'Choose a barangay in the selected municipality.' }))
+        setStep(2)
+        requestAnimationFrame(() => formRef.current?.querySelector<HTMLElement>('[name="venueBarangay"]')?.focus())
+      }
       toast.error(needsProfile ? 'Complete your Event Manager profile' : savedId ? 'Event only partially saved.' : 'Event could not be saved.', { description: needsProfile ? 'Add your point of contact, official email, office and manager phone numbers, and a complete Cebu office address in Profile, then try again.' : detail })
       if (savedId) {
         invalidateManagedEventsCache()
@@ -290,6 +313,7 @@ export default function EventManagerEventForm({ eventId, onSignOut }: { eventId?
         <form ref={formRef} className="em-event-form" noValidate onSubmit={(event: FormEvent) => { event.preventDefault(); if (step < eventSteps.length - 1) continueStep(); else void save(id && existingStatus !== 'draft' ? 'changes' : 'publish') }}>
           <nav className="em-create-steps" aria-label="Event setup steps">{eventSteps.map((item, index) => <button type="button" key={item.label} className={index < furthestStep ? 'is-complete' : undefined} aria-current={step === index ? 'step' : undefined} disabled={busy || index > furthestStep} onClick={() => showStep(index)}><span className="em-create-step-number">{index + 1}</span><span>{item.label}</span></button>)}</nav>
           <div className="em-create-step-count">Step {step + 1} of {eventSteps.length}</div>
+          {saveError && <div className="em-create-save-error" role="alert">{saveError}</div>}
           <section className="em-form-section" id="event-basics" hidden={step !== 0}><div className="em-form-section-head"><div><h2 tabIndex={-1}>Event details</h2><p>What farmers and buyers will see.</p></div></div><div className="em-form-grid">
             {field('name', 'Event name', <input name="name" value={form.name} maxLength={100} onChange={(event) => update('name', event.target.value)} placeholder="e.g. Cebu City Weekend Market" />, 'Use a short, recognizable name.', true)}
             {field('type', 'Event type', <AppSelect name="type" label="Event type" value={form.type} onChange={(value) => update('type', value as ManagerEventInput['type'])} options={['Regular Market Day', 'Special Event', 'Pop-Up Market'].map((value) => ({ value, label: value }))} />, 'Regular market days last one day.')}
@@ -304,8 +328,8 @@ export default function EventManagerEventForm({ eventId, onSignOut }: { eventId?
           <section className="em-form-section" id="event-venue" hidden={step !== 2}><div className="em-form-section-head"><div><h2 tabIndex={-1}>Venue & location</h2><p>Give farmers an address they can find on event day.</p></div></div><div className="em-form-grid">
             {field('venueName', 'Venue name', <input name="venueName" value={form.venueName} onChange={(event) => update('venueName', event.target.value)} placeholder="Market hall, plaza, or host venue" />)}
             {field('location', 'Street or landmark', <input name="location" value={form.location} onChange={(event) => update('location', event.target.value)} placeholder="Optional directions" />)}
-            {field('venueBarangay', 'Barangay', <input name="venueBarangay" value={form.venueBarangay} onChange={(event) => update('venueBarangay', event.target.value)} placeholder="Barangay" />)}
-            {field('venueCity', 'Municipality / city', <input name="venueCity" value={form.venueCity} onChange={(event) => { update('venueCity', event.target.value); update('municipalityKey', event.target.value) }} placeholder="Cebu municipality or city" />)}
+            {field('venueCity', 'Municipality / city', <select name="venueCity" value={findMunicipality(form.venueCity)?.name ?? ''} onChange={(event) => chooseMunicipality(event.target.value)}><option value="">Select a Cebu municipality or city</option>{CEBU_LOCATIONS.map((municipality) => <option key={municipality.name} value={municipality.name}>{municipality.name}</option>)}</select>)}
+            {field('venueBarangay', 'Barangay', <select name="venueBarangay" value={barangaysFor(form.venueCity).find((barangay) => barangayKey(barangay) === barangayKey(form.venueBarangay)) ?? ''} onChange={(event) => update('venueBarangay', event.target.value)} disabled={!findMunicipality(form.venueCity)}><option value="">{form.venueCity ? 'Select a barangay' : 'Select a municipality first'}</option>{barangaysFor(form.venueCity).map((barangay) => <option key={barangay} value={barangay}>{barangay}</option>)}</select>)}
             <details className="em-coordinate-group"><summary>Map coordinates <span>Optional · add a precise map point</span></summary><div className="em-form-grid">
               {field('mapLatitude', 'Latitude', <input name="mapLatitude" type="number" step="any" value={form.mapLatitude ?? ''} onChange={(event) => update('mapLatitude', event.target.value === '' ? null : Number(event.target.value))} placeholder="10.3157" />)}
               {field('mapLongitude', 'Longitude', <input name="mapLongitude" type="number" step="any" value={form.mapLongitude ?? ''} onChange={(event) => update('mapLongitude', event.target.value === '' ? null : Number(event.target.value))} placeholder="123.8854" />)}

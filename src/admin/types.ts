@@ -1,4 +1,4 @@
-export type AdminView = 'overview' | 'users' | 'events' | 'moderation' | 'activity'
+export type AdminView = 'overview' | 'users' | 'events' | 'moderation' | 'activity' | 'settings'
 
 export type ReviewStatus = 'needs-review' | 'investigating' | 'waiting-for-info' | 'resolved'
 

@@ -81,8 +81,15 @@
 .em-detail-page .em-farmer-option .em-farmer-verified-summary { color:#2d7044; font-weight:700; }
 .em-detail-search-empty,.em-detail-camera-note { margin:8px 0; color:#61786a; font-size:11px; line-height:1.5; }
 .em-detail-camera-actions { margin-bottom:10px; }
-.em-detail-video { width:100%; max-height:270px; border-radius:9px; background:#163623; object-fit:cover; }
-.em-detail-video[hidden] { display:none; }
+.em-detail-camera-preview { position:relative; display:grid; place-items:center; width:100%; aspect-ratio:4/3; max-height:270px; overflow:hidden; border-radius:9px; background:#163623; }
+.em-detail-camera-preview[hidden] { display:none; }
+.em-detail-video { display:block; width:100%; height:100%; object-fit:cover; }
+.em-detail-scan-frame { position:absolute; top:50%; left:50%; width:min(66%,210px); aspect-ratio:1; border:1px solid rgba(255,255,255,.38); border-radius:12px; box-shadow:0 0 0 100vmax rgba(7,28,17,.4); transform:translate(-50%,-50%); pointer-events:none; }
+.em-detail-scan-corner { position:absolute; width:27px; height:27px; border:4px solid #fff; filter:drop-shadow(0 1px 2px rgba(0,0,0,.45)); }
+.em-detail-scan-corner:nth-child(1) { top:-2px; left:-2px; border-right:0; border-bottom:0; border-top-left-radius:12px; }
+.em-detail-scan-corner:nth-child(2) { top:-2px; right:-2px; border-left:0; border-bottom:0; border-top-right-radius:12px; }
+.em-detail-scan-corner:nth-child(3) { bottom:-2px; right:-2px; border-left:0; border-top:0; border-bottom-right-radius:12px; }
+.em-detail-scan-corner:nth-child(4) { bottom:-2px; left:-2px; border-right:0; border-top:0; border-bottom-left-radius:12px; }
 .em-detail-checkin-result { display:grid; gap:4px; margin-top:12px; padding:12px; border:1px solid #cae6d1; border-radius:9px; background:#eff9f1; color:#2d6742; font-size:11px; }
 .em-detail-checkin-result strong { font-size:12px; }
 .em-detail-page .em-created-link { margin-top:10px; }
@@ -138,6 +145,10 @@
 .em-invite-check svg { width:15px; height:15px; }
 .em-invite-farmer.is-selected .em-invite-check { border-color:#185a37; background:#185a37; color:#fff; }
 .em-invite-empty { margin:0 25px 18px; padding:22px 16px; border:1px dashed #cbded0; border-radius:10px; background:#f8fbf8; color:#526b5a; font-size:12px; line-height:1.5; text-align:center; }
+.em-invite-empty strong { display:block; color:#31533d; font-size:13px; }
+.em-invite-empty p { margin:5px 0 12px; }
+.em-invite-empty button { min-height:36px; padding:0 13px; }
+.em-invite-empty a { color:#185a37; font-weight:700; text-underline-offset:3px; }
 .em-detail-page .em-invite-submit { display:flex; justify-content:space-between; width:calc(100% - 50px); min-height:46px; margin:20px 25px; padding:0 15px; font-size:13px; }
 .em-invite-submit span { display:grid; place-items:center; min-width:24px; height:24px; padding:0 6px; border-radius:7px; background:rgba(255,255,255,.2); color:#fff; font-variant-numeric:tabular-nums; }
 .em-invite-share { display:grid; gap:10px; padding:18px 25px 24px; border-top:1px solid #e4eee6; }
@@ -150,9 +161,6 @@
 .em-invite-tracking-head p { margin:4px 0 0; color:#526b5a; font-size:12px; line-height:1.45; }
 .em-invite-tracking-head>span { display:grid; place-items:center; flex:none; min-width:28px; height:28px; padding:0 7px; border-radius:8px; background:#e6f1e8; color:#185a37; font-size:12px; font-weight:700; font-variant-numeric:tabular-nums; }
 .em-invite-tracking-head>div { flex:1; min-width:0; }
-.em-invite-refresh { flex:none; min-height:32px; padding:0 10px; border:1px solid #cbded0; border-radius:9px; background:#fff; color:#185a37; font:inherit; font-size:11px; font-weight:700; cursor:pointer; }
-.em-invite-refresh:disabled { opacity:.6; cursor:wait; }
-.em-invite-refresh:focus-visible { outline:2px solid #185a37; outline-offset:2px; }
 .em-invite-tracking-list { max-height:290px; overflow-y:auto; border-top:1px solid #e4eee6; scrollbar-width:thin; scrollbar-color:#b9d3c1 transparent; }
 .em-invite-tracking-row { display:flex; align-items:center; gap:10px; min-width:0; padding:13px 25px; border-bottom:1px solid #e8f0ea; }
 .em-invite-tracking-row:last-child { border-bottom:0; }

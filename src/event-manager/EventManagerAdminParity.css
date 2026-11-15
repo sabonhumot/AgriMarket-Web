@@ -19,7 +19,6 @@
 }
 .em-shell .em-main {
   width: 100%;
-  max-width: 1376px;
   min-width: 0;
   padding: 36px 48px 72px;
 }
@@ -35,22 +34,7 @@
 .em-shell .em-breadcrumb a { text-decoration: none; }
 .em-shell .em-breadcrumb a:hover { color: var(--em-green); text-decoration: underline; text-underline-offset: 3px; }
 .em-shell .em-breadcrumb strong { color: var(--em-ink); font-weight: 600; }
-.em-shell .em-public-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 36px;
-  padding: 0 14px;
-  border: 1px solid var(--em-line);
-  border-radius: 999px;
-  background: #fff;
-  color: var(--em-ink);
-  font-size: 12px;
-  font-weight: 650;
-  text-decoration: none;
-}
-.em-shell .em-public-link:hover { border-color: #7e998b; background: #f7f9f6; }
-.em-shell .em-content { width: 100%; max-width: none; margin: 0; padding: 0; }
+.em-shell .em-content { width: min(100%, 1280px); max-width: none; margin: 0; padding: 0; }
 .em-shell .em-workspace-page,.em-shell .em-create-page,.em-shell.em-detail-page .em-content { max-width: none; }
 .em-shell :is(.em-heading,.em-workspace-heading,.em-create-heading) {
   align-items: flex-start;
@@ -133,7 +117,6 @@
   .em-shell { display: block; }
   .em-shell .em-main { padding: 80px 24px 60px; }
   .em-shell .em-topbar { margin: -80px -24px 28px; padding: 0 100px 0 24px; }
-  .em-shell .em-public-link { display: none; }
 }
 @media (max-width: 640px) {
   .em-shell .em-main { padding: 72px 20px 48px; }

@@ -10,13 +10,14 @@ import EventManagerEventDetail from '../event-manager/EventManagerEventDetail'
 import EventManagerNotifications from '../event-manager/EventManagerNotifications'
 import EventManagerProfile from '../event-manager/EventManagerProfile'
 import EventManagerFarmers from '../event-manager/EventManagerFarmers'
+import EventManagerSettings from '../event-manager/EventManagerSettings'
 import { getWebRole, webRolePath, type WebRole } from './web-role'
 import brandLogo from '../assets/AgriMarket.svg'
 import './WebAccessScreen.css'
 
 type Access = 'checking' | 'guest' | 'error' | WebRole
 
-export type WebPath = '/login' | '/admin' | '/event-manager' | '/event-manager/events' | '/event-manager/events/new' | '/event-manager/notifications' | '/event-manager/profile' | '/event-manager/farmers' | `/event-manager/events/${string}`
+export type WebPath = '/login' | '/admin' | '/event-manager' | '/event-manager/events' | '/event-manager/events/new' | '/event-manager/notifications' | '/event-manager/profile' | '/event-manager/settings' | '/event-manager/farmers' | `/event-manager/events/${string}`
 
 export default function WebRoute({ path }: { path: WebPath }) {
   const [access, setAccess] = useState<Access>('checking')
@@ -115,6 +116,7 @@ export default function WebRoute({ path }: { path: WebPath }) {
     if (path === '/event-manager/events/new') return <EventManagerEventForm onSignOut={signOut} />
     if (path === '/event-manager/notifications') return <EventManagerNotifications onSignOut={signOut} />
     if (path === '/event-manager/profile') return <EventManagerProfile onSignOut={signOut} />
+    if (path === '/event-manager/settings') return <EventManagerSettings onSignOut={signOut} />
     if (path === '/event-manager/farmers') return <EventManagerFarmers onSignOut={signOut} />
     if (edit) return <EventManagerEventForm eventId={decodeURIComponent(edit[1])} onSignOut={signOut} />
     if (detail) return <EventManagerEventDetail eventId={decodeURIComponent(detail[1])} onSignOut={signOut} />

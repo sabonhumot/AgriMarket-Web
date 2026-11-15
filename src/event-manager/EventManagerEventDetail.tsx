@@ -18,8 +18,7 @@ import './EventManagerEventDetail.css'
 type DetailData = Awaited<ReturnType<typeof loadManagedEvent>>
 type Row = Record<string, unknown>
 type CameraState = 'idle' | 'starting' | 'scanning' | 'unsupported' | 'denied' | 'error'
-type Detector = { detect: (source: HTMLVideoElement) => Promise<{ rawValue: string }[]> }
-type DetectorClass = new (options: { formats: string[] }) => Detector
+type QrScannerInstance = import('../vendor/qr-scanner.min.js').default
 const str = (value: unknown) => String(value ?? '')
 const num = (value: unknown) => Number.isFinite(Number(value)) ? Number(value) : 0
 const array = (value: unknown): Row[] => Array.isArray(value) ? value as Row[] : []
@@ -65,18 +64,20 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
   const [farmers, setFarmers] = useState<Row[]>([])
   const [searchedFarmers, setSearchedFarmers] = useState(false)
   const [farmerSearchLoading, setFarmerSearchLoading] = useState(false)
+  const [farmerSearchError, setFarmerSearchError] = useState<string | null>(null)
   const [selectedFarmers, setSelectedFarmers] = useState<number[]>([])
   const [invitedDirectory, setInvitedDirectory] = useState<Record<string, Pick<ManagerFarmer, 'name' | 'farmName'>>>({})
   const [inviteLink, setInviteLink] = useState('')
   const [qrPayload, setQrPayload] = useState('')
   const [checkInResult, setCheckInResult] = useState<Row | null>(null)
   const [cameraState, setCameraState] = useState<CameraState>('idle')
+  const [cameraMessage, setCameraMessage] = useState('')
   const [cancelReason, setCancelReason] = useState('')
   const [cancelNotes, setCancelNotes] = useState('')
   const [now, setNow] = useState(Date.now)
   const videoRef = useRef<HTMLVideoElement>(null)
-  const streamRef = useRef<MediaStream | null>(null)
-  const frameRef = useRef<number | null>(null)
+  const scannerRef = useRef<QrScannerInstance | null>(null)
+  const cameraRun = useRef(0)
   const detectingRef = useRef(false)
   const farmerSearchRequest = useRef(0)
   const invitedDirectoryRef = useRef<Record<string, Pick<ManagerFarmer, 'name' | 'farmName'>>>({})
@@ -97,11 +98,10 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
     return () => window.clearInterval(timer)
   }, [])
   const stopCamera = useCallback(() => {
-    if (frameRef.current !== null) cancelAnimationFrame(frameRef.current)
-    frameRef.current = null
-    streamRef.current?.getTracks().forEach((track) => track.stop())
-    streamRef.current = null
-    detectingRef.current = false
+    cameraRun.current += 1
+    scannerRef.current?.stop()
+    scannerRef.current?.destroy()
+    scannerRef.current = null
   }, [])
   useEffect(() => () => stopCamera(), [stopCamera])
 
@@ -133,7 +133,7 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
     setNotice(message)
     toast.success(message)
     try { setData(await loadManagedEvent(getSupabaseClient(), eventId)) }
-    catch { const message = 'The action succeeded, but the latest event details could not be loaded. Use Refresh to try again.'; setError(message); toast.error('Event details could not be refreshed.', { description: message }) }
+    catch { const message = 'The action succeeded, but the latest event details could not be loaded. Reopen this event to see the latest details.'; setError(message); toast.error('Event details could not be loaded.', { description: message }) }
     setBusy(false)
     return result
   }
@@ -149,22 +149,18 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
   const searchFarmers = useCallback(async (query: string) => {
     const currentRequest = ++farmerSearchRequest.current
     setFarmerSearchLoading(true)
+    setFarmerSearchError(null)
     try {
       const results = await loadEligibleFarmers(getSupabaseClient(), eventId, query)
       if (currentRequest === farmerSearchRequest.current) { setFarmers(results); setSearchedFarmers(true) }
     } catch (cause) {
-      if (currentRequest === farmerSearchRequest.current) { const message = cause instanceof Error ? cause.message : 'Eligible farmers could not be loaded.'; setError(message); toast.error('Eligible farmers could not be loaded.', { description: message }) }
+      if (currentRequest === farmerSearchRequest.current) setFarmerSearchError(cause instanceof Error ? cause.message : 'Eligible farmers could not be loaded.')
     } finally {
       if (currentRequest === farmerSearchRequest.current) setFarmerSearchLoading(false)
     }
   }, [eventId])
   useEffect(() => {
     if (!data || !isPublished(data.event) || Date.now() >= eventStart(data.event)) return
-    farmerSearchRequest.current += 1
-    setFarmerSearchLoading(true)
-    setSearchedFarmers(false)
-    setFarmers([])
-    setSelectedFarmers([])
     const timer = setTimeout(() => { void searchFarmers(farmerQuery.trim()) }, farmerQuery.trim() ? 250 : 0)
     return () => { clearTimeout(timer); farmerSearchRequest.current += 1 }
   }, [data, farmerQuery, searchFarmers])
@@ -193,42 +189,44 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
   }
   async function checkIn(payload: string) {
     if (!payload.trim()) { setError('Paste the complete farmer Virtual ID QR payload.'); toast.error('Paste the complete farmer Virtual ID QR payload.'); return }
-    if (streamRef.current) { stopCamera(); setCameraState('idle') }
+    if (scannerRef.current) { stopCamera(); setCameraState('idle') }
     const result = await runAction(() => checkInFarmer(getSupabaseClient(), eventId, payload.trim()), (value) => str(value.farmer_name || 'Farmer') + ' checked in successfully.')
     if (result) { setCheckInResult(result); setQrPayload('') }
   }
   async function startCamera() {
     if (cameraState === 'starting' || cameraState === 'scanning') return
-    const DetectorType = (window as Window & { BarcodeDetector?: DetectorClass }).BarcodeDetector
-    if (!DetectorType || !navigator.mediaDevices?.getUserMedia) { setCameraState('unsupported'); toast.error('Camera QR scanning is unavailable in this browser.'); return }
-    setCameraState('starting'); setError(null)
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraState('unsupported')
+      setCameraMessage(window.isSecureContext ? 'This browser does not provide camera access. Use another browser or manual entry.' : 'Camera access requires HTTPS or localhost. Open the site over a secure connection or use manual entry.')
+      return
+    }
+    const run = ++cameraRun.current
+    setCameraState('starting'); setCameraMessage(''); setError(null)
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
-      streamRef.current = stream
-      if (!videoRef.current) { stopCamera(); setCameraState('error'); toast.error('Camera could not be started.'); return }
-      videoRef.current.srcObject = stream
-      await videoRef.current.play()
-      const detector = new DetectorType({ formats: ['qr_code'] })
+      const { default: QrScanner } = await import('../vendor/qr-scanner.min.js')
+      if (run !== cameraRun.current) return
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+      const video = videoRef.current
+      if (!video) throw new Error('Camera preview is unavailable.')
+      const scanner = new QrScanner(video, (result) => {
+        if (detectingRef.current || run !== cameraRun.current) return
+        detectingRef.current = true
+        stopCamera()
+        setCameraState('idle')
+        void checkIn(result.data).finally(() => { detectingRef.current = false })
+      }, { preferredCamera: 'environment', maxScansPerSecond: 8, returnDetailedScanResult: true })
+      scannerRef.current = scanner
+      await scanner.start()
+      if (run !== cameraRun.current) return
       setCameraState('scanning')
-      toast.success('Camera ready to scan QR codes.')
-      const scan = async () => {
-        if (!streamRef.current || !videoRef.current) return
-        if (!detectingRef.current && videoRef.current.readyState >= 2) {
-          detectingRef.current = true
-          try {
-            const codes = await detector.detect(videoRef.current)
-            if (codes[0]?.rawValue) { stopCamera(); setCameraState('idle'); await checkIn(codes[0].rawValue); return }
-          } catch { stopCamera(); setCameraState('error'); toast.error('The camera could not scan a QR code.'); return }
-          finally { detectingRef.current = false }
-        }
-        if (streamRef.current) frameRef.current = requestAnimationFrame(() => { void scan() })
-      }
-      frameRef.current = requestAnimationFrame(() => { void scan() })
     } catch (cause) {
+      if (run !== cameraRun.current) return
       stopCamera()
       const denied = cause instanceof DOMException && cause.name === 'NotAllowedError'
       setCameraState(denied ? 'denied' : 'error')
-      toast.error(denied ? 'Camera access was denied.' : 'Camera could not be started.')
+      const message = denied ? 'Camera access was denied. Allow permission for this site and try again.' : cause instanceof DOMException && cause.name === 'NotFoundError' ? 'No camera was found on this device.' : cause instanceof DOMException && cause.name === 'NotReadableError' ? 'The camera is in use by another app. Close it and try again.' : cause instanceof Error ? cause.message : 'The camera could not be started.'
+      setCameraMessage(message)
+      toast.error(message)
     }
   }
   async function sendMessage(kind: 'broadcast' | 'promotion') {
@@ -265,6 +263,7 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
   const completed = event.databaseStatus === 'completed'
   const draft = event.databaseStatus === 'draft'
   const joinOpen = isPublished(event) && now < eventStart(event) && (!event.applicationDeadline || new Date(event.applicationDeadline).getTime() > now)
+  const invitationsClosedReason = cancelled ? 'This event was cancelled.' : completed ? 'This event has ended.' : !isPublished(event) ? 'Publish this event before inviting farmers.' : now >= eventStart(event) ? 'Invitations closed when the event started.' : 'The application deadline has passed.'
   const checkInOpen = isPublished(event) && now >= eventStart(event) && now < eventEnd(event)
   const coverUrl = event.coverPhotoPath ? getSupabaseClient().storage.from('event-manager-media').getPublicUrl(event.coverPhotoPath).data.publicUrl : ''
   const approvedCount = num(data.summary.approved_farmers ?? event.approvedFarmers)
@@ -273,7 +272,7 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
   return <div className="em-shell em-detail-page"><EventManagerSidebar active="events" onSignOut={onSignOut} /><main className="em-main">
     <EventManagerTopbar current={draft ? 'Event draft' : 'Event details'} parent="Events" parentHref="/event-manager/events" />
     <div className="em-content">
-      <div className="em-detail-toolbar"><BackLink /><div className="em-operation-buttons"><button className="em-button-secondary" type="button" disabled={busy || loading} onClick={() => void refresh(true)}>{loading ? 'Refreshing…' : 'Refresh details'}</button>{canEdit(event, now) && <a className="em-button-primary" href={'/event-manager/events/' + eventId + '/edit'} onClick={(click) => navigateWeb(click, '/event-manager/events/' + eventId + '/edit')}>{draft ? 'Edit draft' : 'Edit event'}</a>}</div></div>
+      <div className="em-detail-toolbar"><BackLink /><div className="em-operation-buttons">{canEdit(event, now) && <a className="em-button-primary" href={'/event-manager/events/' + eventId + '/edit'} onClick={(click) => navigateWeb(click, '/event-manager/events/' + eventId + '/edit')}>{draft ? 'Edit draft' : 'Edit event'}</a>}</div></div>
       <section className={'em-detail-hero-card' + (coverUrl ? ' has-cover' : '') + (draft ? ' is-draft' : '')} aria-labelledby="em-detail-title">
         <div className="em-detail-hero-main">
           <div className="em-detail-hero-top"><span className="em-detail-hero-id">Event #{event.id}</span><span className={'em-detail-status em-detail-status-' + (cancelled ? 'cancelled' : completed ? 'completed' : draft ? 'draft' : 'active')}>{draft ? 'Draft' : statusLabel(event.status)}</span></div>
@@ -298,7 +297,7 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
           <div className="em-detail-list-heading em-detail-approved-heading"><h3>Approved farmers</h3><span>{approved.length}</span></div>
           {approved.length === 0 ? <div className="em-detail-empty"><strong>No approved farmers yet</strong><p>Approved applicants will appear here for check-in.</p></div> : approved.map((row) => <article className="em-detail-person" key={num(row.application_id)}><div className="em-person-avatar">{str(row.farmer_name || 'F').charAt(0)}</div><div className="em-detail-person-main"><strong>{str(row.farmer_name || 'Farmer')}</strong><span>{str(row.farm_name || 'Approved farmer')}</span></div><span className={'em-detail-person-status ' + (row.status === 'checked_in' ? 'is-checked' : '')}>{statusLabel(str(row.status))}</span>{completed && row.status === 'approved' && <button className="em-button-secondary" type="button" disabled={busy} onClick={() => { if (window.confirm('Mark ' + str(row.farmer_name) + ' as a no-show?')) void runAction(() => markNoShow(getSupabaseClient(), num(row.application_id)), () => 'Farmer marked as a no-show.') }}>Mark no-show</button>}</article>)}
           <div className="em-invite-tracking" id="event-invited-farmers">
-            <div className="em-invite-tracking-head"><div><h3>Invited farmers</h3><p>{awaitingReply > 0 ? `${awaitingReply} awaiting a response` : invitations.length > 0 ? 'Invitation responses are up to date' : 'Sent invitations will appear here.'}</p></div><button className="em-invite-refresh" type="button" disabled={loading || busy} onClick={() => void refresh(true)}>{loading ? 'Refreshing…' : 'Refresh status'}</button><span>{invitations.length}</span></div>
+            <div className="em-invite-tracking-head"><div><h3>Invited farmers</h3><p>{awaitingReply > 0 ? `${awaitingReply} awaiting a response` : invitations.length > 0 ? 'Invitation responses are up to date' : 'Sent invitations will appear here.'}</p></div><span>{invitations.length}</span></div>
             {invitations.length > 0 && <div className="em-invite-tracking-list">{invitations.map((invitation) => {
               const status = str(invitation.status)
               const expired = status === 'pending' && new Date(str(invitation.expires_at)).getTime() <= now
@@ -324,10 +323,11 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
             <label className="em-invite-search">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><circle cx="10.75" cy="10.75" r="6.75" /><path d="m16 16 4 4" /></svg>
               <span className="em-sr-only">Search eligible farmers</span>
-              <input type="search" value={farmerQuery} onChange={(change) => { farmerSearchRequest.current += 1; setFarmerQuery(change.target.value) }} placeholder="Search by name or farm" />
+              <input type="search" value={farmerQuery} onChange={(change) => { farmerSearchRequest.current += 1; setFarmerQuery(change.target.value); setFarmerSearchLoading(true); setFarmerSearchError(null); setSearchedFarmers(false); setFarmers([]) }} placeholder="Search by name or farm" />
             </label>
             <div className="em-invite-results-head"><span>Eligible farmers</span><span aria-live="polite">{farmerSearchLoading ? 'Searching…' : `${farmers.length} found`}</span></div>
-            {searchedFarmers && farmers.length === 0 && <div className="em-invite-empty">{farmerQuery.trim() ? 'No eligible farmers matched your search.' : 'No eligible farmers are available for this event.'}</div>}
+            {farmerSearchError && <div className="em-invite-empty" role="alert"><strong>Farmer search unavailable</strong><p>{farmerSearchError}</p><button className="em-button-secondary" type="button" onClick={() => void searchFarmers(farmerQuery.trim())}>Try again</button></div>}
+            {!farmerSearchError && !farmerSearchLoading && searchedFarmers && farmers.length === 0 && <div className="em-invite-empty"><strong>No eligible farmers found</strong><p>{farmerQuery.trim() ? 'No farmers matched your search within this event’s eligibility area.' : event.eligibilityScope === 'municipality' ? `No active farmers with complete profiles are available in ${event.venueCity || 'this event’s municipality'}.` : 'No active farmers with complete profiles are available across Cebu yet.'}</p>{event.eligibilityScope === 'municipality' && canEdit(event, now) && <a href={'/event-manager/events/' + eventId + '/edit'} onClick={(click) => navigateWeb(click, '/event-manager/events/' + eventId + '/edit')}>Change farmer eligibility in event settings</a>}</div>}
             {farmers.length > 0 && <div className="em-invite-list">{farmers.map((farmer) => {
               const id = num(farmer.id)
               const selected = selectedFarmers.includes(id)
@@ -342,9 +342,9 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
             })}</div>}
             <button className="em-button-primary em-invite-submit" type="button" disabled={busy || farmerSearchLoading || selectedFarmers.length === 0} onClick={() => void sendInvitations()}>Send invitations <span>{selectedFarmers.length}</span></button>
             {event.joinMode !== 'invite_only' && <div className="em-invite-share"><span>Or share an application link</span><button className="em-button-secondary" type="button" disabled={busy} onClick={() => void makeLink()}>Create application link</button>{inviteLink && <div className="em-created-link"><strong>Application link</strong><code>{inviteLink}</code><button type="button" onClick={() => { void navigator.clipboard.writeText(inviteLink).then(() => { setNotice('Link copied.'); toast.success('Link copied.') }).catch(() => { const message = 'Clipboard access is unavailable. Select and copy the link above.'; setError(message); toast.error('Link could not be copied.', { description: message }) }) }}>Copy link</button></div>}</div>}
-          </> : <div className="em-detail-empty"><strong>Invitations are closed</strong><p>{draft ? 'Publish this draft to invite farmers.' : 'The application window has ended for this event.'}</p></div>}
+          </> : <div className="em-detail-empty"><strong>Invitations are closed</strong><p>{invitationsClosedReason}</p></div>}
         </section>
-        <section className="em-operation-card em-detail-attendance" id="event-checkin"><div className="em-operation-card-head"><div><span className="em-detail-section-label">EVENT DAY</span><h2>Farmer check-in</h2></div></div>{checkInOpen ? <><p className="em-operation-copy">Scan a farmer Virtual ID QR code or paste its complete payload.</p><div className="em-detail-camera-actions"><button className="em-button-secondary" type="button" disabled={busy || cameraState === 'starting'} onClick={() => cameraState === 'scanning' ? (stopCamera(), setCameraState('idle')) : void startCamera()}>{cameraState === 'scanning' ? 'Stop camera' : cameraState === 'starting' ? 'Starting camera…' : 'Scan QR with camera'}</button></div><video ref={videoRef} className="em-detail-video" hidden={cameraState !== 'starting' && cameraState !== 'scanning'} playsInline muted aria-label="Camera preview for QR scanning" />{cameraState === 'scanning' && <p className="em-detail-camera-note" role="status">Point the camera at the farmer’s Virtual ID QR code.</p>}{cameraState === 'denied' && <p className="em-detail-camera-note" role="alert">Camera access was denied. Allow access in your browser or use manual entry below.</p>}{cameraState === 'unsupported' && <p className="em-detail-camera-note" role="status">Camera QR scanning is unavailable in this browser. Use manual entry below.</p>}{cameraState === 'error' && <p className="em-detail-camera-note" role="alert">The camera could not scan a QR code. Try again or use manual entry.</p>}<div className="em-inline-form"><input aria-label="Farmer Virtual ID QR code data" value={qrPayload} onChange={(change) => setQrPayload(change.target.value)} placeholder="Paste complete Virtual ID QR payload" /><button className="em-button-primary" type="button" disabled={busy || !qrPayload.trim()} onClick={() => void checkIn(qrPayload)}>Check in</button></div>{checkInResult && <div className="em-detail-checkin-result" role="status"><strong>{str(checkInResult.farmer_name || 'Farmer')} checked in</strong><span>Application #{str(checkInResult.application_id)} · Attendance recorded</span></div>}</> : <div className="em-detail-empty"><strong>Check-in is unavailable</strong><p>{draft ? 'Publish the event first.' : cancelled ? 'This event was cancelled.' : completed ? 'This event has ended.' : 'Check-in opens when the event starts.'}</p></div>}</section>
+        <section className="em-operation-card em-detail-attendance" id="event-checkin"><div className="em-operation-card-head"><div><span className="em-detail-section-label">EVENT DAY</span><h2>Farmer check-in</h2></div></div>{checkInOpen ? <><p className="em-operation-copy">Scan a farmer Virtual ID QR code or paste its complete payload.</p><div className="em-detail-camera-actions"><button className="em-button-secondary" type="button" disabled={busy || cameraState === 'starting'} onClick={() => cameraState === 'scanning' ? (stopCamera(), setCameraState('idle')) : void startCamera()}>{cameraState === 'scanning' ? 'Stop camera' : cameraState === 'starting' ? 'Starting camera…' : 'Scan QR with camera'}</button></div><div className="em-detail-camera-preview" hidden={cameraState !== 'starting' && cameraState !== 'scanning'}><video ref={videoRef} className="em-detail-video" playsInline muted aria-label="Camera preview for QR scanning" /><div className="em-detail-scan-frame" aria-hidden="true"><span className="em-detail-scan-corner" /><span className="em-detail-scan-corner" /><span className="em-detail-scan-corner" /><span className="em-detail-scan-corner" /></div></div>{cameraState === 'scanning' && <p className="em-detail-camera-note" role="status">Align the farmer’s Virtual ID QR code inside the frame to scan.</p>}{(cameraState === 'denied' || cameraState === 'unsupported' || cameraState === 'error') && <p className="em-detail-camera-note" role="alert">{cameraMessage} You can use manual entry below.</p>}<div className="em-inline-form"><input aria-label="Farmer Virtual ID QR code data" value={qrPayload} onChange={(change) => setQrPayload(change.target.value)} placeholder="Paste complete Virtual ID QR payload" /><button className="em-button-primary" type="button" disabled={busy || !qrPayload.trim()} onClick={() => void checkIn(qrPayload)}>Check in</button></div>{checkInResult && <div className="em-detail-checkin-result" role="status"><strong>{str(checkInResult.farmer_name || 'Farmer')} checked in</strong><span>Application #{str(checkInResult.application_id)} · Attendance recorded</span></div>}</> : <div className="em-detail-empty"><strong>Check-in is unavailable</strong><p>{draft ? 'Publish the event first.' : cancelled ? 'This event was cancelled.' : completed ? 'This event has ended.' : 'Check-in opens when the event starts.'}</p></div>}</section>
         <section className="em-operation-card em-detail-communication"><div className="em-operation-card-head"><div><span className="em-detail-section-label">COMMUNICATION</span><h2>Reach your audience</h2></div></div><p className="em-operation-copy">Share an update with approved farmers or promote the event to nearby buyers.</p><label className="em-field">Message<textarea value={message} onChange={(change) => setMessage(change.target.value)} placeholder="Add an optional message" rows={3} /></label><div className="em-operation-buttons"><button className="em-button-secondary" type="button" disabled={busy || !isPublished(event)} onClick={() => void sendMessage('broadcast')}>Notify farmers</button><button className="em-button-secondary" type="button" disabled={busy || !isPublished(event)} onClick={() => void sendMessage('promotion')}>Promote to buyers</button></div></section>
         </div>
       </div>

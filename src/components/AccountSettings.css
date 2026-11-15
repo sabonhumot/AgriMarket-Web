@@ -1,0 +1,28 @@
+.account-settings { width: min(100%, 1120px); }
+.account-settings-panel { display: grid; grid-template-columns: minmax(0, .86fr) minmax(0, 1.14fr); overflow: hidden; border: 1px solid #dfe8e0; border-radius: 13px; background: #fff; }
+.account-settings-panel > section { min-width: 0; padding: 32px; }
+.account-settings-security { border-left: 1px solid #e5ece6; }
+.account-settings h2 { margin: 0; color: #17372b; font-size: 1.25rem; font-weight: 750; letter-spacing: -.02em; line-height: 1.25; }
+.account-settings section > p { max-width: 52ch; margin: 7px 0 26px; color: #526b5a; font-size: .875rem; line-height: 1.55; }
+.account-settings dl { margin: 0; }
+.account-settings dl > div { display: grid; gap: 5px; padding: 16px 0; border-top: 1px solid #e9efe9; }
+.account-settings dt { color: #607669; font-size: .75rem; font-weight: 700; }
+.account-settings dd { min-width: 0; margin: 0; color: #17372b; font-size: .9375rem; font-weight: 650; overflow-wrap: anywhere; }
+.account-settings form { display: grid; gap: 8px; max-width: 470px; }
+.account-settings form label { margin-top: 10px; color: #31533d; font-size: .8125rem; font-weight: 750; }
+.account-settings form label:first-child { margin-top: 0; }
+.account-settings input { width: 100%; min-height: 46px; padding: 10px 13px; border: 1px solid #bdcfc1; border-radius: 9px; background: #fff; color: #17372b; font: inherit; font-size: .9375rem; }
+.account-settings input:focus-visible { outline: 2px solid #185a37; outline-offset: 2px; }
+.account-settings input:disabled { background: #f5f8f5; cursor: not-allowed; }
+.account-settings-hint { color: #607669; font-size: .75rem; }
+.account-settings-error,.account-settings-success { margin: 8px 0 0; font-size: .8125rem; line-height: 1.5; }
+.account-settings-error { color: #9e3e20; }
+.account-settings-success { color: #185a37; }
+.account-settings-submit { justify-self: start; min-height: 44px; margin-top: 12px; padding: 0 20px; border: 0; border-radius: 9px; background: #185a37; color: #fff; font: inherit; font-size: .8125rem; font-weight: 750; cursor: pointer; }
+.account-settings-submit:hover:not(:disabled) { background: #10452b; }
+.account-settings-submit:disabled { opacity: .6; cursor: not-allowed; }
+.account-settings-state { margin: 0; color: #526b5a; font-size: .875rem; }
+.account-settings-state p { margin: 0 0 12px; }
+.account-settings-state button { min-height: 40px; padding: 0 14px; border: 1px solid #bdcfc1; border-radius: 8px; background: #fff; color: #185a37; font: inherit; font-weight: 700; cursor: pointer; }
+@media (max-width: 780px) { .account-settings-panel { grid-template-columns: 1fr; }.account-settings-security { border-left: 0; border-top: 1px solid #e5ece6; } }
+@media (max-width: 540px) { .account-settings-panel > section { padding: 23px 20px; } }
