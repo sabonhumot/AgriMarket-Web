@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.4",
+    "animejs": "^4.5.0",
     "bootstrap": "^5.3.8",
     "qrcode.react": "^4.2.0",
     "react": "^19.2.8",

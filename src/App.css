@@ -892,11 +892,34 @@ button:focus-visible,
 
 .footer-meta {
   grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 24px;
   margin: 8px 0 0;
   padding-top: 26px;
   border-top: 1px solid var(--line);
   color: var(--ink-light);
   font-size: 0.78rem;
+}
+
+.footer-meta a {
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+  font-weight: 680;
+  text-decoration: none;
+}
+
+.footer-meta a:hover {
+  color: var(--leaf-dark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.footer-meta a:focus-visible {
+  outline: 2px solid var(--leaf-dark);
+  outline-offset: 4px;
 }
 
 /* Responsive layout */

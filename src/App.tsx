@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { animate, cubicBezier } from 'animejs'
 import brandLogo from './assets/AgriMarket.svg'
 import cropDetailsScreen from './assets/crop-details-page.jpg'
 import buyerDashboard from './assets/buyer-dashboard.jpg'
@@ -85,7 +86,36 @@ function DownloadIcon() {
 }
 
 function DownloadButton({ compact = false }: { compact?: boolean }) {
+  const [starting, setStarting] = useState(false)
+  const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const linkRef = useRef<HTMLAnchorElement>(null)
+  const iconAnimation = useRef<ReturnType<typeof animate> | null>(null)
   const className = `button button-primary${compact ? ' button-compact' : ''}`
+
+  useEffect(() => () => {
+    if (resetTimer.current) clearTimeout(resetTimer.current)
+    iconAnimation.current?.revert()
+  }, [])
+
+  function showDownloadFeedback() {
+    if (resetTimer.current) clearTimeout(resetTimer.current)
+    setStarting(true)
+    iconAnimation.current?.revert()
+    const icon = linkRef.current?.querySelector('svg')
+    if (icon && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      iconAnimation.current = animate(icon, {
+        keyframes: [
+          { y: 5, duration: 110 },
+          { y: 0, duration: 170 },
+        ],
+        ease: cubicBezier(0.2, 0.8, 0.2, 1),
+      })
+    }
+    resetTimer.current = setTimeout(() => {
+      setStarting(false)
+      resetTimer.current = null
+    }, 2500)
+  }
 
   if (!DOWNLOAD_URL) {
     return (
@@ -97,9 +127,9 @@ function DownloadButton({ compact = false }: { compact?: boolean }) {
   }
 
   return (
-    <a className={className} href={DOWNLOAD_URL} download>
+    <a ref={linkRef} className={className} href={DOWNLOAD_URL} download onClick={showDownloadFeedback}>
       <DownloadIcon />
-      Download APK
+      <span role="status" aria-live="polite">{starting ? 'Starting download…' : 'Download APK'}</span>
     </a>
   )
 }
@@ -384,7 +414,10 @@ function LandingPage() {
             <p>Connecting Cebu’s local harvests with nearby buyers.</p>
           </div>
           <nav className="footer-nav" aria-label="Footer navigation"><NavigationLinks /></nav>
-          <p className="footer-meta">© {new Date().getFullYear()} AgriMarket</p>
+          <div className="footer-meta">
+            <span>© {new Date().getFullYear()} AgriMarket</span>
+            <a href="/login">Staff sign in</a>
+          </div>
         </div>
       </footer>
     </div>
