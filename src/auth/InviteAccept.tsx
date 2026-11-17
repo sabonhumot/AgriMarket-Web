@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getSupabaseClient } from '../admin/supabase'
 import { completeManagerInvite } from '../admin/event-manager-invites'
+import brandLogo from '../assets/AgriMarket.svg'
 import './InviteAccept.css'
 
 type Setup = { email: string; organization_name: string; status: string; generation_id: string }
@@ -8,6 +9,19 @@ type Phase = 'checking' | 'ready' | 'verifying' | 'password' | 'saving' | 'done'
 
 const passwordValid = (value: string) => value.length >= 8 && value.length <= 16 && /[A-Z]/.test(value) && /[a-z]/.test(value) && /\d/.test(value) && /[^A-Za-z0-9]/.test(value)
 const maskedEmail = (value: string) => value.replace(/(^.).*(@.*$)/, '$1••••$2')
+
+function StateIcon({ kind }: { kind: 'mail' | 'lock' | 'alert' | 'done' }) {
+  return <span className={`invite-icon invite-icon-${kind}`} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    {kind === 'mail' && <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m4 7 8 6 8-6" /></>}
+    {kind === 'lock' && <><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2" /></>}
+    {kind === 'alert' && <><circle cx="12" cy="12" r="9" /><path d="M12 7v6m0 4h.01" /></>}
+    {kind === 'done' && <><circle cx="12" cy="12" r="9" /><path d="m8 12 2.7 2.7L16 9" /></>}
+  </svg></span>
+}
+
+function ArrowIcon() {
+  return <svg className="invite-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3.5 10h12m-5-5 5 5-5 5" /></svg>
+}
 
 export default function InviteAccept() {
   const [phase, setPhase] = useState<Phase>('checking')
@@ -17,7 +31,7 @@ export default function InviteAccept() {
   const [confirm, setConfirm] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [token] = useState(() => {
-    const hash = new URLSearchParams(window.location.hash.slice(1))
+    const hash = new URLSearchParams(typeof window === 'undefined' ? '' : window.location.hash.slice(1))
     return { hash: hash.get('token_hash'), type: hash.get('type'), generation: hash.get('generation_id') }
   })
 
@@ -107,53 +121,52 @@ export default function InviteAccept() {
     <main className="invite-page">
       <div className="invite-shell">
         <aside className="invite-intro" aria-label="Account setup progress">
-          <a className="invite-brand" href="/" aria-label="AgriMarket home"><span className="invite-brand-mark" aria-hidden="true">A</span><span>AgriMarket</span></a>
+          <a className="invite-brand" href="/" aria-label="AgriMarket home"><img src={brandLogo} alt="AgriMarket" width="666" height="375" /></a>
           <div className="invite-intro-content">
-            <span className="invite-eyebrow">EVENT MANAGER ACCESS</span>
-            <h1>Your place in the market starts here.</h1>
-            <p>Set up your account to plan events and bring your community together through AgriMarket.</p>
+            <h1>Set up your Event Manager account.</h1>
+            <p>Accept your invitation and create a password to start managing market events.</p>
             <ol className="invite-steps">
               <li className={isPasswordStep || phase === 'done' ? 'is-complete' : 'is-active'} aria-current={phase === 'ready' || phase === 'verifying' ? 'step' : undefined}>
                 <span className="invite-step-number" aria-hidden="true">{isPasswordStep || phase === 'done' ? '✓' : '1'}</span>
-                <span><strong>Accept invitation</strong><small>Confirm your Event Manager access</small></span>
+                <span><strong>Accept invitation</strong><small>Confirm your access</small></span>
               </li>
               <li className={isPasswordStep ? 'is-active' : phase === 'done' ? 'is-complete' : ''} aria-current={isPasswordStep ? 'step' : undefined}>
                 <span className="invite-step-number" aria-hidden="true">{phase === 'done' ? '✓' : '2'}</span>
-                <span><strong>Create password</strong><small>Secure your new workspace</small></span>
+                <span><strong>Create password</strong><small>Open your workspace</small></span>
               </li>
             </ol>
           </div>
-          <p className="invite-intro-foot">AgriMarket · Connecting farmers, buyers, and cooperatives</p>
+          <p className="invite-intro-foot">AgriMarket · Event Manager setup</p>
         </aside>
 
         <section className="invite-panel" aria-labelledby="invite-panel-title" aria-busy={isBusy}>
-          <div className="invite-panel-top"><span className="invite-panel-kicker">{isPasswordStep ? 'STEP 02 / 02' : phase === 'done' ? 'SETUP COMPLETE' : 'STEP 01 / 02'}</span><span className="invite-panel-status"><span aria-hidden="true" />Secure account setup</span></div>
+          <div className="invite-panel-top"><span className="invite-panel-kicker">{isPasswordStep ? 'Step 2 of 2' : phase === 'done' ? 'Setup complete' : 'Step 1 of 2'}</span><span className="invite-panel-status"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg>Private invitation</span></div>
           {phase === 'checking' && <div className="invite-state" role="status"><span className="invite-loader" aria-hidden="true" /><h2 id="invite-panel-title">Checking your invitation</h2><p>We’re confirming that your link is ready to use.</p></div>}
           {phase === 'ready' && <div className="invite-content">
-            <span className="invite-icon" aria-hidden="true">✉</span>
-            <h2 id="invite-panel-title">You’re invited.</h2>
-            <p className="invite-lead">An AgriMarket admin has invited you to manage market events. Accept the invitation to create your password and activate your account.</p>
-            <div className="invite-info"><span>YOUR ACCESS</span><strong>Event Manager</strong><small>Invitation links are for one person and expire shortly.</small></div>
-            <button className="invite-primary" type="button" onClick={() => void accept()}>Accept invitation <span aria-hidden="true">→</span></button>
-            <p className="invite-support">Didn’t expect this? You can close this page.</p>
+            <StateIcon kind="mail" />
+            <h2 id="invite-panel-title">Accept your invitation</h2>
+            <p className="invite-lead">An AgriMarket admin invited you to manage market events. Confirm the invitation to continue with account setup.</p>
+            <div className="invite-info"><span>Your access</span><strong>Event Manager</strong><small>This invitation is intended for one person.</small></div>
+            <button className="invite-primary" type="button" onClick={() => void accept()}>Accept invitation <ArrowIcon /></button>
+            <p className="invite-support">Didn’t expect an invitation? You can close this page.</p>
           </div>}
           {phase === 'verifying' && <div className="invite-state" role="status"><span className="invite-loader" aria-hidden="true" /><h2 id="invite-panel-title">Verifying your invitation</h2><p>This should only take a moment.</p></div>}
           {isPasswordStep && setup && <div className="invite-content">
-            <span className="invite-icon invite-icon-lock" aria-hidden="true">✦</span>
-            <h2 id="invite-panel-title">Create your password.</h2>
-            <p className="invite-lead">One last step before you can open your Event Manager workspace.</p>
-            <div className="invite-account"><span>SETTING UP ACCESS FOR</span><strong>{setup.organization_name}</strong><small>{maskedEmail(setup.email)}</small></div>
+            <StateIcon kind="lock" />
+            <h2 id="invite-panel-title">Create your password</h2>
+            <p className="invite-lead">Use this password to sign in to your Event Manager workspace.</p>
+            <div className="invite-account"><span>Account for</span><strong>{setup.organization_name}</strong><small>{maskedEmail(setup.email)}</small></div>
             <form onSubmit={event => void save(event)} aria-busy={phase === 'saving'}>
               <div className="invite-field"><label htmlFor="invite-password">New password</label><div className="invite-input-wrap"><input id="invite-password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" value={password} onChange={event => setPassword(event.target.value)} disabled={phase === 'saving'} aria-describedby="invite-requirements" required /><button className="invite-reveal" type="button" onClick={() => setShowPassword(value => !value)} aria-label={showPassword ? 'Hide password' : 'Show password'} aria-controls="invite-password" disabled={phase === 'saving'}>{showPassword ? 'Hide' : 'Show'}</button></div></div>
               <ul className="invite-requirements" id="invite-requirements">{requirements.map(rule => <li key={rule.label} className={rule.met ? 'is-met' : ''}><span aria-hidden="true">{rule.met ? '✓' : '○'}</span>{rule.label}</li>)}</ul>
               <div className="invite-field"><label htmlFor="invite-confirm">Confirm password</label><input id="invite-confirm" type={showPassword ? 'text' : 'password'} autoComplete="new-password" value={confirm} onChange={event => setConfirm(event.target.value)} disabled={phase === 'saving'} aria-invalid={!!confirm && confirm !== password} aria-describedby={confirm && confirm !== password ? 'invite-confirm-error' : undefined} required />{confirm && confirm !== password && <p id="invite-confirm-error" className="invite-field-error">Passwords don’t match yet.</p>}</div>
               {error && <p className="invite-error" role="alert">{error}</p>}
-              <button className="invite-primary" type="submit" disabled={phase === 'saving' || !passwordValid(password) || password !== confirm}>{phase === 'saving' ? 'Setting up your account…' : 'Open my workspace'}{phase !== 'saving' && <span aria-hidden="true">→</span>}</button>
+              <button className="invite-primary" type="submit" disabled={phase === 'saving' || !passwordValid(password) || password !== confirm}>{phase === 'saving' ? 'Setting up your account…' : 'Open my workspace'}{phase !== 'saving' && <ArrowIcon />}</button>
             </form>
           </div>}
-          {phase === 'switch' && <div className="invite-content"><span className="invite-icon invite-icon-alert" aria-hidden="true">!</span><h2 id="invite-panel-title">A different account is signed in.</h2><p className="invite-lead">{error}</p><button className="invite-primary" type="button" onClick={() => void switchAccount()}>Sign out and continue <span aria-hidden="true">→</span></button></div>}
-          {phase === 'error' && <div className="invite-content"><span className="invite-icon invite-icon-alert" aria-hidden="true">!</span><h2 id="invite-panel-title">{retryableError ? 'We couldn’t check the invitation.' : 'This invitation needs attention.'}</h2><p className="invite-lead" role="alert">{error}</p><p className="invite-support">{retryableError ? 'Check your connection and try again.' : 'Ask your AgriMarket admin for help or a new invitation.'}</p>{retryableError && <button className="invite-primary invite-link-button" type="button" onClick={() => window.location.reload()}>Try again <span aria-hidden="true">→</span></button>}<a className="invite-secondary" href="/login">Return to sign in</a></div>}
-          {phase === 'done' && <div className="invite-content"><span className="invite-icon invite-icon-done" aria-hidden="true">✓</span><h2 id="invite-panel-title">Your account is ready.</h2>{error ? <><p className="invite-lead" role="alert">{error}</p><a className="invite-primary invite-link-button" href="/login">Go to sign in <span aria-hidden="true">→</span></a></> : <p className="invite-lead" role="status">Opening your Event Manager workspace…</p>}</div>}
+          {phase === 'switch' && <div className="invite-content"><StateIcon kind="alert" /><h2 id="invite-panel-title">A different account is signed in</h2><p className="invite-lead">{error}</p><button className="invite-primary" type="button" onClick={() => void switchAccount()}>Sign out and continue <ArrowIcon /></button></div>}
+          {phase === 'error' && <div className="invite-content"><StateIcon kind="alert" /><h2 id="invite-panel-title">{retryableError ? 'We couldn’t check the invitation' : 'This invitation needs attention'}</h2><p className="invite-lead" role="alert">{error}</p><p className="invite-support">{retryableError ? 'Check your connection and try again.' : 'Ask your AgriMarket admin for help or a new invitation.'}</p>{retryableError && <button className="invite-primary invite-link-button" type="button" onClick={() => window.location.reload()}>Try again <ArrowIcon /></button>}<a className="invite-secondary" href="/login">Return to sign in</a></div>}
+          {phase === 'done' && <div className="invite-content"><StateIcon kind="done" /><h2 id="invite-panel-title">Your account is ready</h2>{error ? <><p className="invite-lead" role="alert">{error}</p><a className="invite-primary invite-link-button" href="/login">Go to sign in <ArrowIcon /></a></> : <p className="invite-lead" role="status">Opening your Event Manager workspace…</p>}</div>}
           <p className="invite-panel-foot">Need help? Contact the AgriMarket admin who invited you.</p>
         </section>
       </div>

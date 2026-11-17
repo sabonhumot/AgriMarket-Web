@@ -32,7 +32,6 @@ export default function SignOutConfirmation({ busy, error, onCancel, onConfirm }
     onClick={event => { if (event.target === event.currentTarget && !busy) onCancel() }}
   >
     <div className="signout-confirm-content">
-      <span className="signout-confirm-eyebrow">Account</span>
       <h2 id="signout-confirm-title">Sign out of AgriMarket?</h2>
       <p id="signout-confirm-description">You’ll need to sign in again to access your workspace.</p>
       {error && <p className="signout-confirm-error" role="alert">{error}</p>}

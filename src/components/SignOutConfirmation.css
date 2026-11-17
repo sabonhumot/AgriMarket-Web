@@ -2,7 +2,7 @@
 .signout-confirm-dialog::backdrop { background: rgba(12, 28, 20, .54); }
 .signout-confirm-content { padding: 30px; }
 .signout-confirm-eyebrow { display: inline-flex; padding: 5px 10px; border-radius: 999px; background: #edf5ed; color: #286044; font-size: .6875rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
-.signout-confirm-content h2 { margin: 18px 0 8px; color: #173b29; font-size: 1.5rem; font-weight: 800; letter-spacing: -.03em; line-height: 1.2; }
+.signout-confirm-content h2 { margin: 0 0 8px; color: #173b29; font-size: 1.5rem; font-weight: 800; letter-spacing: -.03em; line-height: 1.2; }
 .signout-confirm-content > p:not(.signout-confirm-error) { max-width: 35ch; margin: 0; color: #587061; font-size: .875rem; line-height: 1.55; }
 .signout-confirm-error { margin: 20px 0 0; color: #9e3e20; font-size: .8125rem; line-height: 1.5; }
 .signout-confirm-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
