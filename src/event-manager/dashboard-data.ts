@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { formatEventTime } from './event-time'
 
 export type OverviewEvent = {
   id: string
@@ -26,13 +27,6 @@ export type EventManagerDashboard = {
 
 const count = (value: unknown) => Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : 0
 const record = (value: unknown): Record<string, unknown> => value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
-const formatTime = (value: string) => {
-  const match = /^(\d{1,2}):(\d{2})/.exec(value)
-  if (!match) return value
-  const hour = Number(match[1])
-  return `${hour % 12 || 12}:${match[2]} ${hour >= 12 ? 'PM' : 'AM'}`
-}
-
 export function mapEventManagerDashboard(value: unknown): EventManagerDashboard {
   const root = record(value)
   const profile = record(root.profile)
@@ -42,14 +36,12 @@ export function mapEventManagerDashboard(value: unknown): EventManagerDashboard 
   const rows = Array.isArray(root.events) ? root.events : []
   const events = rows.map((value): OverviewEvent => {
     const row = record(value)
-    const startTime = String(row.start_time ?? '').trim()
-    const endTime = String(row.end_time ?? '').trim()
     return {
       id: String(row.id ?? row.market_event_id ?? ''),
       name: String(row.name ?? row.event_name ?? 'Market event'),
       date: String(row.date ?? row.event_date ?? ''),
       endDate: row.end_date == null ? null : String(row.end_date),
-      time: startTime ? `${formatTime(startTime)}${endTime ? `–${formatTime(endTime)}` : ''}` : String(row.time ?? ''),
+      time: formatEventTime(row.start_time, row.end_time, row.time),
       location: String(row.location ?? row.venue_name ?? 'Venue to be announced'),
       status: String(row.status ?? 'upcoming'),
       approvedFarmers: count(row.approved_farmers),

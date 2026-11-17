@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { toast } from 'sonner'
 import AppSelect from '../components/AppSelect'
 import { getSupabaseClient } from '../admin/supabase'
@@ -19,6 +19,11 @@ type DetailData = Awaited<ReturnType<typeof loadManagedEvent>>
 type Row = Record<string, unknown>
 type CameraState = 'idle' | 'starting' | 'scanning' | 'unsupported' | 'denied' | 'error'
 type QrScannerInstance = import('../vendor/qr-scanner.min.js').default
+type Confirmation = { title: string; description: string; confirmLabel: string; tone?: 'danger'; onConfirm: () => void | Promise<void> }
+type DetailTab = 'applications' | 'reports' | 'settings'
+const detailTabs: DetailTab[] = ['applications', 'reports', 'settings']
+const tabHash: Record<DetailTab, string> = { applications: 'event-applications', reports: 'event-reports', settings: 'event-settings' }
+const tabFromHash = (hash: string): DetailTab => ['#event-invitations', '#event-invited-farmers', '#event-checkin', '#event-updates'].includes(hash) ? 'applications' : detailTabs.find((tab) => hash === '#' + tabHash[tab]) ?? 'applications'
 const str = (value: unknown) => String(value ?? '')
 const num = (value: unknown) => Number.isFinite(Number(value)) ? Number(value) : 0
 const array = (value: unknown): Row[] => Array.isArray(value) ? value as Row[] : []
@@ -51,6 +56,21 @@ function BackLink() {
   return <a className="em-detail-back-link" href="/event-manager/events" onClick={(click) => navigateWeb(click, '/event-manager/events')}>← All events</a>
 }
 
+function ActionConfirmationDialog({ confirmation, onDismiss, onConfirm }: { confirmation: Confirmation | null; onDismiss: () => void; onConfirm: () => void }) {
+  const dialogRef = useRef<HTMLDialogElement>(null)
+  useEffect(() => {
+    const dialog = dialogRef.current
+    if (!dialog) return
+    if (confirmation && !dialog.open) dialog.showModal()
+    if (!confirmation && dialog.open) dialog.close()
+  }, [confirmation])
+  return <dialog ref={dialogRef} className="em-detail-confirm-dialog" aria-labelledby="em-detail-confirm-title" aria-describedby="em-detail-confirm-description" onCancel={onDismiss} onClose={onDismiss}>
+    <h2 id="em-detail-confirm-title">{confirmation?.title}</h2>
+    <p id="em-detail-confirm-description">{confirmation?.description}</p>
+    <div className="em-detail-confirm-actions"><button className="em-button-secondary" type="button" autoFocus onClick={onDismiss}>Go back</button><button className={confirmation?.tone === 'danger' ? 'em-button-danger' : 'em-button-primary'} type="button" onClick={onConfirm}>{confirmation?.confirmLabel}</button></div>
+  </dialog>
+}
+
 export default function EventManagerEventDetail({ eventId, onSignOut, initialData }: { eventId: string; onSignOut?: () => void | Promise<void>; initialData?: DetailData }) {
   const [data, setData] = useState<DetailData | null>(initialData ?? null)
   const [loading, setLoading] = useState(!initialData)
@@ -75,6 +95,9 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
   const [cancelReason, setCancelReason] = useState('')
   const [cancelNotes, setCancelNotes] = useState('')
   const [now, setNow] = useState(Date.now)
+  const [activeTab, setActiveTab] = useState<DetailTab>(() => tabFromHash(window.location.hash))
+  const [confirmation, setConfirmation] = useState<Confirmation | null>(null)
+  const confirmationTrigger = useRef<HTMLElement | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const scannerRef = useRef<QrScannerInstance | null>(null)
   const cameraRun = useRef(0)
@@ -104,6 +127,46 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
     scannerRef.current = null
   }, [])
   useEffect(() => () => stopCamera(), [stopCamera])
+  useEffect(() => {
+    const onHashChange = () => {
+      const tab = tabFromHash(window.location.hash)
+      if (tab !== 'applications') { stopCamera(); setCameraState('idle') }
+      setActiveTab(tab)
+    }
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+  }, [stopCamera])
+
+  function selectDetailTab(tab: DetailTab) {
+    if (tab !== 'applications' && (cameraState === 'starting' || cameraState === 'scanning')) { stopCamera(); setCameraState('idle') }
+    setActiveTab(tab)
+    window.history.replaceState(null, '', window.location.pathname + window.location.search + '#' + tabHash[tab])
+  }
+  function handleTabKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    const current = detailTabs.indexOf(activeTab)
+    const next = event.key === 'ArrowRight' ? (current + 1) % detailTabs.length : event.key === 'ArrowLeft' ? (current - 1 + detailTabs.length) % detailTabs.length : event.key === 'Home' ? 0 : event.key === 'End' ? detailTabs.length - 1 : -1
+    if (next < 0) return
+    event.preventDefault()
+    const tab = detailTabs[next]
+    selectDetailTab(tab)
+    document.getElementById('event-tab-' + tab)?.focus()
+  }
+
+  function requestConfirmation(details: Confirmation) {
+    if (busy) return
+    confirmationTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    setConfirmation(details)
+  }
+  function dismissConfirmation() {
+    setConfirmation(null)
+    requestAnimationFrame(() => { if (confirmationTrigger.current?.isConnected) confirmationTrigger.current.focus() })
+  }
+  function confirmPendingAction() {
+    const action = confirmation?.onConfirm
+    if (!action) return
+    dismissConfirmation()
+    void action()
+  }
 
   const applications = useMemo(() => array(data?.applications), [data])
   const pending = useMemo(() => applications.filter((row) => str(row.status) === 'pending'), [applications])
@@ -137,14 +200,30 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
     setBusy(false)
     return result
   }
-  async function review(row: Row, decision: 'approved' | 'rejected') {
+  async function submitReview(row: Row, decision: 'approved' | 'rejected', reason?: string) {
     const id = num(row.application_id)
-    if (decision === 'rejected') {
-      if (rejectionReason.trim().length < 3) { setError('Add a short reason before rejecting this application.'); toast.error('Add a short reason before rejecting this application.'); return }
-      if (!window.confirm('Reject ' + str(row.farmer_name) + "'s application?")) return
-    }
-    const result = await runAction(() => reviewApplication(getSupabaseClient(), id, decision, decision === 'approved' ? undefined : rejectionReason.trim()), () => decision === 'approved' ? 'Application approved.' : 'Application rejected.')
+    const result = await runAction(() => reviewApplication(getSupabaseClient(), id, decision, reason), () => decision === 'approved' ? 'Application approved.' : 'Application rejected.')
     if (result !== null) { setRejectingId(null); setRejectionReason('') }
+  }
+  function review(row: Row, decision: 'approved' | 'rejected') {
+    if (decision === 'approved') {
+      requestConfirmation({
+        title: 'Approve application?',
+        description: `${str(row.farmer_name || 'This farmer')} will be approved to join this event.`,
+        confirmLabel: 'Approve application',
+        onConfirm: () => submitReview(row, decision),
+      })
+      return
+    }
+    const reason = rejectionReason.trim()
+    if (reason.length < 3) { setError('Add a short reason before rejecting this application.'); toast.error('Add a short reason before rejecting this application.'); return }
+    requestConfirmation({
+      title: 'Reject application?',
+      description: `${str(row.farmer_name || 'This farmer')} will be notified. Reason: ${reason}`,
+      confirmLabel: 'Reject application',
+      tone: 'danger',
+      onConfirm: () => submitReview(row, decision, reason),
+    })
   }
   const searchFarmers = useCallback(async (query: string) => {
     const currentRequest = ++farmerSearchRequest.current
@@ -164,17 +243,24 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
     const timer = setTimeout(() => { void searchFarmers(farmerQuery.trim()) }, farmerQuery.trim() ? 250 : 0)
     return () => { clearTimeout(timer); farmerSearchRequest.current += 1 }
   }, [data, farmerQuery, searchFarmers])
-  async function sendInvitations() {
+  function sendInvitations() {
     if (!selectedFarmers.length) { setError('Select at least one eligible farmer.'); toast.error('Select at least one eligible farmer.'); return }
-    if (!window.confirm('Send invitations to ' + selectedFarmers.length + ' selected farmer' + (selectedFarmers.length === 1 ? '' : 's') + '?')) return
-    const selectedNames = Object.fromEntries(farmers.filter((farmer) => selectedFarmers.includes(num(farmer.id))).map((farmer) => [str(farmer.id), { name: str(farmer.name), farmName: str(farmer.farm_name) }]))
-    const result = await runAction(() => inviteFarmers(getSupabaseClient(), eventId, selectedFarmers), (value) => value.sent + ' invitation' + (value.sent === 1 ? '' : 's') + ' sent' + (value.skipped ? '; ' + value.skipped + ' skipped' : '') + '.')
-    if (result) {
-      invitedDirectoryRef.current = { ...invitedDirectoryRef.current, ...selectedNames }
-      setInvitedDirectory(invitedDirectoryRef.current)
-      setSelectedFarmers([])
-      document.getElementById('event-invited-farmers')?.scrollIntoView({ block: 'start' })
-    }
+    const selectedIds = [...selectedFarmers]
+    requestConfirmation({
+      title: 'Send invitations?',
+      description: `${selectedIds.length} selected farmer${selectedIds.length === 1 ? '' : 's'} will receive an invitation to this event.`,
+      confirmLabel: 'Send invitations',
+      onConfirm: async () => {
+        const selectedNames = Object.fromEntries(farmers.filter((farmer) => selectedIds.includes(num(farmer.id))).map((farmer) => [str(farmer.id), { name: str(farmer.name), farmName: str(farmer.farm_name) }]))
+        const result = await runAction(() => inviteFarmers(getSupabaseClient(), eventId, selectedIds), (value) => value.sent + ' invitation' + (value.sent === 1 ? '' : 's') + ' sent' + (value.skipped ? '; ' + value.skipped + ' skipped' : '') + '.')
+        if (result) {
+          invitedDirectoryRef.current = { ...invitedDirectoryRef.current, ...selectedNames }
+          setInvitedDirectory(invitedDirectoryRef.current)
+          setSelectedFarmers([])
+          document.getElementById('event-invited-farmers')?.scrollIntoView({ block: 'start' })
+        }
+      },
+    })
   }
   async function makeLink() {
     const result = await runAction(async () => {
@@ -229,19 +315,31 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
       toast.error(message)
     }
   }
-  async function sendMessage(kind: 'broadcast' | 'promotion') {
-    const prompt = kind === 'broadcast' ? 'Send this update to approved farmers?' : 'Promote this event to nearby buyers?'
-    if (!window.confirm(prompt)) return
+  function sendMessage(kind: 'broadcast' | 'promotion') {
     const text = message.trim() || (kind === 'broadcast' ? 'Please review the latest event details in AgriMarket.' : data?.event.name || 'Market event')
-    const action = kind === 'broadcast' ? () => sendBroadcast(getSupabaseClient(), eventId, text) : () => promoteEvent(getSupabaseClient(), eventId, text)
-    const result = await runAction(action, () => kind === 'broadcast' ? 'Update sent to approved farmers.' : 'Event promoted to nearby buyers.')
-    if (result !== null) setMessage('')
+    requestConfirmation({
+      title: kind === 'broadcast' ? 'Notify approved farmers?' : 'Promote this event?',
+      description: kind === 'broadcast' ? `Approved farmers will receive this update: “${text}”` : `Nearby buyers will receive this promotion: “${text}”`,
+      confirmLabel: kind === 'broadcast' ? 'Notify farmers' : 'Promote event',
+      onConfirm: async () => {
+        const action = kind === 'broadcast' ? () => sendBroadcast(getSupabaseClient(), eventId, text) : () => promoteEvent(getSupabaseClient(), eventId, text)
+        const result = await runAction(action, () => kind === 'broadcast' ? 'Update sent to approved farmers.' : 'Event promoted to nearby buyers.')
+        if (result !== null) setMessage('')
+      },
+    })
   }
-  async function cancel() {
+  function cancel() {
     if (!cancelReason) { setError('Choose a cancellation reason.'); toast.error('Choose a cancellation reason.'); return }
     if (cancelReason === 'Other' && cancelNotes.trim().length < 3) { setError('Add a short explanation for Other.'); toast.error('Add a short explanation for Other.'); return }
-    if (!window.confirm('Cancel this event? Farmers and buyers will be notified.')) return
-    await runAction(() => cancelEvent(getSupabaseClient(), eventId, cancelReason, cancelNotes.trim()), () => 'Event cancelled. Participants were notified.')
+    const reason = cancelReason
+    const notes = cancelNotes.trim()
+    requestConfirmation({
+      title: 'Cancel this event?',
+      description: `Reason: ${reason}${notes ? ` — ${notes}` : ''}. Affected farmers and buyers will be notified.`,
+      confirmLabel: 'Cancel event',
+      tone: 'danger',
+      onConfirm: async () => { await runAction(() => cancelEvent(getSupabaseClient(), eventId, reason, notes), () => 'Event cancelled. Participants were notified.') },
+    })
   }
   async function exportRows(kind: 'attendance' | 'sales') {
     if (busy) return
@@ -285,33 +383,22 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
       {error && <div className="em-operation-error" role="alert">{error}</div>}{notice && <div className="em-operation-notice" role="status">{notice}</div>}
       <div className="em-detail-intro"><div>{event.description && <p>{event.description}</p>}{event.farmerInstructions && <details><summary>Instructions for farmers</summary><p>{event.farmerInstructions}</p></details>}</div></div>
       {!draft && <>
-      <nav className="em-detail-section-nav" aria-label="Event sections"><a href="#event-applications">Applications{pending.length > 0 && <span>{pending.length}</span>}</a><a href="#event-invited-farmers">Invited farmers{awaitingReply > 0 && <span>{awaitingReply}</span>}</a><a href="#event-checkin">Check-in</a><a href="#event-reports">Reports</a></nav>
-      {(pending.length > 0 || checkInOpen) && <div className="em-detail-priority" role="status"><div><strong>{checkInOpen ? 'Event day check-in is open' : pending.length + ' application' + (pending.length === 1 ? '' : 's') + ' waiting for review'}</strong><span>{checkInOpen ? 'Scan a farmer’s Virtual ID or enter the QR payload to record attendance.' : 'Review farmers before the application window closes.'}</span></div><a href={checkInOpen ? '#event-checkin' : '#event-applications'}>{checkInOpen ? 'Go to check-in' : 'Review applications'} <span aria-hidden="true">→</span></a></div>}
+      {(pending.length > 0 || checkInOpen) && <div className="em-detail-priority" role="status"><div><strong>{checkInOpen ? 'Event day check-in is open' : pending.length + ' application' + (pending.length === 1 ? '' : 's') + ' waiting for review'}</strong><span>{checkInOpen ? 'Scan a farmer’s Virtual ID or enter the QR payload to record attendance.' : 'Review farmers before the application window closes.'}</span></div><button type="button" onClick={() => { selectDetailTab('applications'); requestAnimationFrame(() => document.getElementById(checkInOpen ? 'event-checkin' : 'event-applications')?.scrollIntoView({ block: 'start' })) }}>{checkInOpen ? 'Go to check-in' : 'Review applications'} <span aria-hidden="true">→</span></button></div>}
       <section className="em-detail-stats" aria-label="Event participation"><div><span>Applications</span><strong>{num(data.summary.applications ?? applications.length)}</strong></div><div><span>Approved farmers</span><strong>{approvedCount}</strong></div><div><span>Checked in</span><strong>{num(data.summary.checked_in_farmers ?? event.checkedInFarmers)}</strong></div><div><span>Open slots</span><strong>{Math.max(0, event.farmerCount - approvedCount)}</strong></div></section>
 
-      <div className="em-detail-grid">
+      <div className="em-detail-section-nav" id="event-detail-tabs" role="tablist" aria-label="Event details sections" onKeyDown={handleTabKeyDown}>
+        {detailTabs.map((tab) => <button key={tab} id={'event-tab-' + tab} type="button" role="tab" aria-selected={activeTab === tab} aria-controls={tabHash[tab]} tabIndex={activeTab === tab ? 0 : -1} onClick={() => selectDetailTab(tab)}>{tab === 'settings' ? 'Event settings' : tab.charAt(0).toUpperCase() + tab.slice(1)}{tab === 'applications' && pending.length > 0 && <span>{pending.length}</span>}</button>)}
+      </div>
+
+      <div className="em-detail-grid" id="event-applications" role="tabpanel" aria-labelledby="event-tab-applications" hidden={activeTab !== 'applications'}>
         <div className="em-detail-column em-detail-column-primary">
-        <section className="em-operation-card em-detail-applications" id="event-applications"><div className="em-operation-card-head"><div><span className="em-detail-section-label">PARTICIPATION</span><h2>Farmer applications <span>{pending.length} pending</span></h2></div></div>
+        <section className="em-operation-card em-detail-applications" id="event-applications-list"><div className="em-operation-card-head"><div><span className="em-detail-section-label">PARTICIPATION</span><h2>Farmer applications <span>{pending.length} pending</span></h2></div></div>
           <div className="em-detail-list-heading"><h3>Waiting for review</h3><span>{pending.length}</span></div>
-          {pending.length === 0 ? <div className="em-detail-empty"><strong>Nothing to review right now</strong><p>New farmer applications will appear here.</p></div> : pending.map((row) => <article className="em-detail-person" key={num(row.application_id)}><div className="em-person-avatar">{str(row.farmer_name || 'F').charAt(0)}</div><div className="em-detail-person-main"><strong>{str(row.farmer_name || 'Farmer')}</strong><span>{str(row.farm_name || 'Farm details not provided')}{[row.farm_barangay, row.farm_municipality].filter(Boolean).length ? ' · ' + [row.farm_barangay, row.farm_municipality].filter(Boolean).join(', ') : ''}</span>{array(row.intended_listings).map((listing, index) => <small key={str(listing.listing_id || index)}>{str(listing.product_name)} · {str(listing.requested_quantity)} {str(listing.unit)}</small>)}<div className="em-detail-person-actions"><button type="button" disabled={busy || !joinOpen} onClick={() => void review(row, 'approved')}>Approve</button><button type="button" className="is-danger" disabled={busy} onClick={() => { setRejectingId(num(row.application_id)); setRejectionReason('') }}>Reject</button></div>{rejectingId === num(row.application_id) && <div className="em-detail-reject"><label>Reason for rejection<textarea value={rejectionReason} onChange={(event) => setRejectionReason(event.target.value)} placeholder="Explain the decision to the farmer" /></label><div><button className="em-button-secondary" type="button" onClick={() => setRejectingId(null)}>Keep application</button><button className="em-button-danger" type="button" disabled={busy} onClick={() => void review(row, 'rejected')}>Confirm rejection</button></div></div>}</div></article>)}
+          {pending.length === 0 ? <div className="em-detail-empty"><strong>Nothing to review right now</strong><p>New farmer applications will appear here.</p></div> : pending.map((row) => <article className="em-detail-person" key={num(row.application_id)}><div className="em-person-avatar">{str(row.farmer_name || 'F').charAt(0)}</div><div className="em-detail-person-main"><strong>{str(row.farmer_name || 'Farmer')}</strong><span>{str(row.farm_name || 'Farm details not provided')}{[row.farm_barangay, row.farm_municipality].filter(Boolean).length ? ' · ' + [row.farm_barangay, row.farm_municipality].filter(Boolean).join(', ') : ''}</span>{array(row.intended_listings).map((listing, index) => <small key={str(listing.listing_id || index)}>{str(listing.product_name)} · {str(listing.requested_quantity)} {str(listing.unit)}</small>)}<div className="em-detail-person-actions"><button type="button" disabled={busy || !joinOpen} onClick={() => void review(row, 'approved')}>Approve</button><button type="button" className="is-danger" disabled={busy} onClick={() => { setRejectingId(num(row.application_id)); setRejectionReason('') }}>Reject</button></div>{rejectingId === num(row.application_id) && <div className="em-detail-reject"><label>Reason for rejection<textarea value={rejectionReason} onChange={(event) => setRejectionReason(event.target.value)} placeholder="Explain the decision to the farmer" /></label><div><button className="em-button-secondary" type="button" onClick={() => setRejectingId(null)}>Keep application</button><button className="em-button-danger" type="button" disabled={busy} onClick={() => void review(row, 'rejected')}>Review rejection</button></div></div>}</div></article>)}
           <div className="em-detail-list-heading em-detail-approved-heading"><h3>Approved farmers</h3><span>{approved.length}</span></div>
-          {approved.length === 0 ? <div className="em-detail-empty"><strong>No approved farmers yet</strong><p>Approved applicants will appear here for check-in.</p></div> : approved.map((row) => <article className="em-detail-person" key={num(row.application_id)}><div className="em-person-avatar">{str(row.farmer_name || 'F').charAt(0)}</div><div className="em-detail-person-main"><strong>{str(row.farmer_name || 'Farmer')}</strong><span>{str(row.farm_name || 'Approved farmer')}</span></div><span className={'em-detail-person-status ' + (row.status === 'checked_in' ? 'is-checked' : '')}>{statusLabel(str(row.status))}</span>{completed && row.status === 'approved' && <button className="em-button-secondary" type="button" disabled={busy} onClick={() => { if (window.confirm('Mark ' + str(row.farmer_name) + ' as a no-show?')) void runAction(() => markNoShow(getSupabaseClient(), num(row.application_id)), () => 'Farmer marked as a no-show.') }}>Mark no-show</button>}</article>)}
-          <div className="em-invite-tracking" id="event-invited-farmers">
-            <div className="em-invite-tracking-head"><div><h3>Invited farmers</h3><p>{awaitingReply > 0 ? `${awaitingReply} awaiting a response` : invitations.length > 0 ? 'Invitation responses are up to date' : 'Sent invitations will appear here.'}</p></div><span>{invitations.length}</span></div>
-            {invitations.length > 0 && <div className="em-invite-tracking-list">{invitations.map((invitation) => {
-              const status = str(invitation.status)
-              const expired = status === 'pending' && new Date(str(invitation.expires_at)).getTime() <= now
-              const tone = expired ? 'expired' : status
-              const label = status === 'pending' && !expired ? 'Awaiting reply' : statusLabel(tone)
-              const directoryFarmer = invitedDirectory[str(invitation.farmer_id)]
-              const name = str(invitation.farmer_name).trim() || directoryFarmer?.name || 'Farmer name unavailable'
-              const farmName = str(invitation.farm_name).trim() || directoryFarmer?.farmName
-              return <div className="em-invite-tracking-row" key={str(invitation.invitation_id)}><span className="em-invite-tracking-avatar" aria-hidden="true">{name.charAt(0).toUpperCase()}</span><div><strong>{name}</strong><small>{farmName || `Invited ${new Date(str(invitation.created_at)).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' })}`}</small></div><span className={'em-invite-status is-' + tone}>{label}</span></div>
-            })}</div>}
-          </div>
+          {approved.length === 0 ? <div className="em-detail-empty"><strong>No approved farmers yet</strong><p>Approved applicants will appear here for check-in.</p></div> : approved.map((row) => <article className="em-detail-person" key={num(row.application_id)}><div className="em-person-avatar">{str(row.farmer_name || 'F').charAt(0)}</div><div className="em-detail-person-main"><strong>{str(row.farmer_name || 'Farmer')}</strong><span>{str(row.farm_name || 'Approved farmer')}</span></div><span className={'em-detail-person-status ' + (row.status === 'checked_in' ? 'is-checked' : '')}>{statusLabel(str(row.status))}</span>{completed && row.status === 'approved' && <button className="em-button-secondary" type="button" disabled={busy} onClick={() => requestConfirmation({ title: 'Mark as no-show?', description: str(row.farmer_name || 'This farmer') + ' will be marked as a no-show for this event.', confirmLabel: 'Mark no-show', tone: 'danger', onConfirm: async () => { await runAction(() => markNoShow(getSupabaseClient(), num(row.application_id)), () => 'Farmer marked as a no-show.') } })}>Mark no-show</button>}</article>)}
         </section>
-        <section className="em-operation-card em-detail-reports" id="event-reports"><div className="em-operation-card-head"><div><span className="em-detail-section-label">RESULTS</span><h2>Performance & reports</h2></div></div><div className="em-detail-report-stats"><div><span>Completed reservations</span><strong>{num(data.performance.completed_reservations)}</strong></div><div><span>Unique buyers</span><strong>{num(data.performance.unique_buyers)}</strong></div><div><span>Sales value</span><strong>₱{num(data.performance.completed_sales_value ?? event.completedSalesValue).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</strong></div></div><div className="em-operation-buttons"><button className="em-button-secondary" type="button" disabled={busy} onClick={() => void exportRows('attendance')}>Download attendance CSV</button><button className="em-button-secondary" type="button" disabled={busy} onClick={() => void exportRows('sales')}>Download sales CSV</button></div></section>
-        {!cancelled && !completed && <section className="em-danger-zone"><div className="em-detail-cancel-copy"><h2>Cancel this event</h2><p>Cancellation notifies affected farmers and buyers. Choose the reason before continuing.</p></div><div className={'em-detail-cancel-form' + (cancelReason === 'Other' ? ' has-notes' : '')}><div className="em-select-field"><span>Reason</span><AppSelect label="Reason" value={cancelReason} onChange={setCancelReason} options={['Choose a reason', 'Severe Weather / Calamity', 'Venue Permit Revoked', 'Insufficient Vendor Participation', 'Other'].map((label, index) => ({ value: index ? label : '', label }))} /></div>{cancelReason === 'Other' && <label>Explanation<textarea value={cancelNotes} onChange={(change) => setCancelNotes(change.target.value)} placeholder="Explain the reason" rows={2} /></label>}<button className="em-button-danger" type="button" disabled={busy || !cancelReason} onClick={() => void cancel()}>Cancel event</button></div></section>}
+
         </div>
         <div className="em-detail-column em-detail-column-secondary">
         <section className="em-operation-card em-detail-invitations" id="event-invitations">
@@ -343,12 +430,36 @@ export default function EventManagerEventDetail({ eventId, onSignOut, initialDat
             <button className="em-button-primary em-invite-submit" type="button" disabled={busy || farmerSearchLoading || selectedFarmers.length === 0} onClick={() => void sendInvitations()}>Send invitations <span>{selectedFarmers.length}</span></button>
             {event.joinMode !== 'invite_only' && <div className="em-invite-share"><span>Or share an application link</span><button className="em-button-secondary" type="button" disabled={busy} onClick={() => void makeLink()}>Create application link</button>{inviteLink && <div className="em-created-link"><strong>Application link</strong><code>{inviteLink}</code><button type="button" onClick={() => { void navigator.clipboard.writeText(inviteLink).then(() => { setNotice('Link copied.'); toast.success('Link copied.') }).catch(() => { const message = 'Clipboard access is unavailable. Select and copy the link above.'; setError(message); toast.error('Link could not be copied.', { description: message }) }) }}>Copy link</button></div>}</div>}
           </> : <div className="em-detail-empty"><strong>Invitations are closed</strong><p>{invitationsClosedReason}</p></div>}
+          <div className="em-invite-tracking" id="event-invited-farmers">
+            <div className="em-invite-tracking-head"><div><h3>Invited farmers</h3><p>{awaitingReply > 0 ? `${awaitingReply} awaiting a response` : invitations.length > 0 ? 'Invitation responses are up to date' : 'Sent invitations will appear here.'}</p></div><span>{invitations.length}</span></div>
+            {invitations.length > 0 && <div className="em-invite-tracking-list">{invitations.map((invitation) => {
+              const status = str(invitation.status)
+              const expired = status === 'pending' && new Date(str(invitation.expires_at)).getTime() <= now
+              const tone = expired ? 'expired' : status
+              const label = status === 'pending' && !expired ? 'Awaiting reply' : statusLabel(tone)
+              const directoryFarmer = invitedDirectory[str(invitation.farmer_id)]
+              const name = str(invitation.farmer_name).trim() || directoryFarmer?.name || 'Farmer name unavailable'
+              const farmName = str(invitation.farm_name).trim() || directoryFarmer?.farmName
+              return <div className="em-invite-tracking-row" key={str(invitation.invitation_id)}><span className="em-invite-tracking-avatar" aria-hidden="true">{name.charAt(0).toUpperCase()}</span><div><strong>{name}</strong><small>{farmName || `Invited ${new Date(str(invitation.created_at)).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' })}`}</small></div><span className={'em-invite-status is-' + tone}>{label}</span></div>
+            })}</div>}
+          </div>
         </section>
         <section className="em-operation-card em-detail-attendance" id="event-checkin"><div className="em-operation-card-head"><div><span className="em-detail-section-label">EVENT DAY</span><h2>Farmer check-in</h2></div></div>{checkInOpen ? <><p className="em-operation-copy">Scan a farmer Virtual ID QR code or paste its complete payload.</p><div className="em-detail-camera-actions"><button className="em-button-secondary" type="button" disabled={busy || cameraState === 'starting'} onClick={() => cameraState === 'scanning' ? (stopCamera(), setCameraState('idle')) : void startCamera()}>{cameraState === 'scanning' ? 'Stop camera' : cameraState === 'starting' ? 'Starting camera…' : 'Scan QR with camera'}</button></div><div className="em-detail-camera-preview" hidden={cameraState !== 'starting' && cameraState !== 'scanning'}><video ref={videoRef} className="em-detail-video" playsInline muted aria-label="Camera preview for QR scanning" /><div className="em-detail-scan-frame" aria-hidden="true"><span className="em-detail-scan-corner" /><span className="em-detail-scan-corner" /><span className="em-detail-scan-corner" /><span className="em-detail-scan-corner" /></div></div>{cameraState === 'scanning' && <p className="em-detail-camera-note" role="status">Align the farmer’s Virtual ID QR code inside the frame to scan.</p>}{(cameraState === 'denied' || cameraState === 'unsupported' || cameraState === 'error') && <p className="em-detail-camera-note" role="alert">{cameraMessage} You can use manual entry below.</p>}<div className="em-inline-form"><input aria-label="Farmer Virtual ID QR code data" value={qrPayload} onChange={(change) => setQrPayload(change.target.value)} placeholder="Paste complete Virtual ID QR payload" /><button className="em-button-primary" type="button" disabled={busy || !qrPayload.trim()} onClick={() => void checkIn(qrPayload)}>Check in</button></div>{checkInResult && <div className="em-detail-checkin-result" role="status"><strong>{str(checkInResult.farmer_name || 'Farmer')} checked in</strong><span>Application #{str(checkInResult.application_id)} · Attendance recorded</span></div>}</> : <div className="em-detail-empty"><strong>Check-in is unavailable</strong><p>{draft ? 'Publish the event first.' : cancelled ? 'This event was cancelled.' : completed ? 'This event has ended.' : 'Check-in opens when the event starts.'}</p></div>}</section>
-        <section className="em-operation-card em-detail-communication"><div className="em-operation-card-head"><div><span className="em-detail-section-label">COMMUNICATION</span><h2>Reach your audience</h2></div></div><p className="em-operation-copy">Share an update with approved farmers or promote the event to nearby buyers.</p><label className="em-field">Message<textarea value={message} onChange={(change) => setMessage(change.target.value)} placeholder="Add an optional message" rows={3} /></label><div className="em-operation-buttons"><button className="em-button-secondary" type="button" disabled={busy || !isPublished(event)} onClick={() => void sendMessage('broadcast')}>Notify farmers</button><button className="em-button-secondary" type="button" disabled={busy || !isPublished(event)} onClick={() => void sendMessage('promotion')}>Promote to buyers</button></div></section>
+        <section className="em-operation-card em-detail-communication" id="event-updates"><div className="em-operation-card-head"><div><span className="em-detail-section-label">COMMUNICATION</span><h2>Reach your audience</h2></div></div><p className="em-operation-copy">Share an update with approved farmers or promote the event to nearby buyers.</p><label className="em-field">Message<textarea value={message} onChange={(change) => setMessage(change.target.value)} placeholder="Add an optional message" rows={3} /></label><div className="em-operation-buttons"><button className="em-button-secondary" type="button" disabled={busy || !isPublished(event)} onClick={() => void sendMessage('broadcast')}>Notify farmers</button><button className="em-button-secondary" type="button" disabled={busy || !isPublished(event)} onClick={() => void sendMessage('promotion')}>Promote to buyers</button></div></section>
         </div>
       </div>
+      <section className="em-operation-card em-detail-reports" id="event-reports" role="tabpanel" aria-labelledby="event-tab-reports" hidden={activeTab !== 'reports'}><div className="em-operation-card-head"><div><span className="em-detail-section-label">RESULTS</span><h2>Performance & reports</h2></div></div><div className="em-detail-report-stats"><div><span>Completed reservations</span><strong>{num(data.performance.completed_reservations)}</strong></div><div><span>Unique buyers</span><strong>{num(data.performance.unique_buyers)}</strong></div><div><span>Sales value</span><strong>₱{num(data.performance.completed_sales_value ?? event.completedSalesValue).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</strong></div></div><div className="em-operation-buttons"><button className="em-button-secondary" type="button" disabled={busy} onClick={() => void exportRows('attendance')}>Download attendance CSV</button><button className="em-button-secondary" type="button" disabled={busy} onClick={() => void exportRows('sales')}>Download sales CSV</button></div></section>
+      <section className="em-danger-zone" id="event-settings" role="tabpanel" aria-labelledby="event-tab-settings" hidden={activeTab !== 'settings'}>
+          {!cancelled && !completed ? <>
+            <div className="em-detail-cancel-copy"><h2>Cancel this event</h2><p>Cancellation notifies affected farmers and buyers. Choose the reason before continuing.</p></div>
+            <div className={'em-detail-cancel-form' + (cancelReason === 'Other' ? ' has-notes' : '')}>
+              <div className="em-select-field"><span>Reason</span><AppSelect label="Reason" value={cancelReason} onChange={setCancelReason} options={['Choose a reason', 'Severe Weather / Calamity', 'Venue Permit Revoked', 'Insufficient Vendor Participation', 'Other'].map((label, index) => ({ value: index ? label : '', label }))} /></div>
+              {cancelReason === 'Other' && <label>Explanation<textarea value={cancelNotes} onChange={(change) => setCancelNotes(change.target.value)} placeholder="Explain the reason" rows={2} /></label>}
+              <button className="em-button-danger" type="button" disabled={busy || !cancelReason} onClick={() => void cancel()}>Cancel event</button>
+            </div>
+          </> : <div className="em-detail-empty"><strong>{cancelled ? 'Event cancelled' : 'Event completed'}</strong><p>Event changes are unavailable after the event ends or is cancelled.</p></div>}
+        </section>
       </>}
     </div>
-  </main></div>
+  </main><ActionConfirmationDialog confirmation={confirmation} onDismiss={dismissConfirmation} onConfirm={confirmPendingAction} /></div>
 }

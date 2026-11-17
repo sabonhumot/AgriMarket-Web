@@ -325,3 +325,37 @@
 .em-detail-page .em-detail-column-primary .em-detail-cancel-form.has-notes .em-button-danger{grid-column:1/-1;justify-self:end}
 @media(max-width:1200px){.em-detail-page .em-detail-column-primary .em-detail-cancel-form,.em-detail-page .em-detail-column-primary .em-detail-cancel-form.has-notes{grid-template-columns:1fr}.em-detail-page .em-detail-column-primary .em-detail-cancel-form .em-button-danger{width:100%;grid-column:auto}}
 @media(max-width:640px){.em-detail-page .em-detail-column-primary .em-danger-zone{padding:20px}}
+
+.em-detail-confirm-dialog{width:min(440px,calc(100vw - 32px));max-height:calc(100dvh - 32px);padding:26px;border:0;border-radius:15px;background:#fff;color:#17372b;box-shadow:0 20px 60px rgba(9,37,22,.24)}
+.em-detail-confirm-dialog::backdrop{background:rgba(12,38,23,.58)}
+.em-detail-confirm-dialog h2{margin:0 0 10px;font-size:21px;line-height:1.25;letter-spacing:-.025em}
+.em-detail-confirm-dialog p{max-height:40dvh;overflow-y:auto;margin:0;color:#4b6555;font-size:13px;line-height:1.6;overflow-wrap:anywhere;white-space:pre-wrap}
+.em-detail-confirm-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:9px;margin-top:25px}
+.em-detail-confirm-actions button{min-height:42px;padding-inline:17px}
+@media(max-width:480px){.em-detail-confirm-dialog{padding:22px}.em-detail-confirm-actions{flex-direction:column-reverse}.em-detail-confirm-actions button{width:100%}}
+
+/* One event task at a time. */
+.em-detail-section-nav{display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;margin:0 0 20px;border-bottom:1px solid #dbe7dd;scrollbar-width:thin;scrollbar-color:#bfd5c4 transparent}
+.em-detail-section-nav button{display:inline-flex;align-items:center;justify-content:center;flex:none;gap:7px;min-height:46px;padding:0 14px;border:0;border-bottom:3px solid transparent;background:transparent;color:#526e5b;font:inherit;font-size:12px;font-weight:750;white-space:nowrap;cursor:pointer}
+.em-detail-section-nav button:hover{background:#f1f7f2;color:#205638}
+.em-detail-section-nav button[aria-selected="true"]{border-bottom-color:#1b6b43;color:#174d32}
+.em-detail-section-nav button span{display:grid;place-items:center;min-width:19px;height:19px;padding:0 5px;border-radius:999px;background:#f6e7ca;color:#714d16;font-size:10px;font-variant-numeric:tabular-nums}
+.em-detail-section-nav button:focus-visible{outline:2px solid #256b42;outline-offset:-4px}
+.em-detail-priority>button{border:0;background:transparent;color:#1d623b;font:inherit;font-size:12px;font-weight:800;white-space:nowrap;cursor:pointer}
+.em-detail-priority>button:hover{text-decoration:underline;text-underline-offset:3px}
+.em-detail-priority>button span{margin-left:4px;color:inherit;font-size:15px}
+.em-detail-page .em-detail-grid{display:block;max-width:1000px}
+.em-detail-page .em-detail-column{display:contents}
+.em-detail-page .em-detail-grid [hidden]{display:none!important}
+.em-detail-invitations .em-invite-tracking{scroll-margin-top:20px}
+.em-detail-invitations .em-invite-tracking-list{max-height:350px}
+@media(max-width:640px){.em-detail-section-nav{gap:2px;margin-bottom:15px}.em-detail-section-nav button{padding-inline:11px}.em-detail-priority>button{padding:0}}
+.em-detail-page .em-detail-grid[hidden],.em-detail-page #event-reports[hidden],.em-detail-page #event-settings[hidden]{display:none!important}
+.em-detail-page .em-detail-grid>.em-detail-column>section{margin-bottom:18px}
+.em-detail-page #event-reports,.em-detail-page #event-settings{max-width:1000px}
+
+/* Keep application review and event-day actions in view together. */
+.em-detail-page .em-detail-grid{display:grid;max-width:none;grid-template-columns:minmax(0,1.15fr) minmax(330px,.85fr);grid-template-areas:none;align-items:start;gap:18px}
+.em-detail-page .em-detail-column{display:grid;grid-area:auto;align-content:start;gap:18px;min-width:0}
+.em-detail-page .em-detail-grid>.em-detail-column>section{margin-bottom:0}
+@media(max-width:1100px){.em-detail-page .em-detail-grid{grid-template-columns:minmax(0,1fr)}}

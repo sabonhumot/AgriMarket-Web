@@ -10,6 +10,7 @@ import './EventManagerOverview.css'
 import './EventManagerDashboard.css'
 import './EventManagerEventsPage.css'
 import { managedEventsCache, type ManagedEventRow } from './managed-events-cache'
+import { formatEventTime } from './event-time'
 
 type View = 'upcoming' | 'past' | 'drafts'
 type EventRow = ManagedEventRow
@@ -19,7 +20,7 @@ const record = (value: unknown): Record<string, unknown> => value && typeof valu
 const count = (value: unknown) => Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : 0
 function mapEvent(value: unknown): EventRow {
   const row = record(value)
-  return { id: String(row.id ?? row.market_event_id ?? ''), name: String(row.name ?? row.event_name ?? 'Market event'), type: String(row.type ?? row.event_type ?? row.category ?? 'Market event'), date: String(row.date ?? row.event_date ?? ''), endDate: row.end_date == null ? null : String(row.end_date), time: String(row.time ?? ''), location: String(row.location ?? row.venue_name ?? 'Venue to be announced'), description: String(row.description ?? ''), status: String(row.database_status ?? row.status ?? 'upcoming').toLowerCase(), approvedFarmers: count(row.approved_farmers), farmerCount: count(row.farmer_count ?? row.farmer_slots ?? row.expected_farmer_count ?? row.max_farmer_slots), pendingApplications: count(row.pending_applications), completedSalesValue: count(row.completed_sales_value) }
+  return { id: String(row.id ?? row.market_event_id ?? ''), name: String(row.name ?? row.event_name ?? 'Market event'), type: String(row.type ?? row.event_type ?? row.category ?? 'Market event'), date: String(row.date ?? row.event_date ?? ''), endDate: row.end_date == null ? null : String(row.end_date), time: formatEventTime(row.start_time, row.end_time, row.time), location: String(row.location ?? row.venue_name ?? 'Venue to be announced'), description: String(row.description ?? ''), status: String(row.database_status ?? row.status ?? 'upcoming').toLowerCase(), approvedFarmers: count(row.approved_farmers), farmerCount: count(row.farmer_count ?? row.farmer_slots ?? row.expected_farmer_count ?? row.max_farmer_slots), pendingApplications: count(row.pending_applications), completedSalesValue: count(row.completed_sales_value) }
 }
 function isDraft(event: EventRow) { return event.status === 'draft' }
 function isPast(event: EventRow) {
