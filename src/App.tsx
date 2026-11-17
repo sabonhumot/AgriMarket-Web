@@ -292,7 +292,7 @@ function LandingPage() {
       <header className="site-header">
         <div className="header-inner">
           <a className="brand-link" href="#top" aria-label="AgriMarket home">
-            <img src={brandLogo} className="brand-logo" alt="AgriMarket" />
+            <img src={brandLogo} className="brand-logo" alt="AgriMarket" width="666" height="375" />
           </a>
 
           <nav className="site-nav" aria-label="Main navigation">
