@@ -115,3 +115,127 @@ test('admin data fails closed when any protected query fails', async () => {
   }, rpc: async () => ({ data: [], error: null }) }
   await assert.rejects(loadAdminData(client), /permission denied/)
 })
+
+test('formatReportMessageTemplate populates placeholders for reported person and report', async () => {
+  const { REPORT_MESSAGE_TEMPLATES, formatReportMessageTemplate } = await server.ssrLoadModule('/src/admin/admin-data.ts')
+  assert.ok(REPORT_MESSAGE_TEMPLATES.length >= 5)
+
+  const template = REPORT_MESSAGE_TEMPLATES.find(t => t.id === 'explanation_request')
+  assert.ok(template)
+
+  const formatted = formatReportMessageTemplate(template, {
+    id: 42,
+    subject: 'Carlos Mendoza',
+    reason: 'Participant No Show',
+  })
+
+  assert.match(formatted.subject, /Case #42/)
+  assert.match(formatted.body, /Hello Carlos Mendoza/)
+  assert.match(formatted.body, /Case #42/)
+  assert.match(formatted.body, /Participant No Show/)
+  assert.doesNotMatch(formatted.body, /\{name\}|\{caseId\}|\{reason\}/)
+})
+
+test('sendAdminReportMessage validates inputs and invokes rpc or notifications table', async () => {
+  const { sendAdminReportMessage } = await server.ssrLoadModule('/src/admin/admin-data.ts')
+  const rpcCalls = []
+  const clientWithRpc = {
+    rpc: async (name, args) => {
+      rpcCalls.push([name, args])
+      return { data: { success: true, notification_id: 101 }, error: null }
+    },
+  }
+
+  // Validation checks
+  await assert.rejects(sendAdminReportMessage(clientWithRpc, {
+    reportId: 5, recipientUserId: 0, title: 'Notice', body: 'Message',
+  }), /recipient/i)
+
+  await assert.rejects(sendAdminReportMessage(clientWithRpc, {
+    reportId: 5, recipientUserId: 8, title: '  ', body: 'Message',
+  }), /subject/i)
+
+  await assert.rejects(sendAdminReportMessage(clientWithRpc, {
+    reportId: 5, recipientUserId: 8, title: 'Notice', body: '  ',
+  }), /body/i)
+
+  // Success via RPC
+  const result = await sendAdminReportMessage(clientWithRpc, {
+    reportId: 5,
+    recipientUserId: 8,
+    title: '  Official Notice  ',
+    body: '  Please attend your scheduled pickup.  ',
+    templateId: 'policy_warning',
+  })
+
+  assert.equal(result.success, true)
+  assert.equal(result.notificationId, 101)
+  assert.deepEqual(rpcCalls, [[
+    'admin_send_report_message',
+    {
+      p_report_id: 5,
+      p_recipient_user_id: 8,
+      p_title: 'Official Notice',
+      p_body: 'Please attend your scheduled pickup.',
+      p_template: 'policy_warning',
+    },
+  ]])
+
+  // Success fallback via table insert
+  const tableInserts = []
+  const clientWithoutRpc = {
+    rpc: async () => ({ data: null, error: { code: '42883', message: 'function not found' } }),
+    from: (table) => ({
+      insert: (payload) => {
+        tableInserts.push([table, payload])
+        return {
+          select: () => ({
+            maybeSingle: async () => ({ data: { notification_id: 202 }, error: null }),
+          }),
+        }
+      },
+    }),
+  }
+
+  const fallbackResult = await sendAdminReportMessage(clientWithoutRpc, {
+    reportId: 7,
+    recipientUserId: 12,
+    title: 'Inquiry',
+    body: 'Please contact admin.',
+  })
+
+  assert.equal(fallbackResult.success, true)
+  assert.equal(fallbackResult.notificationId, 202)
+  assert.equal(tableInserts.some(([tbl]) => tbl === 'notifications'), true)
+  assert.equal(tableInserts.some(([tbl]) => tbl === 'system_logs'), true)
+})
+
+test('WARNING_REASON_TEMPLATES provides warning reasons and formatWarningReason replaces placeholders', async () => {
+  const { WARNING_REASON_TEMPLATES, formatWarningReason } = await server.ssrLoadModule('/src/admin/admin-data.ts')
+  assert.ok(WARNING_REASON_TEMPLATES.length >= 6)
+  const noShow = WARNING_REASON_TEMPLATES.find(t => t.id === 'no_show')
+  assert.ok(noShow)
+  assert.match(noShow.label, /No-show/)
+
+  const formatted = formatWarningReason('Warning for {name} on case #{caseId}: {reason}.', {
+    id: 99,
+    subject: 'Elena Gomez',
+    reason: 'Unclaimed harvest',
+  })
+  assert.equal(formatted, 'Warning for Elena Gomez on case #99: Unclaimed harvest.')
+})
+
+test('SUSPENSION_REASON_SUGGESTIONS provides floating suggestion pills for user suspension', async () => {
+  const { SUSPENSION_REASON_SUGGESTIONS } = await server.ssrLoadModule('/src/admin/admin-data.ts')
+  assert.ok(SUSPENSION_REASON_SUGGESTIONS.length >= 6)
+  const threshold = SUSPENSION_REASON_SUGGESTIONS.find(s => s.id === 'warning_threshold')
+  assert.ok(threshold)
+  assert.match(threshold.label, /4\+ warnings threshold/)
+  assert.match(threshold.reason, /threshold of 4 unfulfilled transaction warnings/)
+
+  const policy = SUSPENSION_REASON_SUGGESTIONS.find(s => s.id === 'policy_violation')
+  assert.ok(policy)
+  assert.match(policy.label, /Policy violation/)
+  assert.ok(policy.reason.length > 20)
+})
+

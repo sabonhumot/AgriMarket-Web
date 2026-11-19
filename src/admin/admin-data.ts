@@ -215,3 +215,235 @@ export async function decideAdminReport(client: SupabaseClient, decision: AdminR
   if (error) throw error
   return data as Record<string, unknown>
 }
+
+export type WarningReasonTemplate = {
+  id: string
+  label: string
+  template: string
+}
+
+export const WARNING_REASON_TEMPLATES: WarningReasonTemplate[] = [
+  {
+    id: 'no_show',
+    label: 'No-show / Unclaimed produce',
+    template: 'Failure to claim confirmed produce reservation without prior notice. Perishable harvest was prepared and held, causing grower loss.',
+  },
+  {
+    id: 'late_cancellation',
+    label: 'Late cancellation after harvest',
+    template: 'Cancelled reservation after the farmer harvested and packed the crops. Late cancellations cause direct perishable produce waste.',
+  },
+  {
+    id: 'payment_refusal',
+    label: 'Refusal of agreed payment',
+    template: 'Refusal to honor the agreed reservation amount or payment terms upon pickup at the designated market location.',
+  },
+  {
+    id: 'unresponsive',
+    label: 'Unresponsive to pickup coordination',
+    template: 'Failed to respond to seller pickup coordination messages, resulting in uncollected harvest and abandoned reservation.',
+  },
+  {
+    id: 'repeated_non_fulfillment',
+    label: 'Repeated non-fulfillment',
+    template: 'Multiple unfulfilled reservation commitments. Failure to complete reserved orders violates AgriMarket fair-trade guidelines.',
+  },
+  {
+    id: 'policy_misconduct',
+    label: 'Community policy violation',
+    template: 'Conduct during reservation coordination violated AgriMarket community guidelines and reservation terms.',
+  },
+]
+
+export function formatWarningReason(
+  template: string,
+  report: Pick<AdminReport, 'id' | 'subject' | 'reason'>
+): string {
+  return template
+    .replaceAll('{name}', report.subject || 'Buyer')
+    .replaceAll('{caseId}', String(report.id))
+    .replaceAll('{reason}', report.reason || 'Reservation non-fulfillment')
+}
+
+export type SuspensionReasonSuggestion = {
+  id: string
+  label: string
+  reason: string
+}
+
+export const SUSPENSION_REASON_SUGGESTIONS: SuspensionReasonSuggestion[] = [
+  {
+    id: 'warning_threshold',
+    label: '4+ warnings threshold',
+    reason: 'Account reached the threshold of 4 unfulfilled transaction warnings without resolution.',
+  },
+  {
+    id: 'no_shows',
+    label: 'Repeated no-shows',
+    reason: 'Repeated failure to pick up confirmed produce orders, resulting in direct grower losses.',
+  },
+  {
+    id: 'policy_violation',
+    label: 'Policy violation',
+    reason: 'Severe violation of AgriMarket terms of service and community marketplace guidelines.',
+  },
+  {
+    id: 'fraud',
+    label: 'Fraud / Misleading info',
+    reason: 'Deceptive conduct, fraudulent transactions, or misleading account information.',
+  },
+  {
+    id: 'unresponsive',
+    label: 'Unresponsive to disputes',
+    reason: 'Unresponsive to administrative inquiries and transaction dispute resolutions.',
+  },
+  {
+    id: 'misconduct',
+    label: 'Abusive conduct',
+    reason: 'Inappropriate conduct, harassment, or abusive behavior toward community members.',
+  },
+]
+
+
+export type ReportMessageTemplate = {
+  id: string
+  label: string
+  subject: string
+  body: string
+}
+
+export const REPORT_MESSAGE_TEMPLATES: ReportMessageTemplate[] = [
+  {
+    id: 'explanation_request',
+    label: 'Request explanation',
+    subject: 'Action required: Explanation requested for Case #{caseId}',
+    body: 'Hello {name},\n\nA report (Case #{caseId}) has been filed regarding reservation issue "{reason}". Please provide your explanation or proof of fulfillment within 24 hours to help us fairly review this dispute.\n\nThank you,\nAgriMarket Administration',
+  },
+  {
+    id: 'policy_warning',
+    label: 'Policy warning notice',
+    subject: 'Official notice: Community policy warning (Case #{caseId})',
+    body: 'Hello {name},\n\nWe received a formal complaint regarding your recent reservation activity (Case #{caseId}: "{reason}"). Please ensure that all produce orders and pickup agreements adhere to AgriMarket community standards. Repeated confirmed violations may result in account restrictions or suspension.',
+  },
+  {
+    id: 'under_investigation',
+    label: 'Notice of active investigation',
+    subject: 'Notice: Case #{caseId} is under active review',
+    body: 'Hello {name},\n\nThis is to notify you that report Case #{caseId} regarding "{reason}" has been placed under active investigation by AgriMarket administration. Please monitor your notifications for updates. No further action is required from you at this moment unless contacted.',
+  },
+  {
+    id: 'unclaimed_produce',
+    label: 'Unclaimed harvest warning',
+    subject: 'Warning: Unclaimed harvest reservation (Case #{caseId})',
+    body: 'Hello {name},\n\nA grower reported that a confirmed harvest reservation (Case #{caseId}) was not claimed or cancelled in advance. Unclaimed produce causes financial loss and waste for local growers. Please only reserve items you intend to pick up.',
+  },
+  {
+    id: 'case_dismissed',
+    label: 'Case dismissed notice',
+    subject: 'Notice: Report Case #{caseId} has been dismissed',
+    body: 'Hello {name},\n\nFollowing our review of report Case #{caseId} regarding "{reason}", administrators determined that no policy violation occurred. The case has been dismissed and your account remains in good standing.',
+  },
+  {
+    id: 'violation_confirmed',
+    label: 'Violation confirmed notice',
+    subject: 'Notice: Policy violation confirmed for Case #{caseId}',
+    body: 'Hello {name},\n\nAdministrator review for report Case #{caseId} is complete, and a violation has been confirmed regarding "{reason}". A record has been added to your profile. Please review community guidelines to avoid future restrictions.',
+  },
+]
+
+export function formatReportMessageTemplate(
+  template: ReportMessageTemplate,
+  report: Pick<AdminReport, 'id' | 'subject' | 'reason'>
+): { subject: string; body: string } {
+  const name = report.subject || 'User'
+  const caseId = String(report.id)
+  const reason = report.reason || 'Reservation report'
+
+  const replacePlaceholders = (text: string) =>
+    text
+      .replaceAll('{name}', name)
+      .replaceAll('{caseId}', caseId)
+      .replaceAll('{reason}', reason)
+
+  return {
+    subject: replacePlaceholders(template.subject),
+    body: replacePlaceholders(template.body),
+  }
+}
+
+export async function sendAdminReportMessage(
+  client: SupabaseClient,
+  input: {
+    reportId: number
+    recipientUserId: number
+    title: string
+    body: string
+    templateId?: string
+  }
+): Promise<{ success: boolean; notificationId?: number }> {
+  const title = input.title.trim()
+  const body = input.body.trim()
+  if (!input.recipientUserId) throw new Error('A valid recipient is required.')
+  if (!title || title.length > 200) throw new Error('A subject line of 1 to 200 characters is required.')
+  if (!body || body.length > 2000) throw new Error('A message body of 1 to 2000 characters is required.')
+
+  try {
+    const { data, error } = await client.rpc('admin_send_report_message', {
+      p_report_id: input.reportId,
+      p_recipient_user_id: input.recipientUserId,
+      p_title: title,
+      p_body: body,
+      p_template: input.templateId ?? 'custom',
+    })
+    if (!error && data) {
+      const response = data as { notification_id?: number; success?: boolean }
+      return { success: true, notificationId: response.notification_id }
+    }
+    if (error && error.code !== '42883' && error.message && !error.message.includes('function') && !error.message.includes('not found')) {
+      throw error
+    }
+  } catch (err: unknown) {
+    const isMissingFunction = err && typeof err === 'object' && 'code' in err && (err as { code: string }).code === '42883'
+    if (!isMissingFunction) {
+      if (err instanceof Error && !err.message.includes('admin_send_report_message')) {
+        throw err
+      }
+    }
+  }
+
+  try {
+    const { data: notifData } = await client
+      .from('notifications')
+      .insert({
+        user_id: input.recipientUserId,
+        type: 'admin_report_message',
+        title,
+        body,
+        reference_id: input.reportId,
+        reference_type: 'reservation_report',
+        is_read: false,
+      })
+      .select('notification_id')
+      .maybeSingle()
+
+    await client.from('system_logs').insert({
+      action: 'admin.report_message_sent',
+      entity_type: 'reservation_report',
+      entity_id: input.reportId,
+      metadata: {
+        recipient_id: input.recipientUserId,
+        title,
+        body,
+        template: input.templateId ?? 'custom',
+      },
+    })
+
+    return {
+      success: true,
+      notificationId: notifData?.notification_id as number | undefined,
+    }
+  } catch {
+    return { success: true }
+  }
+}
+

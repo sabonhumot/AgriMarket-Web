@@ -1,7 +1,17 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import AppSelect from '../../components/AppSelect'
 import { toast } from 'sonner'
-import { loadReportEvidenceUrl, resolveAdminReportCase, setAdminUserSuspension, type AdminActivity, type AdminReport, type AdminUser } from '../admin-data'
+import {
+  formatWarningReason,
+  loadReportEvidenceUrl,
+  resolveAdminReportCase,
+  setAdminUserSuspension,
+  SUSPENSION_REASON_SUGGESTIONS,
+  WARNING_REASON_TEMPLATES,
+  type AdminActivity,
+  type AdminReport,
+  type AdminUser,
+} from '../admin-data'
 import { getSupabaseClient } from '../supabase'
 import { regenerateManagerInvite, type InviteHandoff as Handoff } from '../event-manager-invites'
 import InviteHandoff from './InviteHandoff'
@@ -78,7 +88,27 @@ function ReportEvidence({ path, reportId }: { path: string | null; reportId: num
   </Section>
 }
 
-function ResolutionConfirmation({ reportId, outcome, notes, issueBuyerWarning, busy, error, onCancel, onConfirm }: { reportId: number; outcome: 'fulfilled' | 'not_fulfilled' | 'dismissed'; notes: string; issueBuyerWarning: boolean; busy: boolean; error: string | null; onCancel: () => void; onConfirm: () => void }) {
+function ResolutionConfirmation({
+  reportId,
+  reportedPerson,
+  outcome,
+  notes,
+  issueBuyerWarning,
+  busy,
+  error,
+  onCancel,
+  onConfirm,
+}: {
+  reportId: number
+  reportedPerson: string
+  outcome: 'fulfilled' | 'not_fulfilled' | 'dismissed'
+  notes: string
+  issueBuyerWarning: boolean
+  busy: boolean
+  error: string | null
+  onCancel: () => void
+  onConfirm: () => void
+}) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   useEffect(() => {
     const dialog = dialogRef.current
@@ -94,35 +124,73 @@ function ResolutionConfirmation({ reportId, outcome, notes, issueBuyerWarning, b
 
   const decision = outcome === 'fulfilled' ? 'Fulfilled' : outcome === 'not_fulfilled' ? 'Not fulfilled' : 'Dismiss report'
   const inventoryEffect = outcome === 'fulfilled' ? 'Finalize any held inventory.' : outcome === 'not_fulfilled' ? 'Release inventory if it is still held.' : 'Restore the reservation to its previous status.'
-  return <dialog ref={dialogRef} className="record-confirm-dialog" aria-labelledby="record-confirm-heading" aria-describedby="record-confirm-description" onCancel={event => { event.preventDefault(); if (!busy) onCancel() }} onClick={event => { if (event.target === event.currentTarget && !busy) onCancel() }}>
-    <div className="record-confirm-content">
-      <span className="record-confirm-eyebrow">Case #{reportId}</span>
-      <h2 id="record-confirm-heading">Resolve this case?</h2>
-      <p id="record-confirm-description">Review the decision before it is recorded.</p>
-      <dl className="record-confirm-details">
-        <div><dt>Decision</dt><dd>{decision}</dd></div>
-        <div><dt>Inventory</dt><dd>{inventoryEffect}</dd></div>
-        <div><dt>Buyer warning</dt><dd>{issueBuyerWarning ? 'Issue one warning and notify the buyer.' : 'No warning will be issued.'}</dd></div>
-        <div><dt>Resolution notes</dt><dd className="record-confirm-notes">{notes.trim()}</dd></div>
-      </dl>
-      {error && <p className="record-resolution-error" role="alert">{error}</p>}
-      <div className="record-confirm-actions">
-        <button type="button" className="record-confirm-cancel" onClick={onCancel} disabled={busy}>Cancel</button>
-        <button type="button" className="record-done" onClick={onConfirm} disabled={busy}>{busy ? 'Resolving…' : 'Resolve case'}</button>
+  return (
+    <dialog
+      ref={dialogRef}
+      className="record-confirm-dialog"
+      aria-labelledby="record-confirm-heading"
+      aria-describedby="record-confirm-description"
+      onCancel={event => { event.preventDefault(); if (!busy) onCancel() }}
+      onClick={event => { if (event.target === event.currentTarget && !busy) onCancel() }}
+    >
+      <div className="record-confirm-content">
+        <span className="record-confirm-eyebrow">Case #{reportId}{issueBuyerWarning ? ' · Warning Notice' : ''}</span>
+        <h2 id="record-confirm-heading">{issueBuyerWarning ? `Issue warning to ${reportedPerson}?` : 'Resolve this case?'}</h2>
+        <p id="record-confirm-description">
+          {issueBuyerWarning
+            ? `Review the decision and the warning reason to be sent to ${reportedPerson}.`
+            : 'Review the decision before it is recorded.'}
+        </p>
+        <dl className="record-confirm-details">
+          <div><dt>Decision</dt><dd>{decision}</dd></div>
+          <div><dt>Inventory</dt><dd>{inventoryEffect}</dd></div>
+          <div>
+            <dt>Warning</dt>
+            <dd>{issueBuyerWarning ? `Issue 1 warning to ${reportedPerson} (delivered in notification).` : 'No warning will be issued.'}</dd>
+          </div>
+          <div>
+            <dt>{issueBuyerWarning ? 'Reason of warning' : 'Resolution notes'}</dt>
+            <dd className="record-confirm-notes">{notes.trim()}</dd>
+          </div>
+        </dl>
+        {error && <p className="record-resolution-error" role="alert">{error}</p>}
+        <div className="record-confirm-actions">
+          <button type="button" className="record-confirm-cancel" onClick={onCancel} disabled={busy}>Cancel</button>
+          <button type="button" className="record-done" onClick={onConfirm} disabled={busy}>
+            {busy ? 'Resolving…' : issueBuyerWarning ? 'Confirm & issue warning' : 'Resolve case'}
+          </button>
+        </div>
       </div>
-    </div>
-  </dialog>
+    </dialog>
+  )
 }
 
 function ReportResolution({ report, onResolved }: { report: AdminReport; onResolved: () => Promise<void> }) {
   const [outcome, setOutcome] = useState<'' | 'fulfilled' | 'not_fulfilled' | 'dismissed'>('')
   const [notes, setNotes] = useState('')
   const [issueBuyerWarning, setIssueBuyerWarning] = useState(false)
+  const [selectedWarningTemplate, setSelectedWarningTemplate] = useState('')
   const [busy, setBusy] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const reportedBuyer = report.reportedUserId != null && report.reportedUserId === report.buyerId
+  const reportedPerson = report.subject || 'this person'
   const open = ['open', 'under_review'].includes(report.status.toLowerCase())
+
+  function handleSelectWarningTemplate(templateId: string) {
+    setSelectedWarningTemplate(templateId)
+    if (!templateId) return
+    const tmpl = WARNING_REASON_TEMPLATES.find(t => t.id === templateId)
+    if (tmpl) {
+      setNotes(formatWarningReason(tmpl.template, report))
+      if (outcome !== 'not_fulfilled') {
+        setOutcome('not_fulfilled')
+      }
+      if (!issueBuyerWarning) {
+        setIssueBuyerWarning(true)
+      }
+    }
+  }
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -138,7 +206,7 @@ function ReportResolution({ report, onResolved }: { report: AdminReport; onResol
     try {
       await resolveAdminReportCase(getSupabaseClient(), { reportId: report.id, outcome, notes, issueBuyerWarning })
       await onResolved()
-      toast.success(`Case #${report.id} resolved${issueBuyerWarning ? ' and buyer warning issued' : ''}`)
+      toast.success(`Case #${report.id} resolved${issueBuyerWarning ? ` and warning issued to ${reportedPerson}` : ''}`)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'The report could not be resolved. Please try again.')
     } finally {
@@ -146,20 +214,161 @@ function ReportResolution({ report, onResolved }: { report: AdminReport; onResol
     }
   }
 
-  return <Section title="Resolve case">
-    {reportedBuyer && <div className={`record-warning-count${report.buyerWarningCount >= 4 ? ' needs-review' : ''}`}><strong>{report.buyerWarningCount} {report.buyerWarningCount === 1 ? 'buyer warning' : 'buyer warnings'}</strong>{report.buyerWarningCount >= 4 && <span>Suspension review needed</span>}</div>}
-    {!open ? <><p className="record-note is-empty">This case has been closed.</p>{report.resolutionNotes && <p className="record-note record-resolution-notes">{report.resolutionNotes}</p>}</> : <form className="record-resolution-form" onSubmit={event => { void submit(event) }}>
-      <label htmlFor="report-outcome">Decision</label>
-      <AppSelect id="report-outcome" label="Decision" value={outcome} onChange={value => { setOutcome(value as typeof outcome); setIssueBuyerWarning(false) }} disabled={busy} options={[{ value: '', label: 'Choose an outcome' }, { value: 'fulfilled', label: 'Fulfilled — finalize held inventory' }, { value: 'not_fulfilled', label: 'Not fulfilled — release inventory if held' }, { value: 'dismissed', label: 'Dismiss report — restore previous status' }]} />
-      {reportedBuyer && <label className="record-warning-option"><input type="checkbox" checked={issueBuyerWarning} onChange={event => setIssueBuyerWarning(event.target.checked)} disabled={busy || outcome !== 'not_fulfilled'} /><span>Issue a warning to this buyer if the report is proven true. One warning is recorded for this case.</span></label>}
-      <label htmlFor="report-resolution-notes">Resolution notes</label>
-      <textarea id="report-resolution-notes" value={notes} onChange={event => setNotes(event.target.value)} maxLength={2000} rows={4} required disabled={busy} placeholder="Explain the evidence and decision" />
-      {issueBuyerWarning && <p className="record-resolution-hint">The buyer will be notified. A fourth warning flags the account for admin suspension review; it does not suspend the account.</p>}
-      {error && <p className="record-resolution-error" role="alert">{error}</p>}
-      <button type="submit" className="record-done" disabled={busy || !outcome || !notes.trim()}>{busy ? 'Resolving…' : 'Review resolution'}</button>
-    </form>}
-    {confirming && outcome && <ResolutionConfirmation reportId={report.id} outcome={outcome} notes={notes} issueBuyerWarning={issueBuyerWarning} busy={busy} error={error} onCancel={() => { setConfirming(false); setError(null) }} onConfirm={() => { void confirmResolution() }} />}
-  </Section>
+  return (
+    <Section title="Resolve case">
+      {reportedBuyer && (
+        <div className={`record-warning-count${report.buyerWarningCount >= 4 ? ' needs-review' : ''}`}>
+          <strong>{report.buyerWarningCount} {report.buyerWarningCount === 1 ? 'buyer warning' : 'buyer warnings'}</strong>
+          {report.buyerWarningCount >= 4 && <span>Suspension review needed</span>}
+        </div>
+      )}
+
+      {!open ? (
+        <>
+          <p className="record-note is-empty">This case has been closed.</p>
+          {report.resolutionNotes && <p className="record-note record-resolution-notes">{report.resolutionNotes}</p>}
+        </>
+      ) : (
+        <form className="record-resolution-form" onSubmit={event => { void submit(event) }}>
+          <label htmlFor="report-outcome">Decision</label>
+          <AppSelect
+            id="report-outcome"
+            label="Decision"
+            value={outcome}
+            onChange={value => {
+              const next = value as typeof outcome
+              setOutcome(next)
+              if (next !== 'not_fulfilled') {
+                setIssueBuyerWarning(false)
+                setSelectedWarningTemplate('')
+              }
+            }}
+            disabled={busy}
+            options={[
+              { value: '', label: 'Choose an outcome' },
+              { value: 'fulfilled', label: 'Fulfilled — finalize held inventory' },
+              { value: 'not_fulfilled', label: 'Not fulfilled — release inventory if held' },
+              { value: 'dismissed', label: 'Dismiss report — restore previous status' },
+            ]}
+          />
+
+          {reportedBuyer && (
+            <label className="record-warning-option">
+              <input
+                type="checkbox"
+                checked={issueBuyerWarning}
+                onChange={event => {
+                  const checked = event.target.checked
+                  setIssueBuyerWarning(checked)
+                  if (checked && outcome !== 'not_fulfilled') {
+                    setOutcome('not_fulfilled')
+                  }
+                  if (!checked) {
+                    setSelectedWarningTemplate('')
+                  }
+                }}
+                disabled={busy || outcome === 'fulfilled' || outcome === 'dismissed'}
+              />
+              <span>Issue a warning to {reportedPerson} if the report is proven true. One warning is recorded for this case.</span>
+            </label>
+          )}
+
+          {/* Templated message for reason of warning, made before issuing warning */}
+          {reportedBuyer && outcome !== 'fulfilled' && outcome !== 'dismissed' && (
+            <div className={`record-warning-templates-box${issueBuyerWarning ? ' is-warning-active' : ''}`}>
+              <div className="record-warning-templates-header">
+                <span className="record-warning-templates-title">Templated message for reason of warning</span>
+                <span className="record-warning-templates-desc">
+                  Select a templated reason of warning to issue and send to {reportedPerson}:
+                </span>
+              </div>
+
+              <AppSelect
+                id="warning-reason-template-select"
+                label="Choose templated reason of warning"
+                value={selectedWarningTemplate}
+                onChange={value => handleSelectWarningTemplate(value)}
+                disabled={busy}
+                options={[
+                  { value: '', label: 'Choose a templated warning reason…' },
+                  ...WARNING_REASON_TEMPLATES.map(t => ({ value: t.id, label: t.label })),
+                ]}
+              />
+
+              <div className="record-warning-quick-pills" role="group" aria-label="Warning reason templates">
+                {WARNING_REASON_TEMPLATES.map(t => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    className={`record-warning-pill${selectedWarningTemplate === t.id ? ' is-active' : ''}`}
+                    onClick={() => handleSelectWarningTemplate(t.id)}
+                    disabled={busy}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="record-notes-label-row">
+            <label htmlFor="report-resolution-notes">
+              {issueBuyerWarning ? `Reason of warning for ${reportedPerson}` : 'Resolution notes'}
+            </label>
+            {issueBuyerWarning && <span className="record-warning-target-pill">Sent to {reportedPerson}</span>}
+          </div>
+
+          <textarea
+            id="report-resolution-notes"
+            value={notes}
+            onChange={event => {
+              setNotes(event.target.value)
+              if (selectedWarningTemplate) setSelectedWarningTemplate('')
+            }}
+            maxLength={2000}
+            rows={4}
+            required
+            disabled={busy}
+            placeholder={
+              issueBuyerWarning
+                ? `Enter or select the templated reason of warning for ${reportedPerson} (will be included in their notification)…`
+                : 'Explain the evidence and decision'
+            }
+          />
+
+          {issueBuyerWarning && (
+            <p className="record-resolution-hint">
+              The reported person will be notified with this warning reason. A fourth warning flags the account for admin suspension review; it does not suspend the account.
+            </p>
+          )}
+
+          {error && <p className="record-resolution-error" role="alert">{error}</p>}
+
+          <button
+            type="submit"
+            className="record-done"
+            disabled={busy || !outcome || !notes.trim()}
+          >
+            {busy ? 'Resolving…' : issueBuyerWarning ? `Review warning for ${reportedPerson}` : 'Review resolution'}
+          </button>
+        </form>
+      )}
+
+      {confirming && outcome && (
+        <ResolutionConfirmation
+          reportId={report.id}
+          reportedPerson={reportedPerson}
+          outcome={outcome}
+          notes={notes}
+          issueBuyerWarning={issueBuyerWarning}
+          busy={busy}
+          error={error}
+          onCancel={() => { setConfirming(false); setError(null) }}
+          onConfirm={() => { void confirmResolution() }}
+        />
+      )}
+    </Section>
+  )
 }
 
 function UserActionConfirmation({ user, suspend, reason, busy, error, onCancel, onConfirm }: { user: AdminUser; suspend: boolean; reason: string; busy: boolean; error: string | null; onCancel: () => void; onConfirm: () => void }) {
@@ -231,7 +440,35 @@ function UserActions({ user, onUpdated }: { user: AdminUser; onUpdated: () => Pr
       {canSuspend || canReactivate ? <form className="record-resolution-form record-user-action-form" data-action={suspend ? 'suspend' : 'reactivate'} onSubmit={event => { event.preventDefault(); if (reason.trim()) { setError(null); setConfirming(true) } }}>
         <p className="record-resolution-hint">{canSuspend ? 'Review this account and enter a reason before suspending it.' : 'Reactivation lifts this manual suspension. Another active report restriction may still keep the account suspended.'}</p>
         <label htmlFor="user-action-reason">Reason for {suspend ? 'suspension' : 'reactivation'}</label>
-        <textarea id="user-action-reason" value={reason} onChange={event => setReason(event.target.value)} maxLength={2000} rows={3} required disabled={busy} placeholder="Explain this account decision" />
+        <div className="record-floating-input-box">
+          <textarea
+            id="user-action-reason"
+            value={reason}
+            onChange={event => setReason(event.target.value)}
+            maxLength={2000}
+            rows={3}
+            required
+            disabled={busy}
+            placeholder={suspend ? `Explain why this ${accountType} is being suspended or select a suggestion…` : 'Explain this account decision'}
+          />
+          {suspend && (
+            <div className="record-floating-pills-bar" role="group" aria-label="Suspension reason suggestions">
+              <span className="record-floating-pills-hint">Suggestions:</span>
+              {SUSPENSION_REASON_SUGGESTIONS.map(suggestion => (
+                <button
+                  key={suggestion.id}
+                  type="button"
+                  className={`record-floating-pill${reason === suggestion.reason ? ' is-active' : ''}`}
+                  onClick={() => setReason(reason === suggestion.reason ? '' : suggestion.reason)}
+                  disabled={busy}
+                  title={suggestion.reason}
+                >
+                  {suggestion.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         {error && <p className="record-resolution-error" role="alert">{error}</p>}
         <button type="submit" className="record-done" disabled={!reason.trim() || busy}>{suspend ? `Suspend ${accountType}` : `Reactivate ${accountType}`}</button>
       </form> : <p className="record-note is-empty">{user.status === 'suspended' ? 'This suspension was created by another process and cannot be lifted here.' : 'No account action is available for this status.'}</p>}

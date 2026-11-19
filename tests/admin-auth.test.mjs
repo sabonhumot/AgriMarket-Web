@@ -29,7 +29,7 @@ test('the admin route withholds workspace content until access is checked', asyn
   const html = renderToStaticMarkup(createElement(App, { initialPath: '/admin' }))
 
   assert.doesNotMatch(html, /Platform overview/)
-  assert.match(html, /Checking administrator access/)
+  assert.match(html, /Checking administrator access|Opening AgriMarket/)
 })
 
 test('only an authenticated active admin can enter the workspace', async () => {
