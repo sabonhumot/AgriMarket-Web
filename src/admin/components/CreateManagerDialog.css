@@ -1,54 +1,742 @@
-.manager-create-dialog { width: min(560px,calc(100vw - 32px)); max-width: none; max-height: min(90dvh,800px); padding: 0; border: 1px solid var(--admin-line); border-radius: 14px; background: var(--admin-panel); color: var(--admin-ink); font-family: var(--font-admin); overflow: auto; }
-.manager-create-dialog::backdrop { background: rgba(12,28,20,.55); }
-.manager-create-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 24px 28px; border-bottom: 1px solid var(--admin-line); }
-.manager-create-header h2 { margin: 0; font-size: var(--admin-type-dialog); }
-.manager-create-header p { margin: 5px 0 0; color: var(--admin-muted); }
-.manager-create-header button { width: 38px; height: 38px; border: 0; border-radius: 7px; background: var(--admin-panel-subtle); color: var(--admin-ink); font-size: 24px; cursor: pointer; }
-.manager-create-body { display: grid; gap: 16px; padding: 26px 28px 28px; }
-.manager-create-body label { display: grid; gap: 6px; color: var(--admin-ink); font-size: var(--admin-type-meta); font-weight: 600; }
-.manager-create-select-field { display:grid; gap:6px; color:var(--admin-ink); font-size:var(--admin-type-meta); font-weight:600; }
-.manager-create-dialog .app-select-trigger { display:flex; justify-content:space-between; width:100%; min-height:42px; padding:9px 11px; border:1px solid var(--admin-line); background:#fff; color:var(--admin-ink); font-weight:450; }
-.manager-create-dialog .app-select-menu button { display:flex; justify-content:space-between; width:100%; min-height:36px; padding:7px 9px; border:0; background:transparent; color:var(--admin-ink); font-size:12px; text-align:left; }
-.manager-create-dialog .app-select-menu button:hover,.manager-create-dialog .app-select-menu button:focus-visible { background:#e9f4ec; }
-.manager-create-body label span { color: var(--admin-muted); font-weight: 400; }
-.manager-create-body input,.manager-create-body select { width: 100%; min-width: 0; min-height: 42px; padding: 9px 11px; border: 1px solid var(--admin-line); border-radius: 7px; background: #fff; color: var(--admin-ink); font: inherit; }
-.manager-create-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
-.manager-create-note,.manager-invite-handoff p { margin: 0; color: var(--admin-muted); font-size: var(--admin-type-meta); line-height: 1.5; }
-.manager-create-error { margin: 0; color: #9e3e20; }
-.manager-create-footer { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
-.manager-create-dialog button { min-height: 40px; padding: 8px 14px; border: 1px solid var(--admin-line); border-radius: 7px; background: #fff; color: var(--admin-primary); font: inherit; font-weight: 600; cursor: pointer; }
-.manager-create-dialog .manager-create-primary { border-color: var(--admin-primary); background: var(--admin-primary); color: #fff; }
-.manager-create-dialog button:disabled { opacity: .55; cursor: default; }
-.manager-create-dialog :is(button,input,select):focus-visible { outline: 2px solid var(--admin-primary); outline-offset: 2px; }
-.manager-invite-handoff { display: grid; gap: 22px; min-width: 0; }
-.manager-invite-message { display: flex; align-items: flex-start; gap: 12px; padding: 15px 16px; border: 1px solid #cce5d4; border-radius: 10px; background: #f1f8f3; color: var(--admin-ink); }
-.manager-invite-message.is-unsent { border-color: #ead9b4; background: #fff9ed; }
-.manager-invite-message-icon { display: grid; place-items: center; flex: 0 0 27px; width: 27px; height: 27px; border-radius: 50%; background: #dcefe2; color: var(--admin-primary); }
-.manager-invite-message.is-unsent .manager-invite-message-icon { background: #f8e8c8; color: #88500e; }
-.manager-invite-message-icon svg { width: 16px; height: 16px; }
-.manager-invite-message strong { display: block; font-size: .8125rem; font-weight: 750; }
-.manager-invite-handoff .manager-invite-message p { margin-top: 3px; color: #3d634c; }
-.manager-invite-handoff .manager-invite-message.is-unsent p { color: #765e36; }
-.manager-invite-message p strong { display: inline; font-weight: 750; }
-.manager-invite-share { display: grid; gap: 10px; min-width: 0; }
-.manager-invite-share h4 { margin: 0; color: var(--admin-ink); font-size: .9375rem; font-weight: 750; letter-spacing: -.015em; }
-.manager-invite-share > p:first-of-type { margin: -2px 0 4px; }
-.manager-invite-handoff label { color: var(--admin-ink-soft); font-size: .8125rem; font-weight: 700; }
-.manager-invite-link-row { display: flex; gap: 8px; min-width: 0; }
-.manager-invite-handoff .manager-invite-link-row input { box-sizing: border-box; flex: 1 1 auto; width: 100%; min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid #cadccf; border-radius: 8px; background: #f9fbf9; color: var(--admin-ink); font: 500 .8125rem/1.4 var(--font-admin); text-overflow: ellipsis; }
-.manager-invite-link-row input:focus-visible { outline: 2px solid var(--admin-primary); outline-offset: 2px; }
-.manager-invite-handoff button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 9px 14px; border: 1px solid var(--admin-line); border-radius: 8px; background: #fff; color: var(--admin-primary); font: 750 .8125rem/1.4 var(--font-admin); cursor: pointer; white-space: nowrap; transition: background-color 140ms ease, border-color 140ms ease; }
-.manager-invite-handoff .manager-invite-copy { flex: 0 0 auto; border-color: var(--admin-primary); background: var(--admin-primary); color: #fff; }
-.manager-invite-handoff .manager-invite-copy:hover { background: var(--admin-primary-hover); }
-.manager-invite-handoff .manager-invite-qr-toggle { justify-self: start; margin-top: 5px; }
-.manager-invite-handoff .manager-invite-qr-toggle:hover { background: var(--admin-primary-subtle); border-color: #b7d2c0; }
-.manager-invite-handoff .manager-invite-expiry { display: flex; align-items: center; gap: 8px; margin-top: 5px; color: var(--admin-ink-soft); font-weight: 650; }
-.manager-invite-expiry svg { flex: 0 0 16px; color: var(--admin-primary); }
-.manager-invite-handoff .manager-invite-once { color: #765e36; }
-.manager-invite-handoff .manager-invite-copy-error { color: #9e3e20; }
-.manager-invite-qr { display: grid; justify-items: center; gap: 12px; padding: 20px; border: 1px solid var(--admin-line); border-radius: 10px; background: #fbfdfb; }
-.manager-invite-qr svg { max-width: 100%; height: auto; }
-.manager-invite-qr span { color: var(--admin-muted); font-size: var(--admin-type-meta); text-align: center; }
-@media (max-width: 420px) { .manager-invite-link-row { flex-direction: column; } .manager-invite-handoff .manager-invite-copy { width: 100%; } }
-@media (prefers-reduced-motion: reduce) { .manager-invite-handoff button { transition: none; } }
-@media(max-width:600px) { .manager-create-header,.manager-create-body { padding-inline: 20px; } .manager-create-grid { grid-template-columns: 1fr; } }
+/* ─── Event Manager Account Creation Dialog ─────────────────────────── */
+.manager-create-dialog {
+  width: min(640px, calc(100vw - 32px));
+  max-width: none;
+  max-height: min(92dvh, 880px);
+  padding: 0;
+  border: 1px solid var(--admin-line);
+  border-radius: 16px;
+  background: #ffffff;
+  color: var(--admin-ink);
+  font-family: var(--font-admin);
+  box-shadow: 0 24px 64px -12px rgba(12, 38, 24, 0.28), 0 4px 16px rgba(12, 38, 24, 0.08);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: manager-dialog-in 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.manager-create-dialog::backdrop {
+  background: rgba(10, 26, 18, 0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+@keyframes manager-dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Header */
+.manager-create-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 28px 20px;
+  border-bottom: 1px solid var(--admin-line);
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+.manager-create-header-main {
+  display: grid;
+  gap: 6px;
+}
+
+.manager-create-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.manager-create-icon-badge {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--admin-primary-light, #e7f4ec);
+  color: var(--admin-primary, #185a37);
+}
+
+.manager-create-tag {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--admin-primary, #185a37);
+  background: var(--admin-primary-subtle, #f0f8f3);
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(24, 90, 55, 0.15);
+}
+
+.manager-create-header h2 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 750;
+  color: var(--admin-ink);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.manager-create-header p {
+  margin: 0;
+  color: var(--admin-muted);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.manager-create-close-btn {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--admin-line-subtle, #e8f0ea);
+  border-radius: 8px;
+  background: var(--admin-panel-subtle, #f7f9f6);
+  color: var(--admin-muted);
+  cursor: pointer;
+  transition: all 140ms ease;
+  flex-shrink: 0;
+}
+
+.manager-create-close-btn:hover:not(:disabled) {
+  background: #eaf2ed;
+  color: var(--admin-ink);
+  border-color: #c9ded1;
+}
+
+/* Form Shell */
+.manager-create-form {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+}
+
+.manager-create-body {
+  padding: 24px 28px;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  display: grid;
+  gap: 20px;
+}
+
+.manager-create-sections {
+  display: grid;
+  gap: 20px;
+}
+
+/* Sections */
+.manager-create-section {
+  display: grid;
+  gap: 14px;
+  padding: 18px 20px;
+  background: #fafcfa;
+  border: 1px solid var(--admin-line-subtle, #e8f0ea);
+  border-radius: 12px;
+}
+
+.manager-create-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 2px;
+}
+
+.manager-create-section-num {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--admin-primary, #185a37);
+  color: #ffffff;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.manager-create-section-title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--admin-ink);
+}
+
+.manager-create-section-desc {
+  margin: 1px 0 0;
+  font-size: 0.75rem;
+  color: var(--admin-muted);
+  line-height: 1.35;
+}
+
+.manager-create-fields {
+  display: grid;
+  gap: 14px;
+}
+
+.manager-create-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.manager-create-field {
+  display: grid;
+  gap: 6px;
+}
+
+.manager-create-field label,
+.manager-create-label-text {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--admin-ink);
+}
+
+.manager-create-req {
+  color: #c93b2b;
+  margin-left: 2px;
+  font-weight: 700;
+}
+
+.manager-create-opt {
+  font-size: 0.6875rem;
+  font-weight: 550;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: #ffffff;
+  color: var(--admin-muted);
+  border: 1px solid #dbe7df;
+}
+
+.manager-create-field input {
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  padding: 9px 12px;
+  border: 1.5px solid #d2e0d7;
+  border-radius: 9px;
+  background: #ffffff;
+  color: var(--admin-ink);
+  font: inherit;
+  font-size: 0.875rem;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.manager-create-field input::placeholder {
+  color: #8ba295;
+}
+
+.manager-create-field input:focus {
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 3px rgba(24, 90, 55, 0.14);
+  outline: none;
+}
+
+.manager-create-input-with-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.manager-create-field-icon {
+  position: absolute;
+  left: 12px;
+  color: #7a9c88;
+  pointer-events: none;
+}
+
+.manager-create-input-with-icon input {
+  padding-left: 36px;
+}
+
+.manager-create-field-hint {
+  font-size: 0.75rem;
+  color: var(--admin-muted);
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
+/* Select Field */
+.manager-create-select-field .app-select-trigger {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  height: 42px;
+  min-height: 42px;
+  padding: 9px 12px;
+  border: 1.5px solid #d2e0d7;
+  border-radius: 9px;
+  background: #ffffff;
+  color: var(--admin-ink);
+  font-weight: 500;
+  font-size: 0.875rem;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.manager-create-select-field .app-select-trigger:focus-visible {
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 3px rgba(24, 90, 55, 0.14);
+  outline: none;
+}
+
+.manager-create-dialog .app-select-menu button {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 36px;
+  padding: 7px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--admin-ink);
+  font-size: 0.8125rem;
+  text-align: left;
+}
+
+.manager-create-dialog .app-select-menu button:hover,
+.manager-create-dialog .app-select-menu button:focus-visible {
+  background: #e9f4ec;
+}
+
+/* Info Card */
+.manager-create-info-card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #f0f7f3;
+  border: 1px solid #cce5d5;
+  color: var(--admin-ink);
+}
+
+.manager-create-info-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: #d8ecdf;
+  color: var(--admin-primary);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.manager-create-info-card strong {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #143628;
+}
+
+.manager-create-info-card p {
+  margin: 3px 0 0;
+  font-size: 0.775rem;
+  line-height: 1.45;
+  color: #3b5f4c;
+}
+
+/* Error Banner */
+.manager-create-error {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #fdf2f0;
+  border: 1px solid #f2cfc7;
+  color: #9c2e1b;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+/* Footer */
+.manager-create-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 28px;
+  border-top: 1px solid var(--admin-line);
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+.manager-create-cancel-btn {
+  min-height: 42px;
+  padding: 9px 18px;
+  border: 1px solid var(--admin-line);
+  border-radius: 9px;
+  background: #ffffff;
+  color: var(--admin-ink);
+  font: 600 var(--admin-type-data) var(--font-admin);
+  cursor: pointer;
+  transition: background-color 140ms ease;
+}
+
+.manager-create-cancel-btn:hover:not(:disabled) {
+  background: #f4f7f4;
+}
+
+.manager-create-dialog .manager-create-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 9px 20px;
+  border: 1px solid var(--admin-primary);
+  border-radius: 9px;
+  background: var(--admin-primary);
+  color: #ffffff;
+  font: 650 var(--admin-type-data) var(--font-admin);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(24, 90, 55, 0.22);
+  transition: background-color 140ms ease, transform 120ms ease;
+}
+
+.manager-create-dialog .manager-create-primary:hover:not(:disabled) {
+  background: var(--admin-primary-hover);
+  border-color: var(--admin-primary-hover);
+}
+
+.manager-create-dialog .manager-create-primary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.manager-create-dialog button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.manager-create-spinner {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: admin-create-spin 0.65s linear infinite;
+}
+
+@keyframes admin-create-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ─── Invitation Handoff Screen ────────────────────────────────────────── */
+.manager-create-handoff-body {
+  padding: 24px 28px 20px;
+}
+
+.manager-invite-handoff {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+
+.manager-invite-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid #c0dfcb;
+  border-radius: 12px;
+  background: #f0f8f3;
+  color: var(--admin-ink);
+}
+
+.manager-invite-message.is-unsent {
+  border-color: #f0dcb8;
+  background: #fef9f0;
+}
+
+.manager-invite-message-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #d5ecde;
+  color: var(--admin-primary);
+}
+
+.manager-invite-message.is-unsent .manager-invite-message-icon {
+  background: #fae6c6;
+  color: #9c6014;
+}
+
+.manager-invite-message strong {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 750;
+  color: var(--admin-ink);
+}
+
+.manager-invite-message p {
+  margin: 3px 0 0;
+  color: #3d634c;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.manager-invite-message.is-unsent p {
+  color: #765e36;
+}
+
+.manager-invite-share {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.manager-invite-share-header h4 {
+  margin: 0;
+  color: var(--admin-ink);
+  font-size: 0.9375rem;
+  font-weight: 750;
+  letter-spacing: -0.015em;
+}
+
+.manager-invite-share-header p {
+  margin: 3px 0 0;
+  color: var(--admin-muted);
+  font-size: 0.8125rem;
+}
+
+.manager-invite-link-box {
+  display: grid;
+  gap: 6px;
+}
+
+.manager-invite-link-box label {
+  color: var(--admin-ink);
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+
+.manager-invite-link-row {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.manager-invite-link-row input {
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1.5px solid #cadccf;
+  border-radius: 9px;
+  background: #f9fbf9;
+  color: var(--admin-ink);
+  font: 500 0.8125rem/1.4 var(--font-admin);
+  text-overflow: ellipsis;
+  transition: border-color 140ms ease;
+}
+
+.manager-invite-link-row input:focus {
+  border-color: var(--admin-primary);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(24, 90, 55, 0.12);
+}
+
+.manager-invite-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--admin-primary);
+  border-radius: 9px;
+  background: var(--admin-primary);
+  color: #ffffff;
+  font: 650 0.8125rem/1.4 var(--font-admin);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 140ms ease;
+  flex-shrink: 0;
+}
+
+.manager-invite-copy:hover {
+  background: var(--admin-primary-hover);
+  border-color: var(--admin-primary-hover);
+}
+
+.manager-invite-copy.is-copied {
+  background: #116f3e;
+  border-color: #116f3e;
+}
+
+.manager-invite-copy-error {
+  margin: 4px 0 0;
+  color: #9e3e20;
+  font-size: 0.8125rem;
+}
+
+.manager-invite-meta-card {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #fafbfa;
+  border: 1px solid #e2ebe4;
+}
+
+.manager-invite-expiry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--admin-ink);
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+
+.manager-invite-expiry svg {
+  flex: 0 0 16px;
+  color: var(--admin-primary);
+}
+
+.manager-invite-once {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.75rem;
+  color: #82591b;
+  line-height: 1.45;
+}
+
+.manager-invite-once svg {
+  flex: 0 0 14px;
+  margin-top: 1px;
+  color: #9c6014;
+}
+
+.manager-invite-qr-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-self: start;
+  padding: 8px 14px;
+  border: 1px solid #cde0d5;
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--admin-primary);
+  font: 600 0.8125rem/1.4 var(--font-admin);
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+
+.manager-invite-qr-toggle:hover {
+  background: var(--admin-primary-subtle, #f0f8f3);
+  border-color: #b7d6c2;
+}
+
+.manager-invite-qr-toggle .manager-invite-chevron {
+  color: var(--admin-muted);
+}
+
+.manager-invite-qr {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 22px;
+  border: 1px solid #cce0d4;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 4px 14px rgba(20, 54, 40, 0.05);
+  animation: manager-dialog-in 180ms ease-out;
+}
+
+.manager-invite-qr-frame {
+  padding: 14px;
+  background: #ffffff;
+  border-radius: 10px;
+  border: 1px solid #e2ebe5;
+  display: grid;
+  place-items: center;
+}
+
+.manager-invite-qr svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.manager-invite-qr span {
+  color: var(--admin-muted);
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+/* Accessibility Focus Visible */
+.manager-create-dialog :is(button, input, select):focus-visible {
+  outline: 2px solid var(--admin-primary);
+  outline-offset: 2px;
+}
+
+/* Responsive Media Queries */
+@media (max-width: 600px) {
+  .manager-create-header,
+  .manager-create-body,
+  .manager-create-footer {
+    padding-inline: 20px;
+  }
+  .manager-create-grid {
+    grid-template-columns: 1fr;
+  }
+  .manager-create-section {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 440px) {
+  .manager-invite-link-row {
+    flex-direction: column;
+  }
+  .manager-invite-copy {
+    width: 100%;
+    justify-content: center;
+  }
+  .manager-create-footer {
+    flex-direction: column-reverse;
+  }
+  .manager-create-cancel-btn,
+  .manager-create-dialog .manager-create-primary {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .manager-create-dialog,
+  .manager-invite-qr {
+    animation: none;
+  }
+  .manager-create-close-btn,
+  .manager-create-field input,
+  .manager-create-cancel-btn,
+  .manager-create-dialog .manager-create-primary,
+  .manager-invite-copy,
+  .manager-invite-qr-toggle {
+    transition: none;
+  }
+}

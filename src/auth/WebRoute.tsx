@@ -27,6 +27,15 @@ export default function WebRoute({ path }: { path: WebPath }) {
     let active = true
     async function check() {
       try {
+        const hash = typeof window !== 'undefined' ? new URLSearchParams(window.location.hash.slice(1)) : null
+        const search = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+        const isRecovery = hash?.get('type') === 'recovery' || search?.get('type') === 'recovery' || Boolean(hash?.get('token_hash') && hash?.get('type') === 'recovery')
+        if (isRecovery && path === '/login') {
+          if (!active) return
+          setAccess('guest')
+          return
+        }
+
         const client = getSupabaseClient()
         const { data: sessionData, error: sessionError } = await client.auth.getSession()
         if (sessionError) throw sessionError

@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { getSupabaseClient } from '../admin/supabase'
 import { getWebAccount, type WebAccount, type WebRole } from '../auth/web-role'
+import { validateNewPassword } from '../auth/password-validation'
 import './AccountSettings.css'
 
 export default function AccountSettings({ role }: { role: WebRole }) {
@@ -40,7 +41,8 @@ export default function AccountSettings({ role }: { role: WebRole }) {
     setPasswordError(null)
     setPasswordSuccess(false)
     if (!currentPassword) { setPasswordError('Enter your current password.'); return }
-    if (newPassword.length < 8) { setPasswordError('Use at least 8 characters for the new password.'); return }
+    const validation = validateNewPassword(newPassword)
+    if (!validation.isValid) { setPasswordError(validation.primaryError); return }
     if (newPassword === currentPassword) { setPasswordError('Choose a password different from your current one.'); return }
     if (newPassword !== confirmPassword) { setPasswordError('The new passwords do not match.'); return }
 
@@ -79,7 +81,7 @@ export default function AccountSettings({ role }: { role: WebRole }) {
           <input id="settings-current-password" name="current-password" type="password" autoComplete="current-password" value={currentPassword} onChange={(event) => { setCurrentPassword(event.target.value); setPasswordError(null); setPasswordSuccess(false) }} disabled={saving || !account} required />
           <label htmlFor="settings-new-password">New password</label>
           <input id="settings-new-password" name="new-password" type="password" autoComplete="new-password" value={newPassword} onChange={(event) => { setNewPassword(event.target.value); setPasswordError(null); setPasswordSuccess(false) }} disabled={saving || !account} required minLength={8} aria-describedby="settings-password-hint" />
-          <span id="settings-password-hint" className="account-settings-hint">At least 8 characters.</span>
+          <span id="settings-password-hint" className="account-settings-hint">At least 8 characters with uppercase, lowercase, numbers, and special characters.</span>
           <label htmlFor="settings-confirm-password">Confirm new password</label>
           <input id="settings-confirm-password" name="confirm-password" type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => { setConfirmPassword(event.target.value); setPasswordError(null); setPasswordSuccess(false) }} disabled={saving || !account} required />
           {passwordError && <p className="account-settings-error" role="alert">{passwordError}</p>}
